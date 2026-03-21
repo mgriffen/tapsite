@@ -4,6 +4,32 @@
  */
 
 /**
+ * Hidden element detection helper — must be inlined in each browser-context
+ * function that needs it (page.evaluate serializes functions, losing outer scope).
+ * This is the canonical implementation; paste it inside extractors that filter hidden content.
+ *
+ * function isHiddenElement(el) { ... }
+ */
+const HIDDEN_ELEMENT_CHECK = `
+function isHiddenElement(el) {
+  if (!el || el.nodeType !== 1) return false;
+  const cs = getComputedStyle(el);
+  if (cs.display === 'none') return true;
+  if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+  if (parseFloat(cs.opacity) === 0) return true;
+  const rect = el.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0 && cs.overflow === 'hidden') return true;
+  if (cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(100%)') return true;
+  if (cs.position === 'absolute' || cs.position === 'fixed') {
+    if (rect.right < 0 || rect.bottom < 0 || rect.left > window.innerWidth || rect.top > window.innerHeight) {
+      if (rect.width < 2 || rect.height < 2) return true;
+    }
+  }
+  return false;
+}
+`.trim();
+
+/**
  * Extract all unique colors from computed styles and CSS custom properties.
  * @param {{ limit: number }} args
  */
@@ -943,6 +969,19 @@ function extractMetadataInBrowser() {
  * @param {{ selector?: string, includeImages?: boolean }} args
  */
 function extractContentInBrowser({ selector, includeImages }) {
+  // Hidden element filter — prevents extraction of invisible prompt injection text
+  function isHiddenElement(el) {
+    if (!el || el.nodeType !== 1) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none') return true;
+    if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+    if (parseFloat(cs.opacity) === 0) return true;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0 && cs.overflow === 'hidden') return true;
+    if (cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(100%)') return true;
+    return false;
+  }
+
   // Find content root
   let root;
   if (selector) {
@@ -966,6 +1005,8 @@ function extractContentInBrowser({ selector, includeImages }) {
     const cls = el.className && typeof el.className === 'string' ? el.className : '';
     const id = el.id || '';
     if (SKIP_PATTERN.test(cls) || SKIP_PATTERN.test(id)) return true;
+    // Skip hidden elements — prevents extraction of invisible prompt injection text
+    if (isHiddenElement(el)) return true;
     return false;
   }
 
@@ -1038,6 +1079,19 @@ function extractContentInBrowser({ selector, includeImages }) {
  * select options, hidden fields, CSRF tokens.
  */
 function extractFormsInBrowser() {
+  // Hidden element filter — flags hidden forms (may contain injection payloads)
+  function isHiddenElement(el) {
+    if (!el || el.nodeType !== 1) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none') return true;
+    if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+    if (parseFloat(cs.opacity) === 0) return true;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0 && cs.overflow === 'hidden') return true;
+    if (cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(100%)') return true;
+    return false;
+  }
+
   const CSRF_NAMES = /csrf|_token|authenticity_token|__requestverificationtoken|nonce/i;
 
   function getLabel(field) {
@@ -1094,6 +1148,7 @@ function extractFormsInBrowser() {
       action: form.action || undefined,
       method: (form.method || 'get').toUpperCase(),
       enctype: form.enctype !== 'application/x-www-form-urlencoded' ? form.enctype : undefined,
+      hidden: isHiddenElement(form) || undefined,
     };
 
     // Fieldsets
@@ -1231,6 +1286,19 @@ function extractAnimationsInBrowser() {
  * @param {{ standard: string }} args — "aa" or "aaa"
  */
 function extractA11yInBrowser({ standard = 'aa' }) {
+  // Hidden element filter — prevents hidden text from appearing in heading structure
+  function isHiddenElement(el) {
+    if (!el || el.nodeType !== 1) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none') return true;
+    if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+    if (parseFloat(cs.opacity) === 0) return true;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0 && cs.overflow === 'hidden') return true;
+    if (cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(100%)') return true;
+    return false;
+  }
+
   const issues = [];
   let score = 100;
 
@@ -1397,7 +1465,7 @@ function extractA11yInBrowser({ standard = 'aa' }) {
     issues: issues.slice(0, 50),
     contrastIssues: contrastIssues.slice(0, 20),
     landmarks: { hasMain, hasNav, hasHeader, hasFooter },
-    headingStructure: headings.map(h => ({ level: h.tagName.toLowerCase(), text: h.textContent.trim().slice(0, 80) })),
+    headingStructure: headings.filter(h => !isHiddenElement(h)).map(h => ({ level: h.tagName.toLowerCase(), text: h.textContent.trim().slice(0, 80) })),
     tabOrderIssues: positiveTabindex,
     lang: lang || null,
   };
