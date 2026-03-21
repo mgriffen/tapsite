@@ -21,6 +21,10 @@ const {
   extractMetadataInBrowser,
   extractContentInBrowser,
   extractFormsInBrowser,
+  extractAnimationsInBrowser,
+  extractA11yInBrowser,
+  detectDarkmodeInBrowser,
+  extractPerfInBrowser,
 } = require("./extractors");
 const config = require("./config");
 const fs = require("fs");
@@ -1527,6 +1531,109 @@ server.tool(
       },
     };
 
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+// --- Phase 7: Advanced ---
+
+server.tool(
+  "cbrowser_extract_animations",
+  "Extract CSS @keyframes, transition properties, and per-element animation assignments. Detect JS animation libraries (GSAP, Framer Motion, anime.js, Lottie, etc.) and CSS animation libraries (Animate.css, AOS).",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+  },
+  async ({ url }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractAnimationsInBrowser);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_a11y",
+  "Accessibility audit: missing alt text, unlabelled form fields, buttons/links without accessible names, heading hierarchy, landmark roles, color contrast (WCAG AA/AAA), positive tabindex, lang attribute, page title. Returns a score (0-100) and issues by severity.",
+  {
+    url: z.string().optional().describe("URL to audit (omit for current page)"),
+    standard: z.enum(["aa", "aaa"]).default("aa").describe("WCAG contrast standard to apply (aa or aaa)"),
+  },
+  async ({ url, standard }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractA11yInBrowser, { standard });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_detect_darkmode",
+  "Detect dark mode support: prefers-color-scheme media queries, CSS class-toggle patterns (e.g. .dark, [data-theme='dark']). Optionally activates dark mode via emulateMedia and captures the dark palette alongside the light palette.",
+  {
+    url: z.string().optional().describe("URL to check (omit for current page)"),
+    activateDark: z.boolean().default(false).describe("If true, emulate prefers-color-scheme:dark and capture dark palette"),
+  },
+  async ({ url, activateDark }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+
+    const result = await page.evaluate(detectDarkmodeInBrowser);
+
+    if (activateDark) {
+      await page.emulateMedia({ colorScheme: "dark" });
+      await page.waitForTimeout(500);
+      const darkPalette = await page.evaluate(() => {
+        const counts = {};
+        for (const el of document.querySelectorAll("body *")) {
+          if (el.offsetParent === null && getComputedStyle(el).position !== "fixed") continue;
+          const cs = getComputedStyle(el);
+          for (const prop of ["color", "background-color"]) {
+            const c = cs.getPropertyValue(prop);
+            if (c && c !== "transparent" && c !== "rgba(0, 0, 0, 0)") {
+              counts[c] = (counts[c] || 0) + 1;
+            }
+          }
+        }
+        return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([c]) => c);
+      });
+      result.darkPalette = darkPalette;
+      await page.emulateMedia({ colorScheme: "no-preference" });
+    }
+
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_perf",
+  "Performance metrics: navigation timing (TTFB, DOMContentLoaded, load), Core Web Vitals (LCP, CLS), resource waterfall summary by type (JS, CSS, images, fonts), total transfer sizes, DOM node count, and JS heap size.",
+  {
+    url: z.string().optional().describe("URL to measure (omit for current page)"),
+  },
+  async ({ url }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(2000);
+    }
+    const result = await page.evaluate(extractPerfInBrowser);
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };

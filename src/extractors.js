@@ -1119,6 +1119,443 @@ function extractFormsInBrowser() {
   return { forms };
 }
 
+// --- Phase 7: Advanced ---
+
+/**
+ * Extract CSS @keyframes, transition properties, and animation assignments.
+ * Detect JS and CSS animation libraries.
+ */
+function extractAnimationsInBrowser() {
+  const keyframes = [];
+  const transitions = [];
+  const animatedElements = [];
+  const seen = new Set();
+
+  // Parse @keyframes and transitions from stylesheets
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        if (rule instanceof CSSKeyframesRule) {
+          keyframes.push({
+            name: rule.name,
+            steps: [...rule.cssRules].map(step => ({
+              selector: step.keyText,
+              properties: [...step.style].reduce((acc, p) => {
+                acc[p] = step.style.getPropertyValue(p);
+                return acc;
+              }, {}),
+            })),
+          });
+        }
+      }
+    } catch { /* cross-origin */ }
+  }
+
+  // Scan elements for computed animation and transition values
+  for (const el of document.querySelectorAll('*')) {
+    const cs = getComputedStyle(el);
+    const anim = cs.animationName;
+    const animDuration = cs.animationDuration;
+    const trans = cs.transition;
+    const tag = el.tagName.toLowerCase();
+    const cls = el.className ? String(el.className).split(' ')[0] : null;
+    const label = cls ? `${tag}.${cls}` : tag;
+
+    if (anim && anim !== 'none') {
+      const sig = `anim:${anim}:${animDuration}`;
+      if (!seen.has(sig)) {
+        seen.add(sig);
+        animatedElements.push({
+          element: label,
+          name: anim,
+          duration: animDuration,
+          timing: cs.animationTimingFunction,
+          delay: cs.animationDelay,
+          iterationCount: cs.animationIterationCount,
+          fillMode: cs.animationFillMode,
+        });
+      }
+    }
+
+    if (trans && trans !== 'none' && trans !== 'all 0s ease 0s') {
+      const sig = `trans:${trans}:${tag}`;
+      if (!seen.has(sig)) {
+        seen.add(sig);
+        transitions.push({ element: label, transition: trans });
+      }
+    }
+
+    if (animatedElements.length + transitions.length >= 100) break;
+  }
+
+  // Detect JS animation libraries via globals
+  const jsLibraries = [];
+  if (window.gsap || window.TweenMax || window.TweenLite) {
+    const entry = { name: 'GSAP' };
+    if (window.gsap && window.gsap.version) entry.version = window.gsap.version;
+    jsLibraries.push(entry);
+  }
+  if (window.__framer_importFromPackage__ || (window.FramerMotion)) jsLibraries.push({ name: 'Framer Motion' });
+  if (window.anime) {
+    const entry = { name: 'anime.js' };
+    if (window.anime.version) entry.version = window.anime.version;
+    jsLibraries.push(entry);
+  }
+  if (window.Velocity) jsLibraries.push({ name: 'Velocity.js' });
+  if (window.lottie || window.bodymovin) jsLibraries.push({ name: 'Lottie' });
+  if (window.ScrollMagic) jsLibraries.push({ name: 'ScrollMagic' });
+  if (window.AOS) jsLibraries.push({ name: 'AOS' });
+  if (window.WOW) jsLibraries.push({ name: 'WOW.js' });
+  if (window.Popmotion) jsLibraries.push({ name: 'Popmotion' });
+
+  // Detect CSS animation libraries via attributes/classes
+  const cssLibraries = [];
+  if (document.querySelector('[class*="animate__"]')) cssLibraries.push('Animate.css');
+  if (document.querySelector('[data-aos]')) cssLibraries.push('AOS');
+  if (document.querySelector('[data-wow]') || document.querySelector('.wow')) cssLibraries.push('WOW.js');
+
+  return {
+    keyframes: keyframes.slice(0, 50),
+    totalKeyframes: keyframes.length,
+    animatedElements: animatedElements.slice(0, 30),
+    transitions: transitions.slice(0, 30),
+    totalTransitions: transitions.length,
+    jsLibraries,
+    cssLibraries,
+  };
+}
+
+/**
+ * Accessibility audit: missing alt text, form labels, button names, heading hierarchy,
+ * landmark roles, color contrast, tab order, lang attribute, page title.
+ * @param {{ standard: string }} args — "aa" or "aaa"
+ */
+function extractA11yInBrowser({ standard = 'aa' }) {
+  const issues = [];
+  let score = 100;
+
+  function addIssue(severity, category, message, snippet) {
+    issues.push({ severity, category, message, snippet: snippet ? snippet.slice(0, 200) : undefined });
+    if (severity === 'error') score -= 10;
+    else if (severity === 'warning') score -= 3;
+  }
+
+  // 1. Images without alt
+  for (const img of document.querySelectorAll('img')) {
+    if (!img.hasAttribute('alt')) {
+      const src = (img.getAttribute('src') || '').split('/').pop().slice(0, 50);
+      addIssue('error', 'alt-text', `Image missing alt attribute: ${src}`, img.outerHTML);
+    }
+  }
+
+  // 2. Form fields without labels
+  const SKIP_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image']);
+  for (const el of document.querySelectorAll('input, select, textarea')) {
+    if (el.tagName === 'INPUT' && SKIP_INPUT_TYPES.has(el.type)) continue;
+    const hasLabel = el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+    const hasAria = el.getAttribute('aria-label') || el.getAttribute('aria-labelledby');
+    const hasTitle = el.title;
+    const wrapped = el.closest('label');
+    if (!hasLabel && !hasAria && !hasTitle && !wrapped) {
+      addIssue('error', 'form-label', `Form field missing label: <${el.tagName.toLowerCase()} type="${el.type || ''}" name="${el.name || ''}">`, el.outerHTML);
+    }
+  }
+
+  // 3. Buttons without accessible name
+  for (const btn of document.querySelectorAll('button, [role="button"]')) {
+    const text = btn.textContent.trim();
+    const ariaLabel = btn.getAttribute('aria-label') || btn.getAttribute('aria-labelledby');
+    const title = btn.title;
+    const hasImg = btn.querySelector('img[alt]');
+    if (!text && !ariaLabel && !title && !hasImg) {
+      addIssue('error', 'button-name', 'Button has no accessible name', btn.outerHTML);
+    }
+  }
+
+  // 4. Links without accessible name
+  for (const a of document.querySelectorAll('a[href]')) {
+    const text = a.textContent.trim();
+    const ariaLabel = a.getAttribute('aria-label') || a.getAttribute('aria-labelledby');
+    const hasAltImg = a.querySelector('img[alt]');
+    if (!text && !ariaLabel && !hasAltImg) {
+      addIssue('warning', 'link-name', 'Link has no accessible name', a.outerHTML);
+    }
+  }
+
+  // 5. Heading hierarchy
+  const headings = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')];
+  const h1s = headings.filter(h => h.tagName === 'H1');
+  if (h1s.length === 0) {
+    addIssue('error', 'heading-hierarchy', 'Page has no H1 heading', null);
+  } else if (h1s.length > 1) {
+    addIssue('warning', 'heading-hierarchy', `Page has ${h1s.length} H1 headings (should have exactly 1)`, null);
+  }
+  let prevLevel = 0;
+  for (const h of headings) {
+    const level = parseInt(h.tagName[1]);
+    if (prevLevel && level > prevLevel + 1) {
+      addIssue('warning', 'heading-hierarchy', `Heading level skipped: H${prevLevel} → H${level} ("${h.textContent.trim().slice(0, 60)}")`, null);
+    }
+    prevLevel = level;
+  }
+
+  // 6. Landmarks
+  const hasMain = !!document.querySelector('main, [role="main"]');
+  const hasNav = !!document.querySelector('nav, [role="navigation"]');
+  const hasHeader = !!document.querySelector('header, [role="banner"]');
+  const hasFooter = !!document.querySelector('footer, [role="contentinfo"]');
+  if (!hasMain) addIssue('warning', 'landmarks', 'Page missing <main> landmark', null);
+  if (!hasNav) addIssue('warning', 'landmarks', 'Page missing <nav> landmark', null);
+
+  // 7. Color contrast (WCAG AA/AAA)
+  function getLuminance(r, g, b) {
+    return [r, g, b].reduce((acc, c, i) => {
+      const s = c / 255;
+      const lin = s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+      return acc + lin * [0.2126, 0.7152, 0.0722][i];
+    }, 0);
+  }
+  function parseRgb(str) {
+    const m = str && str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    return m ? { r: +m[1], g: +m[2], b: +m[3] } : null;
+  }
+  function contrastRatio(fg, bg) {
+    const l1 = getLuminance(fg.r, fg.g, fg.b);
+    const l2 = getLuminance(bg.r, bg.g, bg.b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+
+  const contrastIssues = [];
+  const checkedContrast = new Set();
+  let contrastChecked = 0;
+
+  for (const el of document.querySelectorAll('p, h1, h2, h3, h4, h5, h6, a, span, li, td, th, button, label')) {
+    if (!el.textContent.trim() || contrastChecked >= 200) break;
+    const cs = getComputedStyle(el);
+    const fg = parseRgb(cs.color);
+    const bg = parseRgb(cs.backgroundColor);
+    if (!fg || !bg) continue;
+    if (cs.backgroundColor === 'rgba(0, 0, 0, 0)' || cs.backgroundColor === 'transparent') continue;
+
+    const key = `${cs.color}|${cs.backgroundColor}`;
+    if (checkedContrast.has(key)) continue;
+    checkedContrast.add(key);
+    contrastChecked++;
+
+    const ratio = contrastRatio(fg, bg);
+    const fontSize = parseFloat(cs.fontSize);
+    const isBold = parseInt(cs.fontWeight) >= 700;
+    const isLargeText = fontSize >= 18 || (fontSize >= 14 && isBold);
+    const threshold = standard === 'aaa' ? (isLargeText ? 4.5 : 7) : (isLargeText ? 3 : 4.5);
+
+    if (ratio < threshold) {
+      const tag = el.tagName.toLowerCase();
+      const cls = el.className ? String(el.className).split(' ')[0] : null;
+      const entry = {
+        element: cls ? `${tag}.${cls}` : tag,
+        color: cs.color,
+        background: cs.backgroundColor,
+        ratio: Math.round(ratio * 100) / 100,
+        required: threshold,
+        isLargeText,
+      };
+      contrastIssues.push(entry);
+      if (contrastIssues.length <= 5) {
+        addIssue('error', 'color-contrast', `Contrast ratio ${entry.ratio}:1 (required ${threshold}:1) on ${entry.element}`, null);
+      }
+    }
+  }
+
+  // 8. Positive tabindex (anti-pattern)
+  const positiveTabindex = [...document.querySelectorAll('[tabindex]')]
+    .filter(el => parseInt(el.getAttribute('tabindex')) > 0)
+    .map(el => ({
+      element: el.tagName.toLowerCase(),
+      tabindex: el.getAttribute('tabindex'),
+      text: el.textContent.trim().slice(0, 40),
+    }));
+  if (positiveTabindex.length > 0) {
+    addIssue('warning', 'tab-order', `${positiveTabindex.length} element(s) use tabindex > 0 (disrupts natural tab order)`, null);
+  }
+
+  // 9. Lang attribute
+  const lang = document.documentElement.getAttribute('lang');
+  if (!lang) addIssue('warning', 'language', 'Page missing lang attribute on <html>', null);
+
+  // 10. Page title
+  if (!document.title || !document.title.trim()) {
+    addIssue('error', 'page-title', 'Page missing <title>', null);
+  }
+
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    standard: standard.toUpperCase(),
+    summary: {
+      errors: issues.filter(i => i.severity === 'error').length,
+      warnings: issues.filter(i => i.severity === 'warning').length,
+    },
+    issues: issues.slice(0, 50),
+    contrastIssues: contrastIssues.slice(0, 20),
+    landmarks: { hasMain, hasNav, hasHeader, hasFooter },
+    headingStructure: headings.map(h => ({ level: h.tagName.toLowerCase(), text: h.textContent.trim().slice(0, 80) })),
+    tabOrderIssues: positiveTabindex,
+    lang: lang || null,
+  };
+}
+
+/**
+ * Detect dark mode support: prefers-color-scheme media queries, class-toggle patterns.
+ * Captures the current (light) color palette for comparison with dark palette.
+ */
+function detectDarkmodeInBrowser() {
+  const detection = [];
+  const darkmodeClasses = [];
+  let hasDarkmodeMedia = false;
+
+  // Scan stylesheets for prefers-color-scheme and dark class rules
+  const darkClassPatterns = ['dark', 'theme-dark', 'dark-mode', 'darkmode', 'dark-theme'];
+  const foundClasses = new Set();
+
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        if (rule instanceof CSSMediaRule) {
+          const media = rule.conditionText || rule.media.mediaText;
+          if (media.includes('prefers-color-scheme')) {
+            if (!hasDarkmodeMedia) {
+              hasDarkmodeMedia = true;
+              detection.push({ method: 'prefers-color-scheme', query: media.slice(0, 200) });
+            }
+          }
+        }
+        if (rule.selectorText) {
+          for (const cls of darkClassPatterns) {
+            if (!foundClasses.has(cls) && (
+              rule.selectorText.includes(`.${cls}`) ||
+              rule.selectorText.includes(`[data-theme="dark"]`) ||
+              rule.selectorText.includes(`[data-color-scheme="dark"]`)
+            )) {
+              foundClasses.add(cls);
+              darkmodeClasses.push(cls);
+              detection.push({ method: 'class-toggle', class: cls });
+            }
+          }
+        }
+      }
+    } catch { /* cross-origin */ }
+  }
+
+  // Check current theme attribute
+  const htmlTheme = document.documentElement.getAttribute('data-theme') ||
+    document.documentElement.getAttribute('data-color-scheme');
+
+  // Capture current color palette (top 8 by frequency)
+  function getTopColors() {
+    const counts = {};
+    for (const el of document.querySelectorAll('body *')) {
+      if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+      const cs = getComputedStyle(el);
+      for (const prop of ['color', 'background-color']) {
+        const c = cs.getPropertyValue(prop);
+        if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') {
+          counts[c] = (counts[c] || 0) + 1;
+        }
+      }
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([c]) => c);
+  }
+
+  return {
+    supported: hasDarkmodeMedia || darkmodeClasses.length > 0,
+    hasDarkmodeMedia,
+    darkmodeClasses,
+    currentTheme: htmlTheme || null,
+    detection,
+    lightPalette: getTopColors(),
+  };
+}
+
+/**
+ * Performance metrics: navigation timing, Core Web Vitals (LCP, CLS),
+ * resource waterfall summary by type, JS heap, DOM node count.
+ */
+function extractPerfInBrowser() {
+  const result = {};
+
+  // Navigation timing
+  const navEntries = performance.getEntriesByType('navigation');
+  if (navEntries.length > 0) {
+    const nav = navEntries[0];
+    result.timing = {
+      ttfbMs: Math.round(nav.responseStart - nav.requestStart),
+      domContentLoadedMs: Math.round(nav.domContentLoadedEventEnd),
+      loadMs: Math.round(nav.loadEventEnd),
+    };
+  }
+
+  // DOM stats
+  result.dom = {
+    nodeCount: document.querySelectorAll('*').length,
+    domSizeKB: Math.round(document.documentElement.innerHTML.length / 1024),
+  };
+
+  // JS heap (Chrome only)
+  if (performance.memory) {
+    result.memory = {
+      usedMB: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024 * 10) / 10,
+      totalMB: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024 * 10) / 10,
+      limitMB: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024),
+    };
+  }
+
+  // LCP
+  const lcpEntries = performance.getEntriesByType('largest-contentful-paint');
+  if (lcpEntries.length > 0) {
+    const lcp = lcpEntries[lcpEntries.length - 1];
+    result.lcp = {
+      startTimeMs: Math.round(lcp.startTime),
+      size: lcp.size || null,
+      element: lcp.element ? lcp.element.tagName.toLowerCase() : null,
+      url: lcp.url || null,
+    };
+  }
+
+  // CLS
+  const clsEntries = performance.getEntriesByType('layout-shift');
+  if (clsEntries.length > 0) {
+    result.cls = Math.round(clsEntries.reduce((sum, e) => sum + e.value, 0) * 1000) / 1000;
+  }
+
+  // Resource summary by type
+  const resources = performance.getEntriesByType('resource');
+  const byType = {};
+  for (const r of resources) {
+    const t = r.initiatorType || 'other';
+    if (!byType[t]) byType[t] = { count: 0, transferKB: 0, totalDurationMs: 0 };
+    byType[t].count++;
+    byType[t].transferKB += (r.transferSize || 0) / 1024;
+    byType[t].totalDurationMs += r.duration;
+  }
+  for (const t of Object.values(byType)) {
+    t.transferKB = Math.round(t.transferKB * 10) / 10;
+    t.totalDurationMs = Math.round(t.totalDurationMs);
+  }
+  result.resources = { total: resources.length, byType };
+
+  // Top 10 slowest resources
+  result.slowestResources = [...resources]
+    .sort((a, b) => b.duration - a.duration)
+    .slice(0, 10)
+    .map(r => ({
+      url: r.name.length > 100 ? r.name.slice(0, 100) + '…' : r.name,
+      type: r.initiatorType,
+      durationMs: Math.round(r.duration),
+      transferKB: Math.round((r.transferSize || 0) / 1024 * 10) / 10,
+    }));
+
+  return result;
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -1134,4 +1571,8 @@ module.exports = {
   extractMetadataInBrowser,
   extractContentInBrowser,
   extractFormsInBrowser,
+  extractAnimationsInBrowser,
+  extractA11yInBrowser,
+  detectDarkmodeInBrowser,
+  extractPerfInBrowser,
 };
