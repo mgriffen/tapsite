@@ -1,6 +1,6 @@
 # cbrowser
 
-Authenticated dashboard browser — an MCP server + CLI tool built with Node.js and Playwright. Used to inspect, screenshot, and extract data from internal web dashboards that require login (FTTH Tracker, Sonic DSL, etc.).
+Web intelligence toolkit — an MCP server + CLI built with Node.js and Playwright. Designed for authenticated dashboard inspection, design system extraction, and UI analysis. Reuses browser sessions across tool calls so MFA-protected sites only need one manual login.
 
 ## Setup (new machine)
 
@@ -27,7 +27,7 @@ cat > ~/.claude/.mcp.json << 'EOF'
 EOF
 ```
 
-Replace `REPO_PATH` with the absolute path to this repo (e.g. `/home/griffen/projects/cbrowser`).
+Replace `REPO_PATH` with the absolute path to this repo.
 
 Recommended: set transcript cleanup in `~/.claude/settings.json`:
 
