@@ -1,0 +1,6 @@
+node_modules/
+profiles/
+output/
+*.Zone.Identifier
+*:Zone.Identifier
+claude_cbrowser_intent.md

@@ -1,0 +1,28 @@
+{
+  "name": "cbrowser",
+  "version": "1.0.0",
+  "description": "Authenticated Dashboard Discovery Tool",
+  "main": "src/cli.js",
+  "bin": {
+    "cbrowser": "src/cli.js"
+  },
+  "scripts": {
+    "login": "node src/cli.js login",
+    "inspect": "node src/cli.js inspect"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgriffen/cbrowser.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mgriffen/cbrowser/issues"
+  },
+  "homepage": "https://github.com/mgriffen/cbrowser#readme",
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}
