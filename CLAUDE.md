@@ -57,3 +57,9 @@ This prevents credentials from lingering on disk in session transcripts.
 - `profiles/` stores browser state (cookies, localStorage) — gitignored
 - `output/` stores export results — gitignored
 - Headless by default in MCP mode; headed mode used for `cbrowser_login_manual`
+
+## Security
+
+- **Hidden element filtering**: `isHiddenElement()` is inlined in `extractContentInBrowser`, `extractFormsInBrowser`, `extractA11yInBrowser`, and link extractors. Skips `display:none`, `visibility:hidden`, `opacity:0`, zero-size, and clip-hidden elements to block invisible prompt injection text.
+- **Output sanitization**: `sanitizeForLLM()` in `mcp-server.js` scans all text returned to the LLM for injection patterns (instruction overrides, role hijacking, exfiltration, tool manipulation). Flags matches inline as `[INJECTION_DETECTED]`.
+- Both defenses are applied at the extraction layer (browser context) and the return layer (Node.js) for defense in depth.

@@ -42,10 +42,6 @@ Recommended — set transcript cleanup to prevent credentials lingering on disk:
 "cleanupPeriodDays": 1
 ```
 
-## Credential safety
-
-**Never pass credentials through the chat.** Use `cbrowser_login_manual` to open a headed browser, log in manually (including MFA), then `cbrowser_login_check` to confirm. Credentials never touch Anthropic's servers or local transcripts.
-
 ## Tools (37)
 
 ### Session
@@ -120,6 +116,24 @@ Recommended — set transcript cleanup to prevent credentials lingering on disk:
 |------|-------------|
 | `cbrowser_export` | Export inspection results as JSON + Markdown + HTML report + CSV tables + screenshots |
 | `cbrowser_export_design_report` | Full design system report: `report.html` (visual), `design-tokens.json` (W3C format), `design-tokens.css` (copy-pasteable `:root` vars) |
+
+## Security
+
+### Prompt injection defense
+
+When extracting content from untrusted web pages, cbrowser applies two layers of protection:
+
+1. **Hidden element filtering** — Extractors skip elements with `display:none`, `visibility:hidden`, `opacity:0`, zero-size, and clip-hidden styling. This prevents invisible text (a common prompt injection vector) from entering extraction results. Applied to content, links, forms, and accessibility extractors.
+
+2. **Output sanitization** — All text returned to the LLM is scanned for prompt injection patterns: instruction overrides, role hijacking, exfiltration attempts, and tool manipulation. Matches are flagged inline as `[INJECTION_DETECTED]` rather than silently dropped, so both the LLM and user can see what was caught.
+
+### Credential safety
+
+**Never pass credentials through the chat.** Use `cbrowser_login_manual` to open a headed browser, log in manually (including MFA), then `cbrowser_login_check` to confirm. Credentials never touch Anthropic's servers or local transcripts.
+
+## License
+
+MIT
 
 ## Project structure
 
