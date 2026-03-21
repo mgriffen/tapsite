@@ -8,4 +8,6 @@ module.exports = {
   OUTPUT_DIR: path.join(ROOT_DIR, 'output'),
   BROWSER_TYPE: 'chromium',
   VIEWPORT: { width: 1440, height: 900 },
+  MAX_ELEMENTS: 200,
+  MAX_DOM_LENGTH: 8000,
 };
