@@ -75,10 +75,55 @@ Recommended — set transcript cleanup to prevent credentials lingering on disk:
 "cleanupPeriodDays": 1
 ```
 
+## Docker
+
+tapsite ships a `Dockerfile` and `docker-compose.yml` for headless-only use — CI pipelines, server deployments, or anywhere you don't want a local Node.js install.
+
+### Quick start
+
+```bash
+# Build the image
+docker build -t tapsite-mcp .
+
+# Run (stdio-attached, extraction results saved to ./output)
+docker compose up
+```
+
+Extraction results from all `tapsite_export*` tools are written to `./output` on your host via the volume mount in `docker-compose.yml`.
+
+### Limitations in Docker
+
+**`tapsite_login_manual` is not available in Docker.** It opens a headed (visible) browser window, which requires a display. Standard containers are headless-only.
+
+### Authenticated sessions in Docker
+
+If you need to extract from a site that requires login:
+
+1. **Run tapsite locally** (outside Docker):
+   ```bash
+   # In Claude, call:
+   tapsite_login_manual   # opens headed Chromium, log in + complete MFA manually
+   tapsite_login_check    # confirm session is authenticated
+   ```
+
+2. **Copy your `profiles/` directory into the project root.** The session cookies are stored there.
+
+3. **Mount `profiles/` in docker-compose.yml** (uncomment the line):
+   ```yaml
+   volumes:
+     - ./output:/app/output
+     - ./profiles:/app/profiles   # ← uncomment this
+   ```
+
+4. **Run the container.** It picks up the saved session automatically. No login needed.
+
+> **Security note:** `profiles/` contains live session cookies. Treat it like a password — don't commit it to version control (it's already in `.gitignore`), and restrict access to the volume on shared systems.
+
 ## Tools (37)
 
 ### Session
 | Tool | Description |
+
 |------|-------------|
 | `tapsite_login` | Automated login (username + password, no MFA) |
 | `tapsite_login_manual` | Open headed browser for manual login + MFA |

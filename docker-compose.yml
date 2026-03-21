@@ -1,0 +1,13 @@
+services:
+  tapsite:
+    build: .
+    image: tapsite-mcp
+    # MCP servers use stdio — attach to allow piping tool calls
+    stdin_open: true
+    tty: true
+    volumes:
+      # Extraction results written here by all tapsite_export* tools
+      - ./output:/app/output
+      # Optional: mount a pre-saved profiles/ directory to reuse authenticated
+      # sessions in headless mode (see README for the workflow).
+      # - ./profiles:/app/profiles
