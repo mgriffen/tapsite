@@ -1,25 +1,47 @@
 {
-  "name": "cbrowser",
+  "name": "cbrowser-mcp",
   "version": "3.0.0",
   "description": "MCP server for web intelligence extraction — design systems, accessibility audits, competitive analysis, and migration prep",
   "main": "src/cli.js",
   "bin": {
     "cbrowser": "src/cli.js",
-    "cbrowser-mcp": "src/mcp-server.js"
+    "cbrowser-mcp": "src/server.js"
+  },
+  "files": [
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
   },
   "scripts": {
     "start": "node src/server.js",
     "login": "node src/cli.js login",
     "inspect": "node src/cli.js inspect",
+    "prepublishOnly": "npm test",
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "browser",
+    "playwright",
+    "web-intelligence",
+    "design-system",
+    "accessibility",
+    "web-scraping",
+    "claude",
+    "ai",
+    "design-tokens",
+    "ui-analysis"
+  ],
+  "author": "mgriffen",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mgriffen/cbrowser.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "MIT",
   "type": "commonjs",
   "bugs": {

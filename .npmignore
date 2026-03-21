@@ -1,0 +1,20 @@
+# Runtime data — never publish
+profiles/
+output/
+
+# Dev tooling
+test/
+vitest.config.js
+.github/
+
+# Documentation site (large, not needed by consumers)
+docs/
+
+# Dev-only root files
+CLAUDE.md
+*.html
+
+# Editor/OS
+.claude/
+*.Zone.Identifier
+*:Zone.Identifier

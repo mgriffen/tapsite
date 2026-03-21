@@ -1,6 +1,33 @@
-# cbrowser
+# cbrowser-mcp
 
 Web intelligence toolkit — an MCP server + CLI built with Node.js and Playwright. Designed for authenticated dashboard inspection, design system extraction, and UI analysis. Reuses browser sessions across tool calls so MFA-protected sites only need one manual login.
+
+## Installation
+
+```bash
+# Quick start (no install required)
+npx cbrowser-mcp
+
+# Or install globally
+npm install -g cbrowser-mcp
+npx playwright install chromium
+npx playwright install-deps chromium
+```
+
+Add to your Claude config (`~/.claude/.mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "cbrowser": {
+      "command": "npx",
+      "args": ["cbrowser-mcp"]
+    }
+  }
+}
+```
+
+> **First run:** Playwright will install the Chromium browser automatically if not already present. This is a one-time ~150MB download.
 
 ## Showcase
 
@@ -19,22 +46,24 @@ Click any image to see the full interactive page:
 
 **Four real-world scenarios** — design system reverse-engineering, competitive intelligence, accessibility auditing, and asset migration prep.
 
-## Setup
+## Development setup (from source)
 
 ```bash
+git clone https://github.com/mgriffen/cbrowser
+cd cbrowser
 npm install
 npx playwright install chromium
 npx playwright install-deps chromium
 ```
 
-Add the MCP server to your Claude config (`~/.claude/.mcp.json`):
+MCP config pointing to local source:
 
 ```json
 {
   "mcpServers": {
     "cbrowser": {
       "command": "node",
-      "args": ["/absolute/path/to/cbrowser/src/mcp-server.js"]
+      "args": ["/absolute/path/to/cbrowser/src/server.js"]
     }
   }
 }
@@ -143,13 +172,21 @@ MIT
 
 ```
 src/
-  mcp-server.js    — all 37 tool definitions
+  server.js        — MCP server entry point
+  browser.js       — shared Chromium context (ensureBrowser, closeBrowser)
+  helpers.js       — shared helpers (navigateIfNeeded, summarizeResult, indexPage)
+  sanitizer.js     — prompt injection detection
   extractors.js    — browser-context extraction functions (page.evaluate())
   exporter.js      — file export: JSON, Markdown, HTML, CSV
-  inspector.js     — legacy DOM extraction (used by cbrowser_inspect)
-  browser.js       — persistent Chromium context (CLI)
-  cli.js           — standalone CLI
+  inspector.js     — DOM extraction for inspect/navigate tools
+  cli.js           — standalone CLI (login, inspect, session)
   config.js        — paths and defaults
+  tools/
+    session.js     — login, navigate, inspect, screenshot, act, scroll, run_js, close
+    extraction.js  — all extract_* and detect_* tools
+    network.js     — capture_network, extract_api_schema, detect_stack
+    multipage.js   — crawl, diff_pages
+    export.js      — export, export_design_report
 profiles/          — browser state / session cookies (gitignored)
 output/            — export results (gitignored)
 ```
