@@ -29,10 +29,11 @@ function exportJSON(runDir, results) {
 }
 
 /**
- * Export all page results as a Markdown report.
+ * Export all page results as a Markdown report (v2 inspector shape).
+ * Expects items with { title, url, compressedDOM, elements, inspectedAt }.
  */
 function exportMarkdown(runDir, results) {
-  const lines = ['# Dashboard Inspection Report', ''];
+  const lines = ['# Page Inspection Report', ''];
   lines.push(`**Date:** ${new Date().toISOString()}`, '');
   lines.push(`**Pages inspected:** ${results.length}`, '');
   lines.push('---', '');
@@ -40,60 +41,26 @@ function exportMarkdown(runDir, results) {
   for (const [i, page] of results.entries()) {
     lines.push(`## Page ${i + 1}: ${page.title || '(no title)'}`, '');
     lines.push(`**URL:** ${page.url}`, '');
+    lines.push(`**Inspected at:** ${page.inspectedAt || ''}`, '');
     lines.push(`![Screenshot](screenshots/page-${i + 1}.png)`, '');
 
-    if (page.navItems?.length) {
-      lines.push('### Navigation', '');
-      for (const nav of page.navItems) {
-        lines.push(`- [${nav.text}](${nav.href})`);
-      }
-      lines.push('');
+    if (page.compressedDOM) {
+      lines.push('### Page Structure', '');
+      lines.push('```');
+      lines.push(page.compressedDOM);
+      lines.push('```', '');
     }
 
-    if (page.headings?.length) {
-      lines.push('### Headings', '');
-      for (const h of page.headings) {
-        lines.push(`- ${'#'.repeat(h.level)} ${h.text}`);
+    if (page.elements?.length) {
+      lines.push('### Interactive Elements', '');
+      lines.push(`| # | Tag | Text / Label | Href |`);
+      lines.push(`|---|-----|--------------|------|`);
+      for (const el of page.elements) {
+        const text = (el.text || el.placeholder || el.name || '').replace(/\|/g, '\\|');
+        const href = el.href ? el.href.replace(/\|/g, '\\|') : '';
+        lines.push(`| ${el.index} | \`${el.tag}\` | ${text} | ${href} |`);
       }
       lines.push('');
-    }
-
-    if (page.buttons?.length) {
-      lines.push('### Buttons', '');
-      for (const b of page.buttons) {
-        lines.push(`- \`${b}\``);
-      }
-      lines.push('');
-    }
-
-    if (page.formFields?.length) {
-      lines.push('### Form Fields', '');
-      lines.push('| Type | Name | Label |');
-      lines.push('|------|------|-------|');
-      for (const f of page.formFields) {
-        lines.push(`| ${f.type} | ${f.name || ''} | ${f.label || ''} |`);
-      }
-      lines.push('');
-    }
-
-    if (page.tables?.length) {
-      lines.push('### Tables', '');
-      for (const t of page.tables) {
-        if (t.caption) lines.push(`**${t.caption}**`);
-        if (t.headers?.length) {
-          lines.push(`| ${t.headers.join(' | ')} |`);
-          lines.push(`| ${t.headers.map(() => '---').join(' | ')} |`);
-          if (t.rows?.length) {
-            for (const row of t.rows) {
-              lines.push(`| ${row.join(' | ')} |`);
-            }
-          }
-        }
-        if (t.rowCount > (t.rows?.length || 0)) {
-          lines.push(`*${t.rowCount - (t.rows?.length || 0)} more rows omitted*`);
-        }
-        lines.push('');
-      }
     }
 
     lines.push('---', '');
@@ -116,7 +83,8 @@ function escapeHtml(str) {
 }
 
 /**
- * Export all page results as a visual HTML report.
+ * Export all page results as a visual HTML report (v2 inspector shape).
+ * Expects items with { title, url, compressedDOM, elements, inspectedAt }.
  */
 function exportHTML(runDir, results) {
   const date = new Date().toISOString();
@@ -126,37 +94,21 @@ function exportHTML(runDir, results) {
     let html = `<section class="page">
       <h2>Page ${i + 1}: ${escapeHtml(pg.title || '(no title)')}</h2>
       <p class="url"><a href="${escapeHtml(pg.url)}">${escapeHtml(pg.url)}</a></p>
+      <p class="meta">Inspected at: ${escapeHtml(pg.inspectedAt || '')}</p>
       <img src="screenshots/page-${i + 1}.png" alt="Screenshot of ${escapeHtml(pg.url)}">`;
 
-    if (pg.navItems?.length) {
-      html += `<h3>Navigation</h3><ul>${pg.navItems.map(n =>
-        `<li><a href="${escapeHtml(n.href)}">${escapeHtml(n.text)}</a></li>`).join('')}</ul>`;
+    if (pg.compressedDOM) {
+      html += `<h3>Page Structure</h3><pre class="dom">${escapeHtml(pg.compressedDOM)}</pre>`;
     }
 
-    if (pg.headings?.length) {
-      html += `<h3>Headings</h3><ul>${pg.headings.map(h =>
-        `<li><code>h${h.level}</code> ${escapeHtml(h.text)}</li>`).join('')}</ul>`;
-    }
-
-    if (pg.tables?.length) {
-      for (const t of pg.tables) {
-        html += `<h3>Table${t.caption ? ': ' + escapeHtml(t.caption) : ''}</h3>`;
-        if (t.headers?.length) {
-          html += `<table><thead><tr>${t.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>`;
-          if (t.rows?.length) {
-            html += `<tbody>${t.rows.map(r =>
-              `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
-          }
-          html += '</table>';
-        }
+    if (pg.elements?.length) {
+      html += `<h3>Interactive Elements <span class="count">${pg.elements.length}</span></h3>
+      <table><thead><tr><th>#</th><th>Tag</th><th>Text / Label</th><th>Href</th></tr></thead><tbody>`;
+      for (const el of pg.elements) {
+        const text = el.text || el.placeholder || el.name || '';
+        const href = el.href ? `<a href="${escapeHtml(el.href)}">${escapeHtml(el.href.slice(0, 60))}</a>` : '';
+        html += `<tr><td>${el.index}</td><td><code>${escapeHtml(el.tag)}</code></td><td>${escapeHtml(text)}</td><td>${href}</td></tr>`;
       }
-    }
-
-    if (pg.formFields?.length) {
-      html += `<h3>Form Fields</h3><table><thead><tr><th>Type</th><th>Name</th><th>Label</th></tr></thead><tbody>`;
-      html += pg.formFields.map(f =>
-        `<tr><td>${escapeHtml(f.type)}</td><td>${escapeHtml(f.name || '')}</td><td>${escapeHtml(f.label || '')}</td></tr>`
-      ).join('');
       html += '</tbody></table>';
     }
 
@@ -169,22 +121,26 @@ function exportHTML(runDir, results) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Inspection Report</title>
+  <title>Page Inspection Report</title>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 2rem; color: #222; }
     h1 { font-size: 1.6rem; }
     h2 { font-size: 1.3rem; border-bottom: 2px solid #eee; padding-bottom: .4rem; margin-top: 2.5rem; }
-    h3 { font-size: 1rem; color: #555; margin-top: 1.2rem; }
+    h3 { font-size: 1rem; color: #555; margin-top: 1.2rem; display: flex; align-items: center; gap: .4rem; }
     .url { font-size: .85rem; color: #666; }
+    .meta { font-size: .8rem; color: #999; margin-top: -.5rem; }
     img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; margin: 1rem 0; }
     table { border-collapse: collapse; width: 100%; font-size: .9rem; margin: .5rem 0; }
     th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
     th { background: #f5f5f5; }
+    code { font-family: ui-monospace, monospace; font-size: .8rem; background: #f3f4f6; padding: .1rem .3rem; border-radius: 3px; }
+    pre.dom { background: #f8f8f8; border: 1px solid #e5e7eb; border-radius: 6px; padding: 1rem; font-size: .78rem; font-family: ui-monospace, monospace; white-space: pre; overflow-x: auto; max-height: 400px; overflow-y: auto; }
+    .count { font-size: .72rem; font-weight: 400; background: #f3f4f6; color: #6b7280; padding: .1rem .4rem; border-radius: 999px; }
     footer { color: #aaa; font-size: .8rem; margin-top: 3rem; border-top: 1px solid #eee; padding-top: 1rem; }
   </style>
 </head>
 <body>
-  <h1>Dashboard Inspection Report</h1>
+  <h1>Page Inspection Report</h1>
   <p><strong>Date:</strong> ${date}</p>
   <p><strong>Pages inspected:</strong> ${results.length}</p>
   ${sections}

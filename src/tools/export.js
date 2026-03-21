@@ -9,7 +9,7 @@ const {
   extractComponentsInBrowser,
   extractBreakpointsInBrowser,
 } = require('../extractors');
-const { inspectPage } = require('../inspector');
+const { inspectPageV2 } = require('../inspector');
 const { createRunDir, screenshotPath, exportJSON, exportMarkdown, exportHTML, exportCSV } = require('../exporter');
 const config = require('../config');
 const browser = require('../browser');
@@ -40,7 +40,7 @@ module.exports = function registerExportTools(server) {
         } catch {}
         await browser.page.waitForTimeout(1500);
 
-        const data = await inspectPage(browser.page);
+        const data = await inspectPageV2(browser.page);
         await browser.page.screenshot({ path: screenshotPath(runDir, i), fullPage: true });
         results.push(data);
       }
