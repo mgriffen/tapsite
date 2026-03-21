@@ -18,6 +18,9 @@ const {
   extractComponentsInBrowser,
   extractBreakpointsInBrowser,
   detectStackInBrowser,
+  extractMetadataInBrowser,
+  extractContentInBrowser,
+  extractFormsInBrowser,
 } = require("./extractors");
 const config = require("./config");
 const fs = require("fs");
@@ -1285,6 +1288,67 @@ server.tool(
           text: JSON.stringify(stack, null, 2),
         },
       ],
+    };
+  }
+);
+
+// --- Phase 5: Content Extraction ---
+
+server.tool(
+  "cbrowser_extract_metadata",
+  "Extract all page metadata: meta tags, OpenGraph, Twitter Cards, JSON-LD/schema.org, RSS/Atom feeds, canonical URL, manifest, theme-color.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+  },
+  async ({ url }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1000);
+    }
+    const result = await page.evaluate(extractMetadataInBrowser);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_content",
+  "Extract main page content as clean structured markdown. Detects article containers, strips nav/sidebar/footer chrome. Preserves heading hierarchy, lists, links, inline formatting.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    selector: z.string().optional().describe("Scope extraction to this CSS selector (e.g. 'article', '.post-body')"),
+    includeImages: z.boolean().default(false).describe("Include image markdown in output"),
+  },
+  async ({ url, selector, includeImages }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1000);
+    }
+    const result = await page.evaluate(extractContentInBrowser, { selector, includeImages });
+    return {
+      content: [{ type: "text", text: result.content }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_forms",
+  "Detailed form analysis: fields, validation rules (pattern, required, min/max), action URLs, methods, fieldset grouping, select options, hidden fields, CSRF tokens.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+  },
+  async ({ url }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1000);
+    }
+    const result = await page.evaluate(extractFormsInBrowser);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
   }
 );

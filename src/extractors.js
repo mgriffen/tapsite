@@ -868,6 +868,258 @@ function detectStackInBrowser() {
   return stack;
 }
 
+// --- Phase 5: Content Extraction ---
+
+/**
+ * Extract all page metadata: meta tags, OpenGraph, Twitter Cards, JSON-LD,
+ * RSS/Atom feeds, canonical URL, manifest, theme-color.
+ */
+function extractMetadataInBrowser() {
+  const result = {};
+
+  // Standard meta tags
+  const meta = {};
+  for (const el of document.querySelectorAll('meta[name]')) {
+    const name = el.getAttribute('name');
+    const content = el.getAttribute('content');
+    if (name && content) meta[name] = content;
+  }
+  if (Object.keys(meta).length) result.meta = meta;
+
+  // OpenGraph
+  const og = {};
+  for (const el of document.querySelectorAll('meta[property^="og:"]')) {
+    const key = el.getAttribute('property').replace('og:', '');
+    og[key] = el.getAttribute('content');
+  }
+  if (Object.keys(og).length) result.openGraph = og;
+
+  // Twitter Cards
+  const twitter = {};
+  for (const el of document.querySelectorAll('meta[name^="twitter:"]')) {
+    const key = el.getAttribute('name').replace('twitter:', '');
+    twitter[key] = el.getAttribute('content');
+  }
+  if (Object.keys(twitter).length) result.twitterCard = twitter;
+
+  // JSON-LD / schema.org
+  const jsonLd = [];
+  for (const el of document.querySelectorAll('script[type="application/ld+json"]')) {
+    try { jsonLd.push(JSON.parse(el.textContent)); } catch {}
+  }
+  if (jsonLd.length) result.jsonLd = jsonLd;
+
+  // Feeds (RSS / Atom)
+  const feeds = [];
+  for (const el of document.querySelectorAll('link[rel="alternate"]')) {
+    const type = el.getAttribute('type') || '';
+    if (type.includes('rss') || type.includes('atom')) {
+      feeds.push({ type, title: el.getAttribute('title') || '', href: el.getAttribute('href') || '' });
+    }
+  }
+  if (feeds.length) result.feeds = feeds;
+
+  // Canonical URL
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) result.canonical = canonical.getAttribute('href');
+
+  // Manifest
+  const manifest = document.querySelector('link[rel="manifest"]');
+  if (manifest) result.manifest = manifest.getAttribute('href');
+
+  // Title
+  result.title = document.title || '';
+
+  // Lang
+  if (document.documentElement.lang) result.lang = document.documentElement.lang;
+
+  return result;
+}
+
+/**
+ * Extract main page content as clean markdown. Detects article containers,
+ * strips chrome (nav/header/footer/sidebar/ads), preserves heading hierarchy,
+ * lists, links, inline formatting, and optionally images.
+ * @param {{ selector?: string, includeImages?: boolean }} args
+ */
+function extractContentInBrowser({ selector, includeImages }) {
+  // Find content root
+  let root;
+  if (selector) {
+    root = document.querySelector(selector);
+  } else {
+    root = document.querySelector('article') ||
+           document.querySelector('main') ||
+           document.querySelector('[role="main"]') ||
+           document.querySelector('.post-content, .article-body, .entry-content, .content-body, #content, .content') ||
+           document.body;
+  }
+  if (!root) root = document.body;
+
+  // Tags to skip entirely
+  const SKIP_TAGS = new Set(['nav', 'header', 'footer', 'aside', 'script', 'style', 'noscript', 'iframe', 'form', 'button']);
+  // Classes/ids that suggest chrome (nav, ads, sidebar)
+  const SKIP_PATTERN = /\b(nav|navigation|sidebar|widget|banner|ad|ads|advertisement|promo|cookie|popup|modal|overlay|comment|share|social|related|recommended|newsletter|subscribe|follow|breadcrumb|pagination|pager|menu|toolbar|topbar|bottombar|footer|header)\b/i;
+
+  function shouldSkip(el) {
+    if (SKIP_TAGS.has(el.tagName.toLowerCase())) return true;
+    const cls = el.className && typeof el.className === 'string' ? el.className : '';
+    const id = el.id || '';
+    // Only skip on explicit chrome selectors when not inside an article/main root
+    if (root === document.body && (SKIP_PATTERN.test(cls) || SKIP_PATTERN.test(id))) return true;
+    return false;
+  }
+
+  function nodeToMd(node, depth) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const t = node.textContent.replace(/\s+/g, ' ');
+      return t === ' ' ? '' : t;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    if (shouldSkip(node)) return '';
+
+    const tag = node.tagName.toLowerCase();
+    const children = () => [...node.childNodes].map(c => nodeToMd(c, depth + 1)).join('');
+
+    if (tag === 'h1') return `\n\n# ${children().trim()}\n\n`;
+    if (tag === 'h2') return `\n\n## ${children().trim()}\n\n`;
+    if (tag === 'h3') return `\n\n### ${children().trim()}\n\n`;
+    if (tag === 'h4') return `\n\n#### ${children().trim()}\n\n`;
+    if (tag === 'h5') return `\n\n##### ${children().trim()}\n\n`;
+    if (tag === 'h6') return `\n\n###### ${children().trim()}\n\n`;
+    if (tag === 'p') return `\n\n${children().trim()}\n\n`;
+    if (tag === 'br') return '\n';
+    if (tag === 'hr') return '\n\n---\n\n';
+    if (tag === 'strong' || tag === 'b') return `**${children()}**`;
+    if (tag === 'em' || tag === 'i') return `_${children()}_`;
+    if (tag === 'code') return `\`${children()}\``;
+    if (tag === 'pre') return `\n\n\`\`\`\n${node.textContent.trim()}\n\`\`\`\n\n`;
+    if (tag === 'blockquote') return `\n\n> ${children().trim().replace(/\n/g, '\n> ')}\n\n`;
+    if (tag === 'a') {
+      const href = node.getAttribute('href') || '';
+      const text = children().trim();
+      if (!text) return '';
+      return href ? `[${text}](${href})` : text;
+    }
+    if (tag === 'img' && includeImages) {
+      const src = node.getAttribute('src') || '';
+      const alt = node.getAttribute('alt') || '';
+      return src ? `\n\n![${alt}](${src})\n\n` : '';
+    }
+    if (tag === 'ul') {
+      return '\n\n' + [...node.children].map(li => `- ${nodeToMd(li, depth + 1).trim()}`).join('\n') + '\n\n';
+    }
+    if (tag === 'ol') {
+      return '\n\n' + [...node.children].map((li, i) => `${i + 1}. ${nodeToMd(li, depth + 1).trim()}`).join('\n') + '\n\n';
+    }
+    if (tag === 'li') return children();
+    if (tag === 'table') {
+      // Simple table: first row = header
+      const rows = [...node.querySelectorAll('tr')];
+      if (!rows.length) return '';
+      const lines = rows.map((row, i) => {
+        const cells = [...row.querySelectorAll('th, td')].map(c => c.textContent.trim().replace(/\|/g, '\\|'));
+        const line = '| ' + cells.join(' | ') + ' |';
+        if (i === 0) return line + '\n|' + cells.map(() => '---|').join('');
+        return line;
+      });
+      return '\n\n' + lines.join('\n') + '\n\n';
+    }
+    return children();
+  }
+
+  const raw = nodeToMd(root, 0);
+  // Collapse 3+ blank lines to 2
+  const md = raw.replace(/\n{3,}/g, '\n\n').trim();
+  return { content: md };
+}
+
+/**
+ * Detailed form analysis: fields, validation rules, action, method, fieldsets,
+ * select options, hidden fields, CSRF tokens.
+ */
+function extractFormsInBrowser() {
+  const CSRF_NAMES = /csrf|_token|authenticity_token|__requestverificationtoken|nonce/i;
+
+  function getLabel(field) {
+    // Explicit label
+    if (field.id) {
+      const lbl = document.querySelector(`label[for="${field.id}"]`);
+      if (lbl) return lbl.textContent.trim();
+    }
+    // Wrapping label
+    const parent = field.closest('label');
+    if (parent) return parent.textContent.trim().replace(field.value || '', '').trim();
+    // aria-label
+    return field.getAttribute('aria-label') || field.getAttribute('aria-labelledby') || '';
+  }
+
+  function fieldInfo(el) {
+    const tag = el.tagName.toLowerCase();
+    const info = {
+      tag,
+      type: el.type || tag,
+      name: el.name || undefined,
+      id: el.id || undefined,
+      label: getLabel(el) || undefined,
+      placeholder: el.placeholder || undefined,
+      required: el.required || undefined,
+      disabled: el.disabled || undefined,
+    };
+    // Validation attrs
+    if (el.pattern) info.pattern = el.pattern;
+    if (el.minLength > 0) info.minLength = el.minLength;
+    if (el.maxLength > 0 && el.maxLength < 524288) info.maxLength = el.maxLength;
+    if (el.min !== '') info.min = el.min;
+    if (el.max !== '') info.max = el.max;
+    // Hidden field value
+    if (el.type === 'hidden') info.value = el.value;
+    // Checkboxes/radio
+    if (el.type === 'checkbox' || el.type === 'radio') info.checked = el.checked;
+    // Select options
+    if (tag === 'select') {
+      info.options = [...el.options].slice(0, 20).map(o => ({ value: o.value, label: o.text.trim(), selected: o.selected || undefined }));
+      if (el.multiple) info.multiple = true;
+    }
+    // CSRF flag
+    if (el.type === 'hidden' && CSRF_NAMES.test(el.name || '')) info.csrf = true;
+    // Clean up undefineds
+    Object.keys(info).forEach(k => info[k] === undefined && delete info[k]);
+    return info;
+  }
+
+  const forms = [...document.querySelectorAll('form')].map(form => {
+    const result = {
+      id: form.id || undefined,
+      name: form.name || undefined,
+      action: form.action || undefined,
+      method: (form.method || 'get').toUpperCase(),
+      enctype: form.enctype !== 'application/x-www-form-urlencoded' ? form.enctype : undefined,
+    };
+
+    // Fieldsets
+    const fieldsets = [...form.querySelectorAll('fieldset')].map(fs => ({
+      legend: fs.querySelector('legend')?.textContent.trim() || undefined,
+      fields: [...fs.querySelectorAll('input, select, textarea')].map(fieldInfo),
+    }));
+    if (fieldsets.length) result.fieldsets = fieldsets;
+
+    // All fields (flat, for forms without fieldsets or in addition)
+    const allFields = [...form.querySelectorAll('input, select, textarea')].map(fieldInfo);
+    result.fields = allFields;
+
+    // Summarize CSRF tokens
+    const csrfFields = allFields.filter(f => f.csrf);
+    if (csrfFields.length) result.csrfTokens = csrfFields.map(f => f.name);
+
+    // Clean up undefineds
+    Object.keys(result).forEach(k => result[k] === undefined && delete result[k]);
+    return result;
+  });
+
+  return { forms };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -880,4 +1132,7 @@ module.exports = {
   extractComponentsInBrowser,
   extractBreakpointsInBrowser,
   detectStackInBrowser,
+  extractMetadataInBrowser,
+  extractContentInBrowser,
+  extractFormsInBrowser,
 };
