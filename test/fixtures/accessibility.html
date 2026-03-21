@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Accessibility Test</title>
+  <style>
+    .low-contrast { color: #cccccc; background-color: #ffffff; }
+    .good-contrast { color: #1a1a1a; background-color: #ffffff; }
+    .small-text { font-size: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Accessibility Test Page</h1>
+
+  <!-- Good: image with alt text -->
+  <img src="logo.png" alt="Company Logo" width="100" height="50">
+
+  <!-- Bad: image missing alt -->
+  <img src="hero.jpg" width="800" height="400">
+
+  <!-- Good: labeled input -->
+  <label for="email">Email</label>
+  <input type="email" id="email" name="email">
+
+  <!-- Bad: input without label -->
+  <input type="text" name="unlabeled" placeholder="No label here">
+
+  <!-- Good: button with text -->
+  <button>Submit</button>
+
+  <!-- Bad: empty button -->
+  <button></button>
+
+  <!-- Bad: link without text -->
+  <a href="/empty"></a>
+
+  <!-- Good: link with text -->
+  <a href="/about">About Us</a>
+
+  <!-- ARIA landmarks -->
+  <nav role="navigation" aria-label="Main">
+    <a href="/">Home</a>
+  </nav>
+
+  <main role="main">
+    <section aria-label="Content">
+      <h2>Section Heading</h2>
+      <p class="good-contrast">Good contrast text.</p>
+      <p class="low-contrast">Low contrast text that may fail AA.</p>
+    </section>
+  </main>
+
+  <!-- Skip link target -->
+  <div id="main-content" tabindex="-1">
+    <p>Main content area</p>
+  </div>
+</body>
+</html>

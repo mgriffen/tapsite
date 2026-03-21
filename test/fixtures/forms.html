@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Forms Test</title>
+</head>
+<body>
+  <h1>Form Test Page</h1>
+
+  <form id="login-form" action="/login" method="POST">
+    <fieldset>
+      <legend>Credentials</legend>
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="Enter username" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required minlength="8" maxlength="64">
+    </fieldset>
+
+    <input type="hidden" name="_csrf" value="abc123token">
+    <input type="submit" value="Log In">
+  </form>
+
+  <form id="search-form" action="/search" method="GET">
+    <input type="search" name="q" placeholder="Search..." aria-label="Search">
+    <button type="submit">Search</button>
+  </form>
+
+  <form id="profile-form" action="/profile" method="POST" enctype="multipart/form-data">
+    <label for="bio">Bio</label>
+    <textarea id="bio" name="bio" placeholder="Tell us about yourself"></textarea>
+
+    <label for="country">Country</label>
+    <select id="country" name="country">
+      <option value="">Select...</option>
+      <option value="us" selected>United States</option>
+      <option value="uk">United Kingdom</option>
+      <option value="ca">Canada</option>
+    </select>
+
+    <label>
+      <input type="checkbox" name="newsletter" checked> Subscribe to newsletter
+    </label>
+
+    <label>
+      <input type="radio" name="plan" value="free" checked> Free
+    </label>
+    <label>
+      <input type="radio" name="plan" value="pro"> Pro
+    </label>
+
+    <input type="file" name="avatar">
+    <input type="hidden" name="authenticity_token" value="xyz789">
+    <button type="submit">Save Profile</button>
+  </form>
+
+  <!-- Hidden form (should be flagged) -->
+  <form id="hidden-form" action="/evil" method="POST" style="display: none;">
+    <input type="hidden" name="payload" value="injection">
+  </form>
+</body>
+</html>

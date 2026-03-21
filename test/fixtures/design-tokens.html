@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Design Tokens Test</title>
+  <style>
+    :root {
+      --color-primary: #3b82f6;
+      --color-secondary: #10b981;
+      --color-danger: #ef4444;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 32px;
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+    }
+    body {
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.5;
+      color: #1a1a1a;
+      background-color: #ffffff;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #111827;
+    }
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #374151;
+    }
+    p {
+      font-size: 16px;
+      color: #4b5563;
+    }
+    .primary-btn {
+      background-color: #3b82f6;
+      color: #ffffff;
+      border: 1px solid #2563eb;
+      padding: 8px 16px;
+      border-radius: 4px;
+    }
+    .danger-btn {
+      background-color: #ef4444;
+      color: #ffffff;
+      border: 1px solid #dc2626;
+    }
+    .card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 16px;
+    }
+    code {
+      font-family: var(--font-mono);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Design Tokens Page</h1>
+  <h2>Subtitle Here</h2>
+  <p>Regular paragraph text.</p>
+  <div class="card">
+    <p>Card content</p>
+    <button class="primary-btn">Primary Action</button>
+    <button class="danger-btn">Delete</button>
+  </div>
+  <code>const x = 42;</code>
+</body>
+</html>

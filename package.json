@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node src/mcp-server.js",
     "login": "node src/cli.js login",
-    "inspect": "node src/cli.js inspect"
+    "inspect": "node src/cli.js inspect",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "repository": {
     "type": "git",
@@ -27,5 +29,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
     "playwright": "^1.58.2"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.0"
   }
 }
