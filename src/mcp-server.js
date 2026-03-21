@@ -673,9 +673,9 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractFontsInBrowser);
-    const families = (result.fonts || []).map(f => `"${f.family}" (${f.usage}x)`).join(', ');
-    const sizes = (result.fontSizes || []).slice(0, 5).map(s => s.size).join(', ');
-    const summary = `Fonts: ${(result.fonts || []).length} families, ${(result.fontSizes || []).length} sizes, ${(result.fontWeights || []).length} weights\nFamilies: ${families || 'none'}\nSizes: ${sizes || 'none'}`;
+    const families = (result.families || []).map(f => `"${f.value}" (${f.count}x)`).join(', ');
+    const sizes = (result.sizes || []).slice(0, 5).map(s => s.value).join(', ');
+    const summary = `Fonts: ${(result.families || []).length} families, ${(result.sizes || []).length} sizes, ${(result.weights || []).length} weights\nFamilies: ${families || 'none'}\nSizes: ${sizes || 'none'}`;
     return summarizeResult('fonts', result, summary);
   }
 );
@@ -694,12 +694,10 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractCssVarsInBrowser, { includeAll });
-    const vars = result.vars || [];
-    const cats = {};
-    vars.forEach(v => { cats[v.category || 'other'] = (cats[v.category || 'other'] || 0) + 1; });
-    const catStr = Object.entries(cats).map(([k, v]) => `${k} (${v})`).join(', ');
+    const vars = result.variables || [];
+    const catStr = Object.entries(result.summary || {}).map(([k, v]) => `${k} (${v})`).join(', ');
     const samples = vars.slice(0, 4).map(v => `${v.name}: ${v.value}`).join(', ');
-    const summary = `CSS vars: ${vars.length} total | ${catStr}\nSample: ${samples || 'none'}`;
+    const summary = `CSS vars: ${result.total || vars.length} total | ${catStr}\nSample: ${samples || 'none'}`;
     return summarizeResult('css-vars', result, summary);
   }
 );
@@ -718,9 +716,10 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractSpacingInBrowser, { sampleSize });
-    const scale = (result.scale || []).slice(0, 10).map(s => s.value).join(', ');
-    const top5 = (result.scale || []).slice(0, 5).map(s => `${s.value} (${s.count}x)`).join(', ');
-    const summary = `Spacing: ${(result.scale || []).length} values | Base: ${result.inferredBase || 'unknown'}\nScale: ${scale || 'none'}\nTop: ${top5 || 'none'}`;
+    const spacing = result.spacing || [];
+    const scale = spacing.slice(0, 10).map(s => s.value).join(', ');
+    const top5 = spacing.slice(0, 5).map(s => `${s.value} (${s.count}x)`).join(', ');
+    const summary = `Spacing: ${spacing.length} values | Base: ${result.inferredBase || 'unknown'}\nScale: ${scale || 'none'}\nTop: ${top5 || 'none'}`;
     return summarizeResult('spacing', result, summary);
   }
 );
@@ -1032,7 +1031,7 @@ server.tool(
     }
     const result = await page.evaluate(extractComponentsInBrowser, { minOccurrences });
     const comps = result.components || [];
-    const top5 = comps.slice(0, 5).map(c => `${c.selector} (${c.count}x${c.role ? ', ' + c.role : ''})`).join('\n  ');
+    const top5 = comps.slice(0, 5).map(c => `${c.tag}${c.classes ? '.' + c.classes.split(' ')[0] : ''} (${c.count}x)`).join('\n  ');
     const summary = `Components: ${comps.length} patterns detected\n  ${top5 || 'none'}`;
     return summarizeResult('components', result, summary);
   }
@@ -1318,7 +1317,14 @@ server.tool(
       if (hosting.length) stack.hosting = hosting;
     }
 
-    const techs = (stack.technologies || []).map(t => t.name + (t.version ? ` ${t.version}` : '')).join(', ');
+    const allTechs = [
+      ...(stack.frameworks || []),
+      ...(stack.cssFrameworks || []),
+      ...(stack.buildTools || []),
+      ...(stack.analytics || []),
+      ...(stack.cms || []),
+    ];
+    const techs = allTechs.map(t => t.name + (t.version ? ` ${t.version}` : '')).join(', ');
     const hosting = (stack.hosting || []).join(', ');
     const summary = `Stack: ${techs || 'none detected'}${hosting ? `\nHosting: ${hosting}` : ''}`;
     return summarizeResult('stack', stack, summary);
@@ -1340,9 +1346,9 @@ server.tool(
       await page.waitForTimeout(1000);
     }
     const result = await page.evaluate(extractMetadataInBrowser);
-    const og = (result.openGraph || []).length;
-    const tw = (result.twitterCards || []).length;
-    const ld = (result.jsonLd || []).length;
+    const og = result.openGraph ? Object.keys(result.openGraph).length : 0;
+    const tw = result.twitterCard ? Object.keys(result.twitterCard).length : 0;
+    const ld = Array.isArray(result.jsonLd) ? result.jsonLd.length : 0;
     const summary = `Metadata: "${result.title || ''}" | OG: ${og} tags | Twitter: ${tw} tags | JSON-LD: ${ld}\nCanonical: ${result.canonical || 'none'} | Lang: ${result.lang || '?'}`;
     return summarizeResult('metadata', result, summary);
   }
@@ -1685,10 +1691,11 @@ server.tool(
     }
     const result = await page.evaluate(extractPerfInBrowser);
     const t = result.timing || {};
-    const v = result.vitals || {};
+    const dom = result.dom || {};
     const res = result.resources || {};
-    const resStr = Object.entries(res).map(([k, v]) => `${k}: ${v.count || '?'} files, ${v.size || '?'}`).join(' | ');
-    const summary = `Perf: TTFB ${t.ttfb || '?'}ms, FCP ${t.fcp || '?'}ms, LCP ${v.lcp || '?'}ms, CLS ${v.cls ?? '?'} | DOM: ${result.domNodes || '?'} nodes\nResources: ${resStr || 'none'}\nTotal: ${result.totalTransfer || '?'}`;
+    const byType = res.byType || {};
+    const resStr = Object.entries(byType).map(([k, v]) => `${k}: ${v.count} files, ${v.transferKB}KB`).join(' | ');
+    const summary = `Perf: TTFB ${t.ttfbMs ?? '?'}ms, DOMContentLoaded ${t.domContentLoadedMs ?? '?'}ms, Load ${t.loadMs ?? '?'}ms | DOM: ${dom.nodeCount ?? '?'} nodes (${dom.domSizeKB ?? '?'}KB)\nResources: ${res.total ?? '?'} total | ${resStr || 'none'}`;
     return summarizeResult('perf', result, summary);
   }
 );
@@ -1729,29 +1736,29 @@ server.tool(
       });
     }
 
-    if (data.fonts?.fonts?.length) {
+    if (data.fonts?.families?.length) {
       tokens.fontFamily = {};
-      data.fonts.fonts.forEach((f, i) => {
-        tokens.fontFamily[`font-${i + 1}`] = { $value: f.family, $type: "fontFamily", $description: `${f.usage} use(s)` };
+      data.fonts.families.forEach((f, i) => {
+        tokens.fontFamily[`font-${i + 1}`] = { $value: f.value, $type: "fontFamily", $description: `${f.count} use(s)` };
       });
-      if (data.fonts.fontSizes?.length) {
+      if (data.fonts.sizes?.length) {
         tokens.fontSize = {};
-        data.fonts.fontSizes.forEach((s, i) => {
-          tokens.fontSize[`size-${i + 1}`] = { $value: s.size, $type: "dimension", $description: `count: ${s.count}` };
+        data.fonts.sizes.forEach((s, i) => {
+          tokens.fontSize[`size-${i + 1}`] = { $value: s.value, $type: "dimension", $description: `count: ${s.count}` };
         });
       }
     }
 
-    if (data.spacing?.scale?.length) {
+    if (data.spacing?.spacing?.length) {
       tokens.spacing = {};
-      data.spacing.scale.forEach((s, i) => {
+      data.spacing.spacing.forEach((s, i) => {
         tokens.spacing[`space-${i + 1}`] = { $value: s.value, $type: "dimension", $description: `count: ${s.count}` };
       });
     }
 
-    if (data.cssVars?.vars?.length) {
+    if (data.cssVars?.variables?.length) {
       tokens.cssCustomProperty = {};
-      for (const v of data.cssVars.vars) {
+      for (const v of data.cssVars.variables) {
         const key = v.name.replace(/^--/, '').replace(/[^a-zA-Z0-9-]/g, '-');
         tokens.cssCustomProperty[key] = { $value: v.value, $type: "string" };
       }
@@ -1763,21 +1770,21 @@ server.tool(
       cssLines.push('  /* Colors */');
       data.colors.colors.forEach((c, i) => { cssLines.push(`  --color-${i + 1}: ${c.hex};`); });
     }
-    if (data.fonts?.fonts?.length) {
+    if (data.fonts?.families?.length) {
       cssLines.push('  /* Font Families */');
-      data.fonts.fonts.forEach((f, i) => { cssLines.push(`  --font-family-${i + 1}: ${f.family};`); });
+      data.fonts.families.forEach((f, i) => { cssLines.push(`  --font-family-${i + 1}: ${f.value};`); });
     }
-    if (data.fonts?.fontSizes?.length) {
+    if (data.fonts?.sizes?.length) {
       cssLines.push('  /* Font Sizes */');
-      data.fonts.fontSizes.forEach((s, i) => { cssLines.push(`  --font-size-${i + 1}: ${s.size};`); });
+      data.fonts.sizes.forEach((s, i) => { cssLines.push(`  --font-size-${i + 1}: ${s.value};`); });
     }
-    if (data.spacing?.scale?.length) {
+    if (data.spacing?.spacing?.length) {
       cssLines.push('  /* Spacing Scale */');
-      data.spacing.scale.forEach((s, i) => { cssLines.push(`  --space-${i + 1}: ${s.value};`); });
+      data.spacing.spacing.forEach((s, i) => { cssLines.push(`  --space-${i + 1}: ${s.value};`); });
     }
-    if (data.cssVars?.vars?.length) {
+    if (data.cssVars?.variables?.length) {
       cssLines.push('  /* Original CSS Custom Properties */');
-      for (const v of data.cssVars.vars) { cssLines.push(`  ${v.name}: ${v.value};`); }
+      for (const v of data.cssVars.variables) { cssLines.push(`  ${v.name}: ${v.value};`); }
     }
     cssLines.push('}');
 
@@ -1802,22 +1809,26 @@ server.tool(
       body += '</div></section>';
     }
 
-    if (data.fonts?.fonts?.length) {
+    if (data.fonts?.families?.length) {
       body += `<section id="typography"><h2>Typography</h2><table>
-        <thead><tr><th>Family</th><th>Weights</th><th>Sizes</th><th>Usage</th></tr></thead><tbody>`;
-      for (const f of data.fonts.fonts) {
-        body += `<tr><td style="font-family:${esc(f.family)}">${esc(f.family)}</td>
-          <td>${(f.weights || []).join(', ')}</td>
-          <td>${(f.sizes || []).slice(0, 5).join(', ')}</td>
-          <td>${f.usage}</td></tr>`;
+        <thead><tr><th>Family</th><th>Usage</th></tr></thead><tbody>`;
+      for (const f of data.fonts.families) {
+        body += `<tr><td style="font-family:${esc(f.value)}">${esc(f.value)}</td>
+          <td>${f.count}</td></tr>`;
+      }
+      if (data.fonts.sizes?.length) {
+        body += `</tbody></table><h3>Font Sizes</h3><table><thead><tr><th>Size</th><th>Count</th></tr></thead><tbody>`;
+        for (const s of data.fonts.sizes.slice(0, 15)) {
+          body += `<tr><td>${esc(s.value)}</td><td>${s.count}</td></tr>`;
+        }
       }
       body += '</tbody></table></section>';
     }
 
-    if (data.cssVars?.vars?.length) {
-      body += `<section id="css-vars"><h2>CSS Custom Properties <span class="count">${data.cssVars.vars.length}</span></h2><table>
+    if (data.cssVars?.variables?.length) {
+      body += `<section id="css-vars"><h2>CSS Custom Properties <span class="count">${data.cssVars.variables.length}</span></h2><table>
         <thead><tr><th>Variable</th><th>Value</th><th>Category</th></tr></thead><tbody>`;
-      for (const v of data.cssVars.vars) {
+      for (const v of data.cssVars.variables) {
         const isColor = /^#|^rgb/.test(v.value);
         const swatch = isColor ? `<span class="inline-swatch" style="background:${esc(v.value)}"></span>` : '';
         body += `<tr><td><code>${esc(v.name)}</code></td><td>${swatch}${esc(v.value)}</td><td>${esc(v.category || '')}</td></tr>`;
@@ -1825,9 +1836,9 @@ server.tool(
       body += '</tbody></table></section>';
     }
 
-    if (data.spacing?.scale?.length) {
+    if (data.spacing?.spacing?.length) {
       body += `<section id="spacing"><h2>Spacing Scale</h2><div class="spacing-list">`;
-      for (const s of data.spacing.scale) {
+      for (const s of data.spacing.spacing) {
         const px = parseFloat(s.value) || 0;
         const barW = Math.min(px * 2, 300);
         body += `<div class="spacing-row">
@@ -1840,9 +1851,9 @@ server.tool(
 
     if (data.components?.components?.length) {
       body += `<section id="components"><h2>Components <span class="count">${data.components.components.length}</span></h2><table>
-        <thead><tr><th>Selector</th><th>Count</th><th>Role</th></tr></thead><tbody>`;
+        <thead><tr><th>Pattern</th><th>Count</th><th>Tag</th></tr></thead><tbody>`;
       for (const c of data.components.components) {
-        body += `<tr><td><code>${esc(c.selector)}</code></td><td>${c.count}</td><td>${esc(c.role || '')}</td></tr>`;
+        body += `<tr><td><code>${esc(c.signature)}</code></td><td>${c.count}</td><td>${esc(c.tag || '')}</td></tr>`;
       }
       body += '</tbody></table></section>';
     }
