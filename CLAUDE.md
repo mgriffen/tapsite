@@ -1,4 +1,4 @@
-# cbrowser
+# tapsite
 
 Web intelligence toolkit — an MCP server + CLI built with Node.js and Playwright. Designed for authenticated dashboard inspection, design system extraction, and UI analysis. Reuses browser sessions across tool calls so MFA-protected sites only need one manual login.
 
@@ -18,7 +18,7 @@ Then add the MCP server to the global Claude config:
 cat > ~/.claude/.mcp.json << 'EOF'
 {
   "mcpServers": {
-    "cbrowser": {
+    "tapsite": {
       "command": "node",
       "args": ["REPO_PATH/src/mcp-server.js"]
     }
@@ -39,14 +39,14 @@ This prevents credentials from lingering on disk in session transcripts.
 
 ## Credential safety
 
-**Never pass credentials through the chat.** Use `cbrowser_login_manual` to open a headed browser, log in manually (including MFA), then use `cbrowser_login_check` to confirm the session. This keeps credentials completely off Anthropic's servers and out of local transcripts.
+**Never pass credentials through the chat.** Use `tapsite_login_manual` to open a headed browser, log in manually (including MFA), then use `tapsite_login_check` to confirm the session. This keeps credentials completely off Anthropic's servers and out of local transcripts.
 
 ## Project structure
 
 - `src/mcp-server.js` — MCP server entry point (all 37 tool definitions)
 - `src/extractors.js` — browser-context extraction functions (run inside `page.evaluate()`; no Node.js APIs)
 - `src/exporter.js` — file export helpers: JSON, Markdown, HTML visual report, CSV tables
-- `src/inspector.js` — legacy DOM extraction used by `cbrowser_inspect` (nav, headings, buttons, forms, tables, links)
+- `src/inspector.js` — legacy DOM extraction used by `tapsite_inspect` (nav, headings, buttons, forms, tables, links)
 - `src/browser.js` — persistent Chromium context management (used by CLI only)
 - `src/cli.js` — standalone CLI (login, inspect, session commands)
 - `src/config.js` — paths and defaults
@@ -56,12 +56,12 @@ This prevents credentials from lingering on disk in session transcripts.
 - Uses Playwright persistent browser context — session cookies survive across runs
 - `profiles/` stores browser state (cookies, localStorage) — gitignored
 - `output/` stores export results — gitignored
-- Headless by default in MCP mode; headed mode used for `cbrowser_login_manual`
+- Headless by default in MCP mode; headed mode used for `tapsite_login_manual`
 
 ## Memory hygiene
 
 Update memory files incrementally during sessions — don't batch everything to the end.
-Memory lives at `~/.claude/projects/-home-griffen-projects-cbrowser/memory/`.
+Memory lives at `~/.claude/projects/-home-griffen-projects-tapsite/memory/`.
 
 - After completing a phase or significant task → update `project_status.md`
 - When Griffen gives feedback or corrects an approach → update `feedback_workflow.md`

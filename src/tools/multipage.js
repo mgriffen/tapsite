@@ -16,7 +16,7 @@ const browser = require('../browser');
 module.exports = function registerMultipageTools(server) {
 
   server.tool(
-    'cbrowser_crawl',
+    'tapsite_crawl',
     'BFS crawl with extraction per page. Writes to output/crawl-{ts}/.',
     {
       url: z.string().describe('Start URL'),
@@ -132,7 +132,7 @@ module.exports = function registerMultipageTools(server) {
   );
 
   server.tool(
-    'cbrowser_diff_pages',
+    'tapsite_diff_pages',
     'Compare two URLs: structure, content, colors, images, metadata.',
     {
       url1: z.string().describe('First URL'),
@@ -212,7 +212,7 @@ module.exports = function registerMultipageTools(server) {
       lines.push(`Colors: ${d.colors.shared.length} shared, ${d.colors.onlyIn1.length} only in url1, ${d.colors.onlyIn2.length} only in url2`);
       const { summarizeResult } = require('../helpers');
       const summary = `Diff: ${url1} vs ${url2}\n${lines.join('\n')}`;
-      return summarizeResult('diff', result, summary, { tool: 'cbrowser_diff_pages', description: 'Structural and content comparison between two URLs' });
+      return summarizeResult('diff', result, summary, { tool: 'tapsite_diff_pages', description: 'Structural and content comparison between two URLs' });
     }
   );
 

@@ -58,7 +58,7 @@ async function captureNetwork({ duration, includeStatic, filterUrl, filterMethod
 module.exports = function registerNetworkTools(server) {
 
   server.tool(
-    'cbrowser_capture_network',
+    'tapsite_capture_network',
     'Capture network traffic for a duration. Filters static assets by default.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
@@ -83,12 +83,12 @@ module.exports = function registerNetworkTools(server) {
       const statusStr = Object.entries(byStatus).map(([k, v]) => `${k} (${v})`).join(', ');
       const top5 = requests.slice(0, 5).map(r => `${r.method} ${r.url.slice(0, 60)} → ${r.status}`).join('\n  ');
       const summary = `Network: ${requests.length} requests (${duration}s)\nBy type: ${typeStr}\nBy status: ${statusStr}\nTop:\n  ${top5 || 'none'}`;
-      return summarizeResult('network', data, summary, { tool: 'cbrowser_capture_network', description: 'Network requests captured during page activity' });
+      return summarizeResult('network', data, summary, { tool: 'tapsite_capture_network', description: 'Network requests captured during page activity' });
     }
   );
 
   server.tool(
-    'cbrowser_extract_api_schema',
+    'tapsite_extract_api_schema',
     'Infer API schemas from captured network traffic.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
@@ -185,12 +185,12 @@ module.exports = function registerNetworkTools(server) {
         `${e.method} ${e.endpoint} — ${e.calls}x, [${e.statuses.join(',')}]${e.hasAuth ? ', auth' : ''}${e.pagination ? ', paginated' : ''}`
       ).join('\n  ');
       const summary = `API: ${endpoints.length} endpoints from ${apiCalls.length} calls (${duration}s)\n  ${epLines || 'none detected'}`;
-      return summarizeResult('api-schema', data, summary, { tool: 'cbrowser_extract_api_schema', description: 'API endpoints inferred from observed JSON network traffic' });
+      return summarizeResult('api-schema', data, summary, { tool: 'tapsite_extract_api_schema', description: 'API endpoints inferred from observed JSON network traffic' });
     }
   );
 
   server.tool(
-    'cbrowser_detect_stack',
+    'tapsite_detect_stack',
     'Detect tech stack: frameworks, libraries, CMS, analytics, CDNs.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
@@ -244,7 +244,7 @@ module.exports = function registerNetworkTools(server) {
       const techs = allTechs.map(t => t.name + (t.version ? ` ${t.version}` : '')).join(', ');
       const hosting = (stack.hosting || []).join(', ');
       const summary = `Stack: ${techs || 'none detected'}${hosting ? `\nHosting: ${hosting}` : ''}`;
-      return summarizeResult('stack', stack, summary, { tool: 'cbrowser_detect_stack', description: 'Tech stack detected from scripts, globals, CSS, and HTTP headers' });
+      return summarizeResult('stack', stack, summary, { tool: 'tapsite_detect_stack', description: 'Tech stack detected from scripts, globals, CSS, and HTTP headers' });
     }
   );
 

@@ -6,7 +6,7 @@ const { navigateIfNeeded, indexPage, resolveElement, formatIndexResult } = requi
 module.exports = function registerSessionTools(server) {
 
   server.tool(
-    'cbrowser_login',
+    'tapsite_login',
     'Auto-login with credentials. Session persists across calls.',
     {
       url: z.string().describe('Login page URL'),
@@ -41,7 +41,7 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'cbrowser_login_manual',
+    'tapsite_login_manual',
     'Open headed browser for manual login (MFA). Call login_check when done.',
     {
       url: z.string().describe('Login page URL'),
@@ -54,14 +54,14 @@ module.exports = function registerSessionTools(server) {
       return {
         content: [{
           type: 'text',
-          text: `Browser window opened to: ${url}\nPage title: ${title}\n\nThe user should now log in manually (including MFA/authenticator). Once they confirm they are logged in, use cbrowser_login_check to verify the session.`,
+          text: `Browser window opened to: ${url}\nPage title: ${title}\n\nThe user should now log in manually (including MFA/authenticator). Once they confirm they are logged in, use tapsite_login_check to verify the session.`,
         }],
       };
     }
   );
 
   server.tool(
-    'cbrowser_login_check',
+    'tapsite_login_check',
     'Verify auth state after manual login. Returns title, URL, content preview.',
     {},
     async () => {
@@ -69,7 +69,7 @@ module.exports = function registerSessionTools(server) {
         return {
           content: [{
             type: 'text',
-            text: 'No browser session active. Use cbrowser_login_manual to open a browser first.',
+            text: 'No browser session active. Use tapsite_login_manual to open a browser first.',
           }],
         };
       }
@@ -90,7 +90,7 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'cbrowser_navigate',
+    'tapsite_navigate',
     'Navigate to URL. Returns compressed DOM with numbered interactive elements.',
     {
       url: z.string().describe('URL to navigate to'),
@@ -107,7 +107,7 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'cbrowser_inspect',
+    'tapsite_inspect',
     'Inspect page DOM with numbered interactive elements. Optional screenshot.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
@@ -134,7 +134,7 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'cbrowser_screenshot',
+    'tapsite_screenshot',
     'Screenshot the page. Optional element highlighting with numbered badges.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
@@ -151,11 +151,11 @@ module.exports = function registerSessionTools(server) {
         }
         await browser.page.evaluate((elements) => {
           const container = document.createElement('div');
-          container.id = '__cbrowser_highlights__';
+          container.id = '__tapsite_highlights__';
           container.style.cssText = 'position:absolute;top:0;left:0;z-index:999999;pointer-events:none;';
           for (const el of elements) {
             const badge = document.createElement('div');
-            badge.className = '__cbrowser_badge__';
+            badge.className = '__tapsite_badge__';
             badge.textContent = el.index;
             badge.style.cssText = `
               position:absolute;
@@ -181,7 +181,7 @@ module.exports = function registerSessionTools(server) {
 
       if (highlight) {
         await browser.page.evaluate(() => {
-          document.getElementById('__cbrowser_highlights__')?.remove();
+          document.getElementById('__tapsite_highlights__')?.remove();
         });
       }
 
@@ -196,7 +196,7 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'cbrowser_act',
+    'tapsite_act',
     'Click, fill, select, check, or hover an indexed element. Returns updated DOM.',
     {
       action: z.enum(['click', 'fill', 'select', 'check', 'hover']).describe('Action type'),
@@ -209,7 +209,7 @@ module.exports = function registerSessionTools(server) {
         return {
           content: [{
             type: 'text',
-            text: 'No element map available. Use cbrowser_navigate or cbrowser_inspect first to index the page.',
+            text: 'No element map available. Use tapsite_navigate or tapsite_inspect first to index the page.',
           }],
         };
       }
@@ -263,7 +263,7 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'cbrowser_scroll',
+    'tapsite_scroll',
     'Scroll page or scroll an element into view.',
     {
       direction: z.enum(['up', 'down', 'top', 'bottom']).optional().describe('Direction (ignored if index set)'),
@@ -298,7 +298,7 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'cbrowser_run_js',
+    'tapsite_run_js',
     'Run JS in page context. Large results (>2KB) write to disk.',
     {
       script: z.string().describe('JS expression (must return a value)'),
@@ -310,14 +310,14 @@ module.exports = function registerSessionTools(server) {
       if (text.length > 2000) {
         const preview = text.slice(0, 500) + '\n…(truncated)';
         const { summarizeResult } = require('../helpers');
-        return summarizeResult('run-js', result, `Result (${text.length} chars, truncated):\n${preview}`, { tool: 'cbrowser_run_js', description: 'JavaScript evaluation result from page context' });
+        return summarizeResult('run-js', result, `Result (${text.length} chars, truncated):\n${preview}`, { tool: 'tapsite_run_js', description: 'JavaScript evaluation result from page context' });
       }
       return { content: [{ type: 'text', text: sanitizeForLLM(text) }] };
     }
   );
 
   server.tool(
-    'cbrowser_close',
+    'tapsite_close',
     'Close the browser session.',
     {},
     async () => {

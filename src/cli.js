@@ -32,7 +32,7 @@ async function login() {
 async function inspect() {
   const urls = args;
   if (!urls.length) {
-    console.error('Usage: cbrowser inspect <url1> [url2] ...');
+    console.error('Usage: tapsite inspect <url1> [url2] ...');
     process.exit(1);
   }
 
@@ -94,7 +94,7 @@ async function session() {
   }
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const prompt = () => new Promise((resolve) => rl.question('\ncbrowser> ', resolve));
+  const prompt = () => new Promise((resolve) => rl.question('\ntapsite> ', resolve));
 
   console.log('Commands:');
   console.log('  capture                    Inspect the current page (use after navigating in browser)');
@@ -262,11 +262,11 @@ async function main() {
       await session();
       break;
     default:
-      console.log('cbrowser — Authenticated Dashboard Discovery Tool\n');
+      console.log('tapsite — Authenticated Dashboard Discovery Tool\n');
       console.log('Commands:');
-      console.log('  cbrowser login [url]            Open browser to log in and save session');
-      console.log('  cbrowser inspect <url> [...]     Inspect pages using saved session');
-      console.log('  cbrowser session [url]           Login + inspect in one session (interactive)');
+      console.log('  tapsite login [url]            Open browser to log in and save session');
+      console.log('  tapsite inspect <url> [...]     Inspect pages using saved session');
+      console.log('  tapsite session [url]           Login + inspect in one session (interactive)');
       process.exit(0);
   }
 }

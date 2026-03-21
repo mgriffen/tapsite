@@ -1,3 +1,3 @@
 #!/usr/bin/env node
-// Entry point shim — delegates to the modular server
+// Entry point shim — delegates to the tapsite modular server
 require('./server');
