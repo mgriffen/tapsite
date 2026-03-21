@@ -959,14 +959,13 @@ function extractContentInBrowser({ selector, includeImages }) {
   // Tags to skip entirely
   const SKIP_TAGS = new Set(['nav', 'header', 'footer', 'aside', 'script', 'style', 'noscript', 'iframe', 'form', 'button']);
   // Classes/ids that suggest chrome (nav, ads, sidebar)
-  const SKIP_PATTERN = /\b(nav|navigation|sidebar|widget|banner|ad|ads|advertisement|promo|cookie|popup|modal|overlay|comment|share|social|related|recommended|newsletter|subscribe|follow|breadcrumb|pagination|pager|menu|toolbar|topbar|bottombar|footer|header)\b/i;
+  const SKIP_PATTERN = /\b(nav|navigation|sidebar|widget|banner|ad|ads|advertisement|promo|cookie|popup|modal|overlay|comment|share|social|related|recommended|newsletter|subscribe|follow|breadcrumb|pagination|pager|menu|toolbar|topbar|bottombar|footer|header|navbox|navmenu|side-bar|related-posts|related-articles|post-list|card-list|link-list|further-reading|see-also|toc-sidebar)\b/i;
 
   function shouldSkip(el) {
     if (SKIP_TAGS.has(el.tagName.toLowerCase())) return true;
     const cls = el.className && typeof el.className === 'string' ? el.className : '';
     const id = el.id || '';
-    // Only skip on explicit chrome selectors when not inside an article/main root
-    if (root === document.body && (SKIP_PATTERN.test(cls) || SKIP_PATTERN.test(id))) return true;
+    if (SKIP_PATTERN.test(cls) || SKIP_PATTERN.test(id)) return true;
     return false;
   }
 
