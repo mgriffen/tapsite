@@ -6,6 +6,12 @@ const { z } = require("zod");
 const { chromium } = require("playwright");
 const { inspectPage, inspectPageV2 } = require("./inspector");
 const { createRunDir, screenshotPath, exportJSON, exportMarkdown } = require("./exporter");
+const {
+  extractColorsInBrowser,
+  extractFontsInBrowser,
+  extractCssVarsInBrowser,
+  extractSpacingInBrowser,
+} = require("./extractors");
 const config = require("./config");
 const fs = require("fs");
 const path = require("path");
@@ -594,6 +600,87 @@ server.tool(
           text: `Scrolled ${index !== undefined ? `element [${index}] into view` : direction || "down"}.\n\n${formatIndexResult(result)}`,
         },
       ],
+    };
+  }
+);
+
+// --- Phase 1: Design Token Extraction ---
+
+server.tool(
+  "cbrowser_extract_colors",
+  "Extract the color palette from the current page — all unique colors from computed styles, sorted by frequency.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    limit: z.number().default(30).describe("Maximum number of colors to return"),
+  },
+  async ({ url, limit }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractColorsInBrowser, { limit });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_fonts",
+  "Extract typography information — font families, sizes, weights, line-heights, and font sources (Google Fonts, Typekit, self-hosted).",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+  },
+  async ({ url }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractFontsInBrowser);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_css_vars",
+  "Extract all CSS custom properties (variables) from :root and body, auto-categorized by type (color, spacing, typography, etc.).",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    includeAll: z.boolean().default(false).describe("Also scan inline styles on all elements"),
+  },
+  async ({ url, includeAll }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractCssVarsInBrowser, { includeAll });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_spacing",
+  "Extract the spacing scale — unique margin, padding, gap, and border-radius values with inferred base unit.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    sampleSize: z.number().default(200).describe("Max elements to sample"),
+  },
+  async ({ url, sampleSize }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractSpacingInBrowser, { sampleSize });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
   }
 );

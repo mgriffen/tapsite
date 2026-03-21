@@ -10,4 +10,5 @@ module.exports = {
   VIEWPORT: { width: 1440, height: 900 },
   MAX_ELEMENTS: 200,
   MAX_DOM_LENGTH: 8000,
+  MAX_COLORS: 50,
 };
