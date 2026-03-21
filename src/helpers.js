@@ -32,6 +32,28 @@ function summarizeResult(name, data, summary, meta = {}) {
   };
 
   fs.writeFileSync(filePath, JSON.stringify({ _meta, ...data }, null, 2));
+
+  if (process.env.TAPSITE_REPORT === '1') {
+    const mdPath = path.join(dir, `${name}-${tsFile}.md`);
+    const lines = [
+      `# ${_meta.tool}`,
+      '',
+      '## Report Info',
+      '',
+      `| Field       | Value |`,
+      `|-------------|-------|`,
+      `| **Tool**    | \`${_meta.tool}\` |`,
+      `| **URL**     | ${_meta.url || '—'} |`,
+      `| **Timestamp** | ${_meta.timestamp} |`,
+      `| **Version** | ${_meta.version} |`,
+    ];
+    if (_meta.description) {
+      lines.push(`| **Description** | ${_meta.description} |`);
+    }
+    lines.push('', '## Summary', '', summary, '');
+    fs.writeFileSync(mdPath, lines.join('\n'));
+  }
+
   const sanitized = sanitizeForLLM(summary);
   return {
     content: [{ type: 'text', text: `${sanitized}\n\nFull data: ${filePath}` }],
