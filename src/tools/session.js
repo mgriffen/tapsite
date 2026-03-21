@@ -310,7 +310,7 @@ module.exports = function registerSessionTools(server) {
       if (text.length > 2000) {
         const preview = text.slice(0, 500) + '\n…(truncated)';
         const { summarizeResult } = require('../helpers');
-        return summarizeResult('run-js', result, `Result (${text.length} chars, truncated):\n${preview}`);
+        return summarizeResult('run-js', result, `Result (${text.length} chars, truncated):\n${preview}`, { tool: 'cbrowser_run_js', description: 'JavaScript evaluation result from page context' });
       }
       return { content: [{ type: 'text', text: sanitizeForLLM(text) }] };
     }

@@ -83,7 +83,7 @@ module.exports = function registerNetworkTools(server) {
       const statusStr = Object.entries(byStatus).map(([k, v]) => `${k} (${v})`).join(', ');
       const top5 = requests.slice(0, 5).map(r => `${r.method} ${r.url.slice(0, 60)} → ${r.status}`).join('\n  ');
       const summary = `Network: ${requests.length} requests (${duration}s)\nBy type: ${typeStr}\nBy status: ${statusStr}\nTop:\n  ${top5 || 'none'}`;
-      return summarizeResult('network', data, summary);
+      return summarizeResult('network', data, summary, { tool: 'cbrowser_capture_network', description: 'Network requests captured during page activity' });
     }
   );
 
@@ -185,7 +185,7 @@ module.exports = function registerNetworkTools(server) {
         `${e.method} ${e.endpoint} — ${e.calls}x, [${e.statuses.join(',')}]${e.hasAuth ? ', auth' : ''}${e.pagination ? ', paginated' : ''}`
       ).join('\n  ');
       const summary = `API: ${endpoints.length} endpoints from ${apiCalls.length} calls (${duration}s)\n  ${epLines || 'none detected'}`;
-      return summarizeResult('api-schema', data, summary);
+      return summarizeResult('api-schema', data, summary, { tool: 'cbrowser_extract_api_schema', description: 'API endpoints inferred from observed JSON network traffic' });
     }
   );
 
@@ -244,7 +244,7 @@ module.exports = function registerNetworkTools(server) {
       const techs = allTechs.map(t => t.name + (t.version ? ` ${t.version}` : '')).join(', ');
       const hosting = (stack.hosting || []).join(', ');
       const summary = `Stack: ${techs || 'none detected'}${hosting ? `\nHosting: ${hosting}` : ''}`;
-      return summarizeResult('stack', stack, summary);
+      return summarizeResult('stack', stack, summary, { tool: 'cbrowser_detect_stack', description: 'Tech stack detected from scripts, globals, CSS, and HTTP headers' });
     }
   );
 

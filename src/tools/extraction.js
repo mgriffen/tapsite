@@ -92,7 +92,7 @@ module.exports = function registerExtractionTools(server) {
       const headers = rows[0]?.map(c => c.text).join(' | ') || '';
       const preview = rows.slice(1, 4).map(r => r.map(c => c.text?.slice(0, 25)).join(' | ')).join('\n  ');
       const summary = `Table: ${rows.length} rows x ${cols} columns\nHeaders: ${headers}\nPreview:\n  ${preview || '(empty)'}`;
-      return summarizeResult('table', tableData, summary);
+      return summarizeResult('table', tableData, summary, { tool: 'cbrowser_extract_table', description: 'Table rows extracted from the page' });
     }
   );
 
@@ -144,7 +144,7 @@ module.exports = function registerExtractionTools(server) {
       } catch { external = links.length; }
       const sample = links.slice(0, 6).map(l => `${l.text.slice(0, 30)} (${l.href.slice(0, 50)})`).join('\n  ');
       const summary = `Links: ${links.length} found (${internal} internal, ${external} external)\n  ${sample || 'none'}`;
-      return summarizeResult('links', links, summary);
+      return summarizeResult('links', links, summary, { tool: 'cbrowser_extract_links', description: 'Links extracted from visible page elements' });
     }
   );
 
@@ -162,7 +162,7 @@ module.exports = function registerExtractionTools(server) {
       const colors = result.colors || [];
       const top5 = colors.slice(0, 5).map(c => `${c.hex} (${c.count}x)`).join(', ');
       const summary = `Colors: ${colors.length} unique\nTop: ${top5 || 'none'}`;
-      return summarizeResult('colors', result, summary);
+      return summarizeResult('colors', result, summary, { tool: 'cbrowser_extract_colors', description: 'Color palette extracted from computed styles and CSS custom properties' });
     }
   );
 
@@ -179,7 +179,7 @@ module.exports = function registerExtractionTools(server) {
       const families = (result.families || []).map(f => `"${f.value}" (${f.count}x)`).join(', ');
       const sizes = (result.sizes || []).slice(0, 5).map(s => s.value).join(', ');
       const summary = `Fonts: ${(result.families || []).length} families, ${(result.sizes || []).length} sizes, ${(result.weights || []).length} weights\nFamilies: ${families || 'none'}\nSizes: ${sizes || 'none'}`;
-      return summarizeResult('fonts', result, summary);
+      return summarizeResult('fonts', result, summary, { tool: 'cbrowser_extract_fonts', description: 'Font families, sizes, and weights used across the page' });
     }
   );
 
@@ -198,7 +198,7 @@ module.exports = function registerExtractionTools(server) {
       const catStr = Object.entries(result.summary || {}).map(([k, v]) => `${k} (${v})`).join(', ');
       const samples = vars.slice(0, 4).map(v => `${v.name}: ${v.value}`).join(', ');
       const summary = `CSS vars: ${result.total || vars.length} total | ${catStr}\nSample: ${samples || 'none'}`;
-      return summarizeResult('css-vars', result, summary);
+      return summarizeResult('css-vars', result, summary, { tool: 'cbrowser_extract_css_vars', description: 'CSS custom properties (variables) defined in stylesheets' });
     }
   );
 
@@ -217,7 +217,7 @@ module.exports = function registerExtractionTools(server) {
       const scale = spacing.slice(0, 10).map(s => s.value).join(', ');
       const top5 = spacing.slice(0, 5).map(s => `${s.value} (${s.count}x)`).join(', ');
       const summary = `Spacing: ${spacing.length} values | Base: ${result.inferredBase || 'unknown'}\nScale: ${scale || 'none'}\nTop: ${top5 || 'none'}`;
-      return summarizeResult('spacing', result, summary);
+      return summarizeResult('spacing', result, summary, { tool: 'cbrowser_extract_spacing', description: 'Spacing scale values from margins, padding, and gaps' });
     }
   );
 
@@ -239,7 +239,7 @@ module.exports = function registerExtractionTools(server) {
       const typeStr = Object.entries(byType).map(([k, v]) => `${k} (${v})`).join(', ');
       const top3 = imgs.slice(0, 3).map(i => `${(i.src || '').split('/').pop()?.slice(0, 30)} ${i.width}x${i.height}`).join(', ');
       const summary = `Images: ${imgs.length} found | ${typeStr}\nTop: ${top3 || 'none'}`;
-      return summarizeResult('images', result, summary);
+      return summarizeResult('images', result, summary, { tool: 'cbrowser_extract_images', description: 'Images found on the page with dimensions and source URLs' });
     }
   );
 
@@ -360,7 +360,7 @@ module.exports = function registerExtractionTools(server) {
       const external = svgs.filter(s => s.type === 'external').length;
       const icons = svgs.filter(s => s.classification === 'icon').length;
       const summary = `SVGs: ${svgs.length} total (${inline} inline, ${external} external) | Icons: ${icons}, Illustrations: ${svgs.length - icons}${result.downloaded != null ? ` | Downloaded: ${result.downloaded}` : ''}`;
-      return summarizeResult('svgs', result, summary);
+      return summarizeResult('svgs', result, summary, { tool: 'cbrowser_extract_svgs', description: 'SVG elements with markup, classification, and source URLs' });
     }
   );
 
@@ -433,7 +433,7 @@ module.exports = function registerExtractionTools(server) {
       const typeStr = Object.entries(types).map(([k, v]) => `${k} (${v})`).join(', ');
       const sizes = icons.map(i => i.sizes).filter(Boolean).join(', ');
       const summary = `Favicons: ${icons.length} found | ${typeStr}\nSizes: ${sizes || 'none'}${result.downloaded != null ? `\nDownloaded: ${result.downloaded}` : ''}`;
-      return summarizeResult('favicon', result, summary);
+      return summarizeResult('favicon', result, summary, { tool: 'cbrowser_extract_favicon', description: 'Favicon and icon references including Web App Manifest icons' });
     }
   );
 
@@ -467,7 +467,7 @@ module.exports = function registerExtractionTools(server) {
       const comps = result.components || [];
       const top5 = comps.slice(0, 5).map(c => `${c.tag}${c.classes ? '.' + c.classes.split(' ')[0] : ''} (${c.count}x)`).join('\n  ');
       const summary = `Components: ${comps.length} patterns detected\n  ${top5 || 'none'}`;
-      return summarizeResult('components', result, summary);
+      return summarizeResult('components', result, summary, { tool: 'cbrowser_extract_components', description: 'Repeated UI component patterns detected on the page' });
     }
   );
 
@@ -485,7 +485,7 @@ module.exports = function registerExtractionTools(server) {
       const vals = bps.map(b => b.value || b.query || '').join(', ');
       const fw = (result.detectedFrameworks || []).length ? ` | Framework: ${result.detectedFrameworks.join(', ')}` : '';
       const summary = `Breakpoints: ${bps.length} found${fw}\nValues: ${vals || 'none'}\nViewport: ${result.viewport?.width || '?'}x${result.viewport?.height || '?'}`;
-      return summarizeResult('breakpoints', result, summary);
+      return summarizeResult('breakpoints', result, summary, { tool: 'cbrowser_extract_breakpoints', description: 'CSS media query breakpoints and detected responsive framework' });
     }
   );
 
@@ -503,7 +503,7 @@ module.exports = function registerExtractionTools(server) {
       const tw = result.twitterCard ? Object.keys(result.twitterCard).length : 0;
       const ld = Array.isArray(result.jsonLd) ? result.jsonLd.length : 0;
       const summary = `Metadata: "${result.title || ''}" | OG: ${og} tags | Twitter: ${tw} tags | JSON-LD: ${ld}\nCanonical: ${result.canonical || 'none'} | Lang: ${result.lang || '?'}`;
-      return summarizeResult('metadata', result, summary);
+      return summarizeResult('metadata', result, summary, { tool: 'cbrowser_extract_metadata', description: 'Page metadata: Open Graph, Twitter Cards, JSON-LD, and canonical URLs' });
     }
   );
 
@@ -540,7 +540,7 @@ module.exports = function registerExtractionTools(server) {
         return `${f.method || '?'} ${f.action || '?'} — ${(f.fields || []).length} fields [${names}]`;
       }).join('\n  ');
       const summary = `Forms: ${forms.length} found, ${totalFields} total fields\n  ${formLines || 'none'}`;
-      return summarizeResult('forms', result, summary);
+      return summarizeResult('forms', result, summary, { tool: 'cbrowser_extract_forms', description: 'Form elements with fields, validation attributes, and actions' });
     }
   );
 
@@ -559,7 +559,7 @@ module.exports = function registerExtractionTools(server) {
       const libs = [...(result.jsLibraries || []), ...(result.cssLibraries || [])].join(', ');
       const kfNames = (result.keyframes || []).slice(0, 5).map(k => k.name).join(', ');
       const summary = `Animations: ${kf} @keyframes, ${tr} transitions${libs ? ` | Libraries: ${libs}` : ''}\nKeyframes: ${kfNames || 'none'}`;
-      return summarizeResult('animations', result, summary);
+      return summarizeResult('animations', result, summary, { tool: 'cbrowser_extract_animations', description: 'CSS animations, keyframes, transitions, and detected animation libraries' });
     }
   );
 
@@ -580,7 +580,7 @@ module.exports = function registerExtractionTools(server) {
       const sevStr = Object.entries(bySev).map(([k, v]) => `${v} ${k}`).join(', ');
       const topIssues = issues.filter(i => i.severity === 'critical' || i.severity === 'error').slice(0, 3).map(i => i.message || i.type).join('; ');
       const summary = `A11y Score: ${result.score ?? '?'}/100 (WCAG ${standard.toUpperCase()}) | ${sevStr || 'no issues'}\nTop issues: ${topIssues || 'none critical'}`;
-      return summarizeResult('a11y', result, summary);
+      return summarizeResult('a11y', result, summary, { tool: 'cbrowser_extract_a11y', description: 'Accessibility audit with WCAG score and issues by severity' });
     }
   );
 
@@ -621,7 +621,7 @@ module.exports = function registerExtractionTools(server) {
       const method = result.hasDarkmodeMedia ? 'prefers-color-scheme' : (result.darkmodeClasses?.length ? 'css-classes' : 'unknown');
       const darkColors = (result.darkPalette || []).slice(0, 5).join(', ');
       const summary = `Dark mode: ${result.supported ? 'supported' : 'not detected'} (${method})${darkColors ? `\nDark palette: ${darkColors}` : ''}`;
-      return summarizeResult('darkmode', result, summary);
+      return summarizeResult('darkmode', result, summary, { tool: 'cbrowser_detect_darkmode', description: 'Dark mode support detection and optional dark palette capture' });
     }
   );
 
@@ -641,7 +641,7 @@ module.exports = function registerExtractionTools(server) {
       const byType = res.byType || {};
       const resStr = Object.entries(byType).map(([k, v]) => `${k}: ${v.count} files, ${v.transferKB}KB`).join(' | ');
       const summary = `Perf: TTFB ${t.ttfbMs ?? '?'}ms, DOMContentLoaded ${t.domContentLoadedMs ?? '?'}ms, Load ${t.loadMs ?? '?'}ms | DOM: ${dom.nodeCount ?? '?'} nodes (${dom.domSizeKB ?? '?'}KB)\nResources: ${res.total ?? '?'} total | ${resStr || 'none'}`;
-      return summarizeResult('perf', result, summary);
+      return summarizeResult('perf', result, summary, { tool: 'cbrowser_extract_perf', description: 'Performance metrics: Web Vitals, resource sizes, and load timing' });
     }
   );
 

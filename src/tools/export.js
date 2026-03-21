@@ -15,6 +15,8 @@ const config = require('../config');
 const browser = require('../browser');
 const { navigateIfNeeded } = require('../helpers');
 
+const PKG_VERSION = require('../package.json').version;
+
 function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -280,7 +282,18 @@ module.exports = function registerExportTools(server) {
       const cssFile    = path.join(outDir, 'design-tokens.css');
 
       fs.writeFileSync(htmlFile,   reportHtml);
-      fs.writeFileSync(tokensFile, JSON.stringify(tokens, null, 2));
+      const tokensWithMeta = {
+        _meta: {
+          tool: 'cbrowser_export_design_report',
+          url: browser.page?.url() || url,
+          timestamp: new Date().toISOString(),
+          version: PKG_VERSION,
+          description: 'Design system tokens extracted in W3C Design Tokens format',
+          sections: include,
+        },
+        ...tokens,
+      };
+      fs.writeFileSync(tokensFile, JSON.stringify(tokensWithMeta, null, 2));
       fs.writeFileSync(cssFile,    cssLines.join('\n'));
 
       const sections = Object.keys(data).join(', ');

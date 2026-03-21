@@ -212,7 +212,7 @@ module.exports = function registerMultipageTools(server) {
       lines.push(`Colors: ${d.colors.shared.length} shared, ${d.colors.onlyIn1.length} only in url1, ${d.colors.onlyIn2.length} only in url2`);
       const { summarizeResult } = require('../helpers');
       const summary = `Diff: ${url1} vs ${url2}\n${lines.join('\n')}`;
-      return summarizeResult('diff', result, summary);
+      return summarizeResult('diff', result, summary, { tool: 'cbrowser_diff_pages', description: 'Structural and content comparison between two URLs' });
     }
   );
 

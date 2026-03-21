@@ -5,6 +5,8 @@ const { inspectPageV2 } = require('./inspector');
 const config = require('./config');
 const browser = require('./browser');
 
+const PKG_VERSION = require('../package.json').version;
+
 async function navigateIfNeeded(url, waitMs = 1500) {
   if (!url) return;
   try {
@@ -13,12 +15,23 @@ async function navigateIfNeeded(url, waitMs = 1500) {
   await browser.page.waitForTimeout(waitMs);
 }
 
-function summarizeResult(name, data, summary) {
-  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+function summarizeResult(name, data, summary, meta = {}) {
+  const timestamp = new Date().toISOString();
+  const tsFile = timestamp.replace(/[:.]/g, '-').slice(0, 19);
   const dir = path.join(config.OUTPUT_DIR, 'extractions');
   fs.mkdirSync(dir, { recursive: true });
-  const filePath = path.join(dir, `${name}-${ts}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  const filePath = path.join(dir, `${name}-${tsFile}.json`);
+
+  const _meta = {
+    tool: meta.tool || name,
+    url: browser.page?.url() || '',
+    timestamp,
+    version: PKG_VERSION,
+    description: meta.description || '',
+    summary,
+  };
+
+  fs.writeFileSync(filePath, JSON.stringify({ _meta, ...data }, null, 2));
   const sanitized = sanitizeForLLM(summary);
   return {
     content: [{ type: 'text', text: `${sanitized}\n\nFull data: ${filePath}` }],
