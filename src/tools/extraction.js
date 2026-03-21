@@ -1,0 +1,648 @@
+const { z } = require('zod');
+const path = require('path');
+const fs = require('fs');
+const {
+  extractColorsInBrowser,
+  extractFontsInBrowser,
+  extractCssVarsInBrowser,
+  extractSpacingInBrowser,
+  extractImagesInBrowser,
+  extractSvgsInBrowser,
+  extractFaviconInBrowser,
+  extractLayoutInBrowser,
+  extractComponentsInBrowser,
+  extractBreakpointsInBrowser,
+  extractMetadataInBrowser,
+  extractContentInBrowser,
+  extractFormsInBrowser,
+  extractAnimationsInBrowser,
+  extractA11yInBrowser,
+  detectDarkmodeInBrowser,
+  extractPerfInBrowser,
+} = require('../extractors');
+const config = require('../config');
+const browser = require('../browser');
+const { navigateIfNeeded, summarizeResult } = require('../helpers');
+
+function formatLayoutTree(node, indent = '') {
+  if (!node) return '';
+  const attrs = [];
+  if (node.display) attrs.push(node.display);
+  if (node.direction) attrs.push(node.direction);
+  if (node.columns) attrs.push(`cols: ${node.columns}`);
+  if (node.rows) attrs.push(`rows: ${node.rows}`);
+  if (node.gap) attrs.push(`gap: ${node.gap}`);
+  if (node.justify) attrs.push(`justify: ${node.justify}`);
+  if (node.align) attrs.push(`align: ${node.align}`);
+  if (node.wrap) attrs.push(`wrap: ${node.wrap}`);
+  if (node.position) attrs.push(`pos: ${node.position}`);
+  const dims = `${node.w}×${node.h}`;
+  const line = `${indent}${node.el} [${dims}] ${attrs.join(', ')}`;
+  const lines = [line];
+  if (node.children) {
+    for (const child of node.children) {
+      if (child === '…') {
+        lines.push(`${indent}  …`);
+      } else {
+        lines.push(formatLayoutTree(child, indent + '  '));
+      }
+    }
+  }
+  return lines.join('\n');
+}
+
+module.exports = function registerExtractionTools(server) {
+
+  server.tool(
+    'cbrowser_extract_table',
+    'Extract table data as structured rows.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      minColumns: z.number().default(2).describe('Min columns per row'),
+      limit: z.number().default(50).describe('Max rows'),
+    },
+    async ({ url, minColumns, limit }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+
+      const tableData = await browser.page.evaluate(
+        ({ minColumns, limit }) => {
+          const rows = [...document.querySelectorAll('tr')];
+          const results = [];
+          for (const row of rows) {
+            const cells = [...row.querySelectorAll('td, th')];
+            if (cells.length >= minColumns) {
+              const rowData = cells.map((c) => {
+                const text = c.textContent.trim();
+                const link = c.querySelector('a')?.href || undefined;
+                const imgAlt = c.querySelector('img')?.alt || undefined;
+                return { text: text.slice(0, 200), link, imgAlt };
+              });
+              results.push(rowData);
+              if (results.length >= limit) break;
+            }
+          }
+          return results;
+        },
+        { minColumns, limit }
+      );
+
+      const rows = tableData || [];
+      const cols = rows[0]?.length || 0;
+      const headers = rows[0]?.map(c => c.text).join(' | ') || '';
+      const preview = rows.slice(1, 4).map(r => r.map(c => c.text?.slice(0, 25)).join(' | ')).join('\n  ');
+      const summary = `Table: ${rows.length} rows x ${cols} columns\nHeaders: ${headers}\nPreview:\n  ${preview || '(empty)'}`;
+      return summarizeResult('table', tableData, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_links',
+    'Extract all links with text and href.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      filter: z.string().optional().describe('Filter: href contains this string'),
+    },
+    async ({ url, filter }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+
+      let links = await browser.page.evaluate(() => {
+        function isHiddenElement(el) {
+          if (!el || el.nodeType !== 1) return false;
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none') return true;
+          if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+          if (parseFloat(cs.opacity) === 0) return true;
+          const rect = el.getBoundingClientRect();
+          if (rect.width === 0 && rect.height === 0 && cs.overflow === 'hidden') return true;
+          if (cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(100%)') return true;
+          if (cs.position === 'absolute' || cs.position === 'fixed') {
+            if (rect.right < 0 || rect.bottom < 0 || rect.left > window.innerWidth || rect.top > window.innerHeight) {
+              if (rect.width < 2 || rect.height < 2) return true;
+            }
+          }
+          return false;
+        }
+        return [...document.querySelectorAll('a[href]')]
+          .filter(a => !isHiddenElement(a))
+          .map((a) => ({
+            text: a.textContent.trim() || a.querySelector('img')?.alt || '(image link)',
+            href: a.href,
+          }));
+      });
+
+      if (filter) {
+        links = links.filter((l) => l.href.includes(filter));
+      }
+
+      const pageUrl = browser.page.url();
+      let internal = 0, external = 0;
+      try {
+        const host = new URL(pageUrl).hostname;
+        links.forEach(l => { try { new URL(l.href).hostname === host ? internal++ : external++; } catch { external++; } });
+      } catch { external = links.length; }
+      const sample = links.slice(0, 6).map(l => `${l.text.slice(0, 30)} (${l.href.slice(0, 50)})`).join('\n  ');
+      const summary = `Links: ${links.length} found (${internal} internal, ${external} external)\n  ${sample || 'none'}`;
+      return summarizeResult('links', links, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_colors',
+    'Extract color palette sorted by frequency.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      limit: z.number().default(30).describe('Max colors'),
+    },
+    async ({ url, limit }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractColorsInBrowser, { limit });
+      const colors = result.colors || [];
+      const top5 = colors.slice(0, 5).map(c => `${c.hex} (${c.count}x)`).join(', ');
+      const summary = `Colors: ${colors.length} unique\nTop: ${top5 || 'none'}`;
+      return summarizeResult('colors', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_fonts',
+    'Extract fonts: families, sizes, weights, sources.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+    },
+    async ({ url }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractFontsInBrowser);
+      const families = (result.families || []).map(f => `"${f.value}" (${f.count}x)`).join(', ');
+      const sizes = (result.sizes || []).slice(0, 5).map(s => s.value).join(', ');
+      const summary = `Fonts: ${(result.families || []).length} families, ${(result.sizes || []).length} sizes, ${(result.weights || []).length} weights\nFamilies: ${families || 'none'}\nSizes: ${sizes || 'none'}`;
+      return summarizeResult('fonts', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_css_vars',
+    'Extract CSS custom properties, categorized by type.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      includeAll: z.boolean().default(false).describe('Also scan inline styles'),
+    },
+    async ({ url, includeAll }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractCssVarsInBrowser, { includeAll });
+      const vars = result.variables || [];
+      const catStr = Object.entries(result.summary || {}).map(([k, v]) => `${k} (${v})`).join(', ');
+      const samples = vars.slice(0, 4).map(v => `${v.name}: ${v.value}`).join(', ');
+      const summary = `CSS vars: ${result.total || vars.length} total | ${catStr}\nSample: ${samples || 'none'}`;
+      return summarizeResult('css-vars', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_spacing',
+    'Extract spacing scale: margins, padding, gaps, radii.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      sampleSize: z.number().default(200).describe('Max elements to sample'),
+    },
+    async ({ url, sampleSize }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractSpacingInBrowser, { sampleSize });
+      const spacing = result.spacing || [];
+      const scale = spacing.slice(0, 10).map(s => s.value).join(', ');
+      const top5 = spacing.slice(0, 5).map(s => `${s.value} (${s.count}x)`).join(', ');
+      const summary = `Spacing: ${spacing.length} values | Base: ${result.inferredBase || 'unknown'}\nScale: ${scale || 'none'}\nTop: ${top5 || 'none'}`;
+      return summarizeResult('spacing', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_images',
+    'Extract all images with src, dimensions, alt, format.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      minWidth: z.number().default(1).describe('Min width in px'),
+      filter: z.string().optional().describe('Filter: src contains string'),
+    },
+    async ({ url, minWidth, filter }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || '' });
+      const imgs = result.images || [];
+      const byType = {};
+      imgs.forEach(i => { byType[i.source || 'unknown'] = (byType[i.source || 'unknown'] || 0) + 1; });
+      const typeStr = Object.entries(byType).map(([k, v]) => `${k} (${v})`).join(', ');
+      const top3 = imgs.slice(0, 3).map(i => `${(i.src || '').split('/').pop()?.slice(0, 30)} ${i.width}x${i.height}`).join(', ');
+      const summary = `Images: ${imgs.length} found | ${typeStr}\nTop: ${top3 || 'none'}`;
+      return summarizeResult('images', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_download_images',
+    'Download images to disk. Uses session cookies for auth assets.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      minWidth: z.number().default(50).describe('Min width in px'),
+      filter: z.string().optional().describe('Filter: src contains string'),
+      limit: z.number().default(50).describe('Max images'),
+      formats: z.array(z.string()).optional().describe("Extensions filter (e.g. ['png','jpg'])"),
+    },
+    async ({ url, minWidth, filter, limit, formats }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+
+      const { images } = await browser.page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || '' });
+
+      let toDownload = images;
+      if (formats && formats.length > 0) {
+        const exts = formats.map(f => f.toLowerCase().replace(/^\./, ''));
+        toDownload = toDownload.filter(img => {
+          const urlPath = new URL(img.src, browser.page.url()).pathname.toLowerCase();
+          return exts.some(ext => urlPath.endsWith(`.${ext}`));
+        });
+      }
+      toDownload = toDownload.slice(0, limit);
+
+      const assetsDir = path.join(config.OUTPUT_DIR, 'assets', 'images');
+      fs.mkdirSync(assetsDir, { recursive: true });
+
+      const downloaded = [];
+      const errors = [];
+
+      for (const img of toDownload) {
+        try {
+          const imgUrl = new URL(img.src, browser.page.url()).href;
+          const response = await browser.page.context().request.get(imgUrl);
+          if (!response.ok()) {
+            errors.push({ src: img.src, status: response.status() });
+            continue;
+          }
+          const body = await response.body();
+
+          const urlObj = new URL(imgUrl);
+          let filename = path.basename(urlObj.pathname) || 'image';
+          filename = filename.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
+          let savePath = path.join(assetsDir, filename);
+          let counter = 1;
+          while (fs.existsSync(savePath)) {
+            const ext = path.extname(filename);
+            const base = path.basename(filename, ext);
+            savePath = path.join(assetsDir, `${base}_${counter}${ext}`);
+            counter++;
+          }
+
+          fs.writeFileSync(savePath, body);
+          downloaded.push({ src: img.src, saved: savePath, size: body.length });
+        } catch (err) {
+          errors.push({ src: img.src, error: err.message });
+        }
+      }
+
+      const summary = `Downloaded ${downloaded.length}/${toDownload.length} images to ${assetsDir}\n` +
+        downloaded.map(d => `  ✓ ${path.basename(d.saved)} (${(d.size / 1024).toFixed(1)}KB)`).join('\n') +
+        (errors.length ? '\n\nErrors:\n' + errors.map(e => `  ✗ ${e.src}: ${e.error || `HTTP ${e.status}`}`).join('\n') : '');
+
+      return { content: [{ type: 'text', text: summary }] };
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_svgs',
+    'Extract SVGs: inline markup, external URLs, icon/illustration classification.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      limit: z.number().default(50).describe('Max SVGs'),
+      download: z.boolean().default(false).describe('Download to output/assets/svgs/'),
+    },
+    async ({ url, limit, download }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractSvgsInBrowser, { limit });
+
+      if (download) {
+        const svgDir = path.join(config.OUTPUT_DIR, 'assets', 'svgs');
+        fs.mkdirSync(svgDir, { recursive: true });
+        let savedCount = 0;
+
+        for (let i = 0; i < result.svgs.length; i++) {
+          const svg = result.svgs[i];
+          try {
+            if (svg.type === 'inline' && svg.markup && !svg.markup.endsWith('…')) {
+              const filePath = path.join(svgDir, `inline_${i + 1}.svg`);
+              fs.writeFileSync(filePath, svg.markup);
+              svg.savedTo = filePath;
+              savedCount++;
+            } else if (svg.type === 'external' && svg.src) {
+              const response = await browser.page.context().request.get(svg.src);
+              if (response.ok()) {
+                const body = await response.body();
+                const filename = path.basename(new URL(svg.src, browser.page.url()).pathname).replace(/[^a-zA-Z0-9._-]/g, '_') || `svg_${i + 1}.svg`;
+                const filePath = path.join(svgDir, filename);
+                fs.writeFileSync(filePath, body);
+                svg.savedTo = filePath;
+                savedCount++;
+              }
+            }
+          } catch {}
+        }
+        result.downloaded = savedCount;
+        result.downloadDir = svgDir;
+      }
+
+      const svgs = result.svgs || [];
+      const inline = svgs.filter(s => s.type === 'inline').length;
+      const external = svgs.filter(s => s.type === 'external').length;
+      const icons = svgs.filter(s => s.classification === 'icon').length;
+      const summary = `SVGs: ${svgs.length} total (${inline} inline, ${external} external) | Icons: ${icons}, Illustrations: ${svgs.length - icons}${result.downloaded != null ? ` | Downloaded: ${result.downloaded}` : ''}`;
+      return summarizeResult('svgs', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_favicon',
+    'Extract favicon and icon references. Optional download.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      download: z.boolean().default(false).describe('Download to output/assets/favicons/'),
+    },
+    async ({ url, download }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractFaviconInBrowser);
+
+      if (result.manifestUrl) {
+        try {
+          const response = await browser.page.context().request.get(result.manifestUrl);
+          if (response.ok()) {
+            const manifest = JSON.parse(await response.text());
+            if (manifest.icons && Array.isArray(manifest.icons)) {
+              for (const icon of manifest.icons) {
+                const src = new URL(icon.src, result.manifestUrl).href;
+                result.icons.push({
+                  src,
+                  type: 'manifest-icon',
+                  sizes: icon.sizes || null,
+                  mimeType: icon.type || null,
+                });
+              }
+              result.total = result.icons.length;
+            }
+          }
+        } catch {}
+      }
+
+      if (download) {
+        const favDir = path.join(config.OUTPUT_DIR, 'assets', 'favicons');
+        fs.mkdirSync(favDir, { recursive: true });
+        let savedCount = 0;
+
+        for (const icon of result.icons) {
+          try {
+            const response = await browser.page.context().request.get(icon.src);
+            if (response.ok()) {
+              const body = await response.body();
+              const urlObj = new URL(icon.src, browser.page.url());
+              let filename = path.basename(urlObj.pathname).replace(/[^a-zA-Z0-9._-]/g, '_') || 'favicon';
+              let savePath = path.join(favDir, filename);
+              let counter = 1;
+              while (fs.existsSync(savePath)) {
+                const ext = path.extname(filename);
+                const base = path.basename(filename, ext);
+                savePath = path.join(favDir, `${base}_${counter}${ext}`);
+                counter++;
+              }
+              fs.writeFileSync(savePath, body);
+              icon.savedTo = savePath;
+              savedCount++;
+            }
+          } catch {}
+        }
+        result.downloaded = savedCount;
+        result.downloadDir = favDir;
+      }
+
+      const icons = result.icons || [];
+      const types = {};
+      icons.forEach(i => { types[i.type || 'icon'] = (types[i.type || 'icon'] || 0) + 1; });
+      const typeStr = Object.entries(types).map(([k, v]) => `${k} (${v})`).join(', ');
+      const sizes = icons.map(i => i.sizes).filter(Boolean).join(', ');
+      const summary = `Favicons: ${icons.length} found | ${typeStr}\nSizes: ${sizes || 'none'}${result.downloaded != null ? `\nDownloaded: ${result.downloaded}` : ''}`;
+      return summarizeResult('favicon', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_layout',
+    'Extract layout tree: flex/grid/block containers with properties.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      maxDepth: z.number().default(6).describe('Max tree depth'),
+    },
+    async ({ url, maxDepth }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractLayoutInBrowser, { maxDepth });
+      const text = formatLayoutTree(result.layout);
+      return { content: [{ type: 'text', text }] };
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_components',
+    'Detect repeated UI component patterns with instance counts.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      minOccurrences: z.number().default(3).describe('Min occurrences to qualify'),
+    },
+    async ({ url, minOccurrences }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractComponentsInBrowser, { minOccurrences });
+      const comps = result.components || [];
+      const top5 = comps.slice(0, 5).map(c => `${c.tag}${c.classes ? '.' + c.classes.split(' ')[0] : ''} (${c.count}x)`).join('\n  ');
+      const summary = `Components: ${comps.length} patterns detected\n  ${top5 || 'none'}`;
+      return summarizeResult('components', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_breakpoints',
+    'Extract CSS breakpoints and detect framework (Tailwind/Bootstrap/MUI).',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+    },
+    async ({ url }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractBreakpointsInBrowser);
+      const bps = result.breakpoints || [];
+      const vals = bps.map(b => b.value || b.query || '').join(', ');
+      const fw = (result.detectedFrameworks || []).length ? ` | Framework: ${result.detectedFrameworks.join(', ')}` : '';
+      const summary = `Breakpoints: ${bps.length} found${fw}\nValues: ${vals || 'none'}\nViewport: ${result.viewport?.width || '?'}x${result.viewport?.height || '?'}`;
+      return summarizeResult('breakpoints', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_metadata',
+    'Extract metadata: OG, Twitter Cards, JSON-LD, RSS, canonical.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+    },
+    async ({ url }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url, 1000);
+      const result = await browser.page.evaluate(extractMetadataInBrowser);
+      const og = result.openGraph ? Object.keys(result.openGraph).length : 0;
+      const tw = result.twitterCard ? Object.keys(result.twitterCard).length : 0;
+      const ld = Array.isArray(result.jsonLd) ? result.jsonLd.length : 0;
+      const summary = `Metadata: "${result.title || ''}" | OG: ${og} tags | Twitter: ${tw} tags | JSON-LD: ${ld}\nCanonical: ${result.canonical || 'none'} | Lang: ${result.lang || '?'}`;
+      return summarizeResult('metadata', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_content',
+    'Extract main content as clean markdown, stripping chrome.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      selector: z.string().optional().describe('CSS selector to scope extraction'),
+      includeImages: z.boolean().default(false).describe('Include images in output'),
+    },
+    async ({ url, selector, includeImages }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url, 1000);
+      const result = await browser.page.evaluate(extractContentInBrowser, { selector, includeImages });
+      return { content: [{ type: 'text', text: result.content }] };
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_forms',
+    'Extract forms: fields, validation, actions, hidden fields.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+    },
+    async ({ url }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url, 1000);
+      const result = await browser.page.evaluate(extractFormsInBrowser);
+      const forms = result.forms || [];
+      const totalFields = forms.reduce((sum, f) => sum + (f.fields || []).length, 0);
+      const formLines = forms.slice(0, 5).map(f => {
+        const names = (f.fields || []).slice(0, 5).map(fld => fld.name || fld.type).join(', ');
+        return `${f.method || '?'} ${f.action || '?'} — ${(f.fields || []).length} fields [${names}]`;
+      }).join('\n  ');
+      const summary = `Forms: ${forms.length} found, ${totalFields} total fields\n  ${formLines || 'none'}`;
+      return summarizeResult('forms', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_animations',
+    'Extract CSS animations, transitions, and detect animation libraries.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+    },
+    async ({ url }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractAnimationsInBrowser);
+      const kf = (result.keyframes || []).length;
+      const tr = (result.transitions || []).length;
+      const libs = [...(result.jsLibraries || []), ...(result.cssLibraries || [])].join(', ');
+      const kfNames = (result.keyframes || []).slice(0, 5).map(k => k.name).join(', ');
+      const summary = `Animations: ${kf} @keyframes, ${tr} transitions${libs ? ` | Libraries: ${libs}` : ''}\nKeyframes: ${kfNames || 'none'}`;
+      return summarizeResult('animations', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_a11y',
+    'Accessibility audit with score (0-100) and issues by severity.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      standard: z.enum(['aa', 'aaa']).default('aa').describe('WCAG standard (aa or aaa)'),
+    },
+    async ({ url, standard }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractA11yInBrowser, { standard });
+      const issues = result.issues || [];
+      const bySev = {};
+      issues.forEach(i => { bySev[i.severity || 'info'] = (bySev[i.severity || 'info'] || 0) + 1; });
+      const sevStr = Object.entries(bySev).map(([k, v]) => `${v} ${k}`).join(', ');
+      const topIssues = issues.filter(i => i.severity === 'critical' || i.severity === 'error').slice(0, 3).map(i => i.message || i.type).join('; ');
+      const summary = `A11y Score: ${result.score ?? '?'}/100 (WCAG ${standard.toUpperCase()}) | ${sevStr || 'no issues'}\nTop issues: ${topIssues || 'none critical'}`;
+      return summarizeResult('a11y', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_detect_darkmode',
+    'Detect dark mode support. Optionally capture dark palette.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      activateDark: z.boolean().default(false).describe('Emulate dark mode and capture palette'),
+    },
+    async ({ url, activateDark }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+
+      const result = await browser.page.evaluate(detectDarkmodeInBrowser);
+
+      if (activateDark) {
+        await browser.page.emulateMedia({ colorScheme: 'dark' });
+        await browser.page.waitForTimeout(500);
+        const darkPalette = await browser.page.evaluate(() => {
+          const counts = {};
+          for (const el of document.querySelectorAll('body *')) {
+            if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+            const cs = getComputedStyle(el);
+            for (const prop of ['color', 'background-color']) {
+              const c = cs.getPropertyValue(prop);
+              if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') {
+                counts[c] = (counts[c] || 0) + 1;
+              }
+            }
+          }
+          return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([c]) => c);
+        });
+        result.darkPalette = darkPalette;
+        await browser.page.emulateMedia({ colorScheme: 'no-preference' });
+      }
+
+      const method = result.hasDarkmodeMedia ? 'prefers-color-scheme' : (result.darkmodeClasses?.length ? 'css-classes' : 'unknown');
+      const darkColors = (result.darkPalette || []).slice(0, 5).join(', ');
+      const summary = `Dark mode: ${result.supported ? 'supported' : 'not detected'} (${method})${darkColors ? `\nDark palette: ${darkColors}` : ''}`;
+      return summarizeResult('darkmode', result, summary);
+    }
+  );
+
+  server.tool(
+    'cbrowser_extract_perf',
+    'Performance metrics: Web Vitals, resource sizes, timing.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+    },
+    async ({ url }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url, 2000);
+      const result = await browser.page.evaluate(extractPerfInBrowser);
+      const t = result.timing || {};
+      const dom = result.dom || {};
+      const res = result.resources || {};
+      const byType = res.byType || {};
+      const resStr = Object.entries(byType).map(([k, v]) => `${k}: ${v.count} files, ${v.transferKB}KB`).join(' | ');
+      const summary = `Perf: TTFB ${t.ttfbMs ?? '?'}ms, DOMContentLoaded ${t.domContentLoadedMs ?? '?'}ms, Load ${t.loadMs ?? '?'}ms | DOM: ${dom.nodeCount ?? '?'} nodes (${dom.domSizeKB ?? '?'}KB)\nResources: ${res.total ?? '?'} total | ${resStr || 'none'}`;
+      return summarizeResult('perf', result, summary);
+    }
+  );
+
+};

@@ -8,7 +8,7 @@
     "cbrowser-mcp": "src/mcp-server.js"
   },
   "scripts": {
-    "start": "node src/mcp-server.js",
+    "start": "node src/server.js",
     "login": "node src/cli.js login",
     "inspect": "node src/cli.js inspect",
     "test": "vitest run",
