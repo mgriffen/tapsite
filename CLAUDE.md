@@ -58,6 +58,18 @@ This prevents credentials from lingering on disk in session transcripts.
 - `output/` stores export results — gitignored
 - Headless by default in MCP mode; headed mode used for `cbrowser_login_manual`
 
+## Memory hygiene
+
+Update memory files incrementally during sessions — don't batch everything to the end.
+Memory lives at `~/.claude/projects/-home-griffen-projects-cbrowser/memory/`.
+
+- After completing a phase or significant task → update `project_status.md`
+- When Griffen gives feedback or corrects an approach → update `feedback_workflow.md`
+- When a new project direction or decision is made → update `project_status.md`
+- When something new is learned about Griffen's preferences or environment → update `user_profile.md`
+
+A Stop hook will surface a reminder at session end, but don't wait for it — update as things happen.
+
 ## Security
 
 - **Hidden element filtering**: `isHiddenElement()` is inlined in `extractContentInBrowser`, `extractFormsInBrowser`, `extractA11yInBrowser`, and link extractors. Skips `display:none`, `visibility:hidden`, `opacity:0`, zero-size, and clip-hidden elements to block invisible prompt injection text.
