@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBROWSER // Intelligence Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --void: #04060c;
+      --deep: #080c18;
+      --surface: #0c1220;
+      --panel: #101828;
+      --edge: #182038;
+      --neon-blue: #00d4ff;
+      --neon-pink: #ff2d78;
+      --neon-magenta: #e040fb;
+      --neon-cyan: #22ecdb;
+      --neon-purple: #b266ff;
+      --neon-green: #39ff8e;
+      --neon-orange: #ff8a3d;
+      --text-primary: #e2e8f0;
+      --text-dim: #6b7fa0;
+      --text-muted: #2d4060;
+      --glass-bg: #000000;
+      --glass-border: rgba(0, 212, 255, 0.1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--void);
+      color: var(--text-primary);
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── ATMOSPHERIC LAYERS ── */
+    .rain-container {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+    }
+    .rain-drop {
+      position: absolute; top: -100px; width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(0, 212, 255, 0.2), transparent);
+      animation: rainfall linear infinite; opacity: 0;
+    }
+    @keyframes rainfall {
+      0% { transform: translateY(-100px); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 0.5; }
+      100% { transform: translateY(105vh); opacity: 0; }
+    }
+
+    .scanlines {
+      position: fixed; inset: 0; z-index: 2; pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+    }
+    .grain {
+      position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .content { position: relative; z-index: 10; max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; padding: 4rem 2rem; position: relative;
+    }
+
+    .hero-glow {
+      position: absolute; width: 700px; height: 700px; border-radius: 50%;
+      filter: blur(200px); pointer-events: none;
+    }
+    .hero-glow.g1 { background: var(--neon-blue); top: -300px; left: -100px; opacity: 0.08; }
+    .hero-glow.g2 { background: var(--neon-pink); bottom: -200px; right: -200px; opacity: 0.06; }
+    .hero-glow.g3 { background: var(--neon-cyan); top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.04; }
+
+    .hero-eyebrow {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+      letter-spacing: 0.4em; text-transform: uppercase; color: var(--neon-cyan);
+      border: 1px solid rgba(34, 236, 219, 0.2); padding: 0.5rem 1.5rem;
+      margin-bottom: 2.5rem; position: relative;
+      animation: flicker 5s ease-in-out infinite;
+    }
+    .hero-eyebrow::before {
+      content: ''; position: absolute; inset: -1px;
+      background: linear-gradient(135deg, rgba(34,236,219,0.08), transparent 50%); z-index: -1;
+    }
+    @keyframes flicker {
+      0%,94%,100% { opacity: 1; } 95% { opacity: 0.6; } 97% { opacity: 1; } 98% { opacity: 0.5; }
+    }
+
+    .hero-title {
+      font-family: 'Orbitron', sans-serif; font-weight: 900;
+      font-size: clamp(2.5rem, 7vw, 5.5rem); letter-spacing: 0.06em;
+      line-height: 1.1; margin-bottom: 0.4em;
+      background: linear-gradient(135deg, var(--neon-blue) 0%, #fff 30%, var(--neon-cyan) 55%, var(--neon-magenta) 80%, var(--neon-blue) 100%);
+      background-size: 300% 300%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: holo 8s ease-in-out infinite;
+      filter: drop-shadow(0 0 30px rgba(0, 212, 255, 0.25));
+    }
+    .hero-title-reflect {
+      font-family: 'Orbitron', sans-serif; font-weight: 900;
+      font-size: clamp(2.5rem, 7vw, 5.5rem); letter-spacing: 0.06em; line-height: 1.1;
+      background: linear-gradient(180deg, rgba(0,212,255,0.12), transparent 70%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      transform: scaleY(-0.3) translateY(-8px); transform-origin: top center;
+      filter: blur(2px); pointer-events: none; user-select: none; margin-bottom: 2rem;
+    }
+    @keyframes holo { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+    .hero-sub {
+      font-weight: 200; font-size: clamp(1rem, 2.2vw, 1.3rem);
+      color: var(--text-dim); max-width: 620px; margin-bottom: 3.5rem; letter-spacing: 0.03em;
+    }
+    .hero-sub em { font-style: italic; color: var(--neon-cyan); font-weight: 400; }
+
+    .hero-proof {
+      display: flex; gap: 4rem; flex-wrap: wrap; justify-content: center;
+    }
+    .proof-item { text-align: center; }
+    .proof-val {
+      font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 2.2rem;
+      line-height: 1; filter: drop-shadow(0 0 10px currentColor);
+    }
+    .proof-val.blue { color: var(--neon-blue); }
+    .proof-val.pink { color: var(--neon-pink); }
+    .proof-val.green { color: var(--neon-green); }
+    .proof-label {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted); margin-top: 0.4rem;
+    }
+
+    .scroll-hint {
+      position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.3em; color: var(--text-muted);
+      animation: bob 2s ease-in-out infinite;
+    }
+    .scroll-hint::after {
+      content: ''; display: block; width: 1px; height: 30px;
+      background: linear-gradient(180deg, var(--text-muted), transparent);
+      margin: 0.5rem auto 0;
+    }
+    @keyframes bob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(6px); } }
+
+    /* ── SECTION CHROME ── */
+    .section { padding: 7rem 0; position: relative; }
+
+    .section-label {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.4em; text-transform: uppercase; color: var(--neon-pink);
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
+    }
+    .section-label::before {
+      content: ''; width: 28px; height: 1px; background: var(--neon-pink);
+      box-shadow: 0 0 6px rgba(255,45,120,0.4);
+    }
+
+    .section-title {
+      font-family: 'Orbitron', sans-serif; font-weight: 700;
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem); letter-spacing: 0.04em;
+      line-height: 1.2; margin-bottom: 0.8rem;
+    }
+    .section-title .acc {
+      background: linear-gradient(135deg, var(--neon-blue), var(--neon-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .section-desc {
+      color: var(--text-dim); font-size: 1rem; max-width: 540px; margin-bottom: 4rem;
+    }
+
+    /* ── DOSSIER CARD ── */
+    .dossier {
+      margin-bottom: 4rem;
+      border: 1px solid var(--glass-border);
+      background: #000000;
+      position: relative; overflow: hidden;
+      transition: border-color 0.4s ease;
+      z-index: 10000; isolation: isolate;
+    }
+    .dossier:hover {
+      border-color: rgba(0, 212, 255, 0.25);
+    }
+
+    /* Top edge glow */
+    .dossier::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-blue), transparent); opacity: 0.5;
+    }
+    /* Glass shine */
+    .dossier::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent 40%);
+      pointer-events: none;
+    }
+
+    /* Dossier header bar */
+    .dossier-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(0,212,255,0.06);
+      background: #050505;
+    }
+    .dossier-target {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .dossier-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; box-shadow: 0 0 6px currentColor; }
+      50% { opacity: 0.5; box-shadow: 0 0 2px currentColor; }
+    }
+    .dossier-site {
+      font-family: 'Orbitron', sans-serif; font-weight: 600;
+      font-size: 1rem; letter-spacing: 0.12em;
+    }
+    .dossier-status {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--neon-green);
+    }
+
+    /* Split layout */
+    .dossier-body {
+      display: grid; grid-template-columns: 340px 1fr; min-height: 420px;
+    }
+
+    /* Left panel — site profile */
+    .dossier-profile {
+      padding: 1.5rem;
+      border-right: 1px solid rgba(0,212,255,0.06);
+      display: flex; flex-direction: column; gap: 1.5rem;
+    }
+
+    .profile-section-label {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .profile-desc {
+      font-size: 0.95rem; color: var(--text-dim); line-height: 1.5;
+    }
+
+    /* Color palette swatches */
+    .palette {
+      display: flex; flex-direction: column; gap: 0.4rem;
+    }
+    .swatch-row {
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .swatch {
+      width: 28px; height: 28px; border-radius: 2px;
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative; flex-shrink: 0;
+    }
+    .swatch.light { border-color: rgba(0,0,0,0.15); }
+    .swatch-info {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--text-dim);
+    }
+    .swatch-hex { color: var(--text-primary); }
+    .swatch-count { color: var(--text-muted); margin-left: 0.3rem; }
+
+    /* Palette bar - visual weight representation */
+    .palette-bar {
+      display: flex; height: 6px; border-radius: 1px; overflow: hidden; margin-top: 0.3rem;
+    }
+    .palette-bar-seg { transition: flex 0.6s ease; }
+
+    /* Stack badge */
+    .stack-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
+      padding: 0.4rem 1rem;
+      border: 1px solid rgba(0,212,255,0.15);
+      background: rgba(0,212,255,0.04);
+      color: var(--neon-blue);
+    }
+
+    /* Right panel — HUD data readout */
+    .dossier-readout {
+      padding: 1.5rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      display: flex; flex-direction: column; gap: 1.2rem;
+      background: #0a0a0a;
+    }
+
+    .readout-group { }
+
+    .readout-label {
+      font-size: 0.75rem; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 0.4rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .readout-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, rgba(0,212,255,0.1), transparent);
+    }
+
+    .readout-row {
+      display: flex; align-items: baseline; gap: 0.5rem; color: var(--text-dim);
+    }
+    .readout-key { color: var(--neon-blue); }
+    .readout-val { color: var(--text-primary); }
+    .readout-unit { color: var(--text-muted); font-size: 0.8rem; }
+    .readout-sep { color: var(--text-muted); }
+
+    /* Perf bars */
+    .perf-bars {
+      display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.3rem;
+    }
+    .perf-bar-row {
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .perf-bar-label {
+      width: 110px; font-size: 0.8rem; color: var(--text-dim); text-align: right; flex-shrink: 0;
+    }
+    .perf-bar-track {
+      flex: 1; height: 4px; background: rgba(255,255,255,0.04); border-radius: 2px;
+      position: relative; overflow: hidden;
+    }
+    .perf-bar-fill {
+      height: 100%; border-radius: 2px;
+      transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+    }
+    .perf-bar-fill::after {
+      content: ''; position: absolute; right: 0; top: -2px; bottom: -2px;
+      width: 4px; border-radius: 2px; background: inherit;
+      box-shadow: 0 0 8px currentColor;
+    }
+    .perf-bar-val {
+      width: 65px; font-size: 0.8rem; color: var(--text-primary); flex-shrink: 0;
+    }
+
+    /* Font stack display */
+    .font-stack {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem;
+    }
+    .font-tag {
+      padding: 0.3rem 0.6rem; font-size: 0.8rem;
+      border: 1px solid rgba(224,64,251,0.15);
+      color: var(--neon-magenta); background: rgba(224,64,251,0.04);
+    }
+    .font-tag .uses {
+      color: var(--text-muted); margin-left: 0.3rem;
+    }
+
+    /* Breakpoint dots */
+    .bp-viz {
+      display: flex; align-items: center; gap: 2px; margin-top: 0.3rem;
+    }
+    .bp-dot {
+      height: 12px; border-radius: 1px; min-width: 2px;
+      background: var(--neon-cyan); opacity: 0.5;
+      transition: opacity 0.3s;
+    }
+    .bp-dot:hover { opacity: 1; }
+
+    /* Animation indicator */
+    .anim-viz {
+      display: flex; align-items: center; gap: 0.6rem; margin-top: 0.2rem;
+    }
+    .anim-wave {
+      display: flex; align-items: end; gap: 1px; height: 16px;
+    }
+    .anim-bar {
+      width: 2px; background: var(--neon-orange);
+      animation: wave-bar 1.5s ease-in-out infinite;
+      border-radius: 1px;
+    }
+    @keyframes wave-bar {
+      0%,100% { height: 3px; opacity: 0.3; }
+      50% { height: 14px; opacity: 0.8; }
+    }
+
+    /* ── SUMMARY FOOTER ── */
+    .summary {
+      padding: 6rem 0 3rem; text-align: center; position: relative;
+    }
+    .summary::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 300px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-blue), var(--neon-magenta), transparent);
+    }
+
+    .summary-stats {
+      display: flex; gap: 5rem; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .summary-stat { text-align: center; }
+    .summary-val {
+      font-family: 'Orbitron', sans-serif; font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1;
+    }
+    .summary-val.v1 { color: var(--neon-blue); filter: drop-shadow(0 0 15px rgba(0,212,255,0.4)); }
+    .summary-val.v2 { color: var(--neon-cyan); filter: drop-shadow(0 0 15px rgba(34,236,219,0.4)); }
+    .summary-val.v3 { color: var(--neon-green); filter: drop-shadow(0 0 15px rgba(57,255,142,0.4)); }
+    .summary-unit {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .summary-tagline {
+      font-family: 'Exo 2', sans-serif; font-weight: 200; font-size: 1.1rem;
+      color: var(--text-dim); max-width: 500px; margin: 0 auto 3rem;
+    }
+    .summary-tagline em { font-style: italic; color: var(--neon-cyan); font-weight: 400; }
+
+    .summary-logo {
+      font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 1.8rem;
+      letter-spacing: 0.12em;
+      background: linear-gradient(135deg, var(--neon-blue), var(--neon-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .summary-stack {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      color: var(--text-muted); letter-spacing: 0.15em; margin-top: 0.6rem;
+    }
+    .summary-copy {
+      font-size: 0.65rem; color: var(--text-muted); margin-top: 2rem;
+    }
+
+    /* ── NEON DIVIDER ── */
+    .neon-div {
+      width: 100%; height: 1px; margin: 2rem 0;
+      background: linear-gradient(90deg, transparent, var(--neon-blue) 20%, var(--neon-magenta) 50%, var(--neon-cyan) 80%, transparent);
+      opacity: 0.2;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .dossier-body { grid-template-columns: 1fr; }
+      .dossier-profile { border-right: none; border-bottom: 1px solid rgba(0,212,255,0.06); }
+      .content { padding: 0 1rem; }
+      .hero-proof { gap: 2rem; }
+      .summary-stats { gap: 2.5rem; }
+    }
+    @media (max-width: 500px) {
+      .hero { min-height: 85vh; }
+      .hero-proof { flex-direction: column; gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="rain-container" id="rain"></div>
+<div class="scanlines"></div>
+<div class="grain"></div>
+
+<!-- ═══════════════════════════════
+     HERO
+     ═══════════════════════════════ -->
+<header class="hero">
+  <div class="hero-glow g1"></div>
+  <div class="hero-glow g2"></div>
+  <div class="hero-glow g3"></div>
+
+  <div class="hero-eyebrow">Live Extraction Showcase</div>
+  <h1 class="hero-title">SEE WHAT<br>CBROWSER SEES</h1>
+  <div class="hero-title-reflect" aria-hidden="true">SEE WHAT<br>CBROWSER SEES</div>
+
+  <p class="hero-sub">
+    Real intelligence extracted from real websites.
+    <em>Every data point on this page was captured by cbrowser's 37 MCP tools.</em>
+  </p>
+
+  <div class="hero-proof">
+    <div class="proof-item">
+      <div class="proof-val blue">3</div>
+      <div class="proof-label">Sites Scanned</div>
+    </div>
+    <div class="proof-item">
+      <div class="proof-val pink">187</div>
+      <div class="proof-label">Data Points</div>
+    </div>
+    <div class="proof-item">
+      <div class="proof-val green">0</div>
+      <div class="proof-label">Credentials Exposed</div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">SCROLL TO INSPECT</div>
+</header>
+
+<main class="content">
+
+  <section class="section">
+    <div class="section-label">Target Dossiers</div>
+    <h2 class="section-title">Extraction <span class="acc">Intelligence</span></h2>
+    <p class="section-desc">
+      Three of the web's most well-crafted sites. Fully deconstructed in seconds. Colors, fonts, tech stack, performance, animations &mdash; nothing hidden.
+    </p>
+
+    <!-- ═══════════════════════════════
+         STRIPE
+         ═══════════════════════════════ -->
+    <div class="dossier" id="stripe">
+      <div class="dossier-header">
+        <div class="dossier-target">
+          <div class="dossier-dot" style="background: #533afd; color: #533afd;"></div>
+          <div class="dossier-site" style="color: #a393fe;">STRIPE.COM</div>
+        </div>
+        <div class="dossier-status">&#x2713; EXTRACTED</div>
+      </div>
+      <div class="dossier-body">
+        <div class="dossier-profile">
+          <div>
+            <div class="profile-section-label">Description</div>
+            <div class="profile-desc">Financial infrastructure to grow your revenue. Accept payments, offer financial services, and implement custom revenue models.</div>
+          </div>
+          <div>
+            <div class="profile-section-label">Extracted Palette</div>
+            <div class="palette">
+              <div class="swatch-row">
+                <div class="swatch" style="background: #000000;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#000000</span><span class="swatch-count">6,431x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background: #533afd;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#533afd</span><span class="swatch-count">3,643x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background: #50617a;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#50617a</span><span class="swatch-count">1,120x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background: #061b31;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#061b31</span><span class="swatch-count">937x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch light" style="background: #ffffff;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#ffffff</span><span class="swatch-count">640x</span></div>
+              </div>
+            </div>
+            <div class="palette-bar">
+              <div class="palette-bar-seg" style="flex: 6431; background: #000000;"></div>
+              <div class="palette-bar-seg" style="flex: 3643; background: #533afd;"></div>
+              <div class="palette-bar-seg" style="flex: 1120; background: #50617a;"></div>
+              <div class="palette-bar-seg" style="flex: 937; background: #061b31;"></div>
+              <div class="palette-bar-seg" style="flex: 640; background: #ffffff; border: 1px solid rgba(255,255,255,0.1);"></div>
+            </div>
+          </div>
+          <div>
+            <div class="profile-section-label">Tech Stack</div>
+            <span class="stack-badge">&#9670; Next.js</span>
+          </div>
+        </div>
+
+        <div class="dossier-readout">
+          <div class="readout-group">
+            <div class="readout-label">Typography</div>
+            <div class="font-stack">
+              <span class="font-tag">sohne-var<span class="uses">874x</span></span>
+            </div>
+            <div class="readout-row" style="margin-top: 0.4rem;">
+              <span class="readout-key">sizes:</span>
+              <span class="readout-val">13</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">weights:</span>
+              <span class="readout-val">2</span>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Performance</div>
+            <div class="perf-bars">
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">TTFB</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="6" style="width: 0%; background: var(--neon-green); color: var(--neon-green);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-green);">67ms</div>
+              </div>
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">DOM Loaded</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="23" style="width: 0%; background: var(--neon-cyan); color: var(--neon-cyan);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-cyan);">457ms</div>
+              </div>
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">Full Load</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="37" style="width: 0%; background: var(--neon-blue); color: var(--neon-blue);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-blue);">736ms</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Resources</div>
+            <div class="readout-row">
+              <span class="readout-key">dom_nodes:</span>
+              <span class="readout-val">2,392</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">resources:</span>
+              <span class="readout-val">107</span>
+            </div>
+            <div class="readout-row">
+              <span class="readout-key">js_payload:</span>
+              <span class="readout-val">1,051</span><span class="readout-unit">KB</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">scripts:</span>
+              <span class="readout-val">69</span>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Metadata</div>
+            <div class="readout-row">
+              <span class="readout-key">og_tags:</span>
+              <span class="readout-val">5</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">twitter:</span>
+              <span class="readout-val">5</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">json-ld:</span>
+              <span class="readout-val">1</span>
+            </div>
+            <div class="readout-row">
+              <span class="readout-key">dark_mode:</span>
+              <span class="readout-val" style="color: var(--text-muted);">not detected</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         LINEAR
+         ═══════════════════════════════ -->
+    <div class="dossier" id="linear">
+      <div class="dossier-header">
+        <div class="dossier-target">
+          <div class="dossier-dot" style="background: #5e6ad2; color: #5e6ad2;"></div>
+          <div class="dossier-site" style="color: #8c93e6;">LINEAR.APP</div>
+        </div>
+        <div class="dossier-status">&#x2713; EXTRACTED</div>
+      </div>
+      <div class="dossier-body">
+        <div class="dossier-profile">
+          <div>
+            <div class="profile-section-label">Description</div>
+            <div class="profile-desc">The product development system for teams and agents. Purpose-built for planning and building products. Designed for the AI era.</div>
+          </div>
+          <div>
+            <div class="profile-section-label">Extracted Palette</div>
+            <div class="palette">
+              <div class="swatch-row">
+                <div class="swatch light" style="background: #f7f8f8;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#f7f8f8</span><span class="swatch-count">14,939x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background: #62666d;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#62666d</span><span class="swatch-count">2,186x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch light" style="background: #ffffff;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#ffffff</span><span class="swatch-count">1,537x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch light" style="background: #d0d6e0;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#d0d6e0</span><span class="swatch-count">990x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background: #000000;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#000000</span><span class="swatch-count">873x</span></div>
+              </div>
+            </div>
+            <div class="palette-bar">
+              <div class="palette-bar-seg" style="flex: 14939; background: #f7f8f8;"></div>
+              <div class="palette-bar-seg" style="flex: 2186; background: #62666d;"></div>
+              <div class="palette-bar-seg" style="flex: 1537; background: #ffffff; border: 1px solid rgba(255,255,255,0.1);"></div>
+              <div class="palette-bar-seg" style="flex: 990; background: #d0d6e0;"></div>
+              <div class="palette-bar-seg" style="flex: 873; background: #000000;"></div>
+            </div>
+          </div>
+          <div>
+            <div class="profile-section-label">Tech Stack</div>
+            <span class="stack-badge">&#9670; Intercom</span>
+          </div>
+        </div>
+
+        <div class="dossier-readout">
+          <div class="readout-group">
+            <div class="readout-label">Typography</div>
+            <div class="font-stack">
+              <span class="font-tag">Inter Variable<span class="uses">978x</span></span>
+              <span class="font-tag">Berkeley Mono<span class="uses">226x</span></span>
+            </div>
+            <div class="readout-row" style="margin-top: 0.4rem;">
+              <span class="readout-key">sizes:</span>
+              <span class="readout-val">17</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">weights:</span>
+              <span class="readout-val">4</span>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Performance</div>
+            <div class="perf-bars">
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">TTFB</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="26" style="width: 0%; background: var(--neon-orange); color: var(--neon-orange);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-orange);">527ms</div>
+              </div>
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">DOM Loaded</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="38" style="width: 0%; background: var(--neon-cyan); color: var(--neon-cyan);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-cyan);">762ms</div>
+              </div>
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">Full Load</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="88" style="width: 0%; background: var(--neon-pink); color: var(--neon-pink);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-pink);">1,768ms</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Resources</div>
+            <div class="readout-row">
+              <span class="readout-key">dom_nodes:</span>
+              <span class="readout-val">3,931</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">resources:</span>
+              <span class="readout-val">133</span>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Breakpoints</div>
+            <div class="readout-row">
+              <span class="readout-key">detected:</span>
+              <span class="readout-val">5</span>
+            </div>
+            <div class="bp-viz">
+              <div class="bp-dot" style="width: 12px; opacity: 0.4;" title="600px"></div>
+              <div class="bp-dot" style="width: 14px; opacity: 0.5;" title="640px"></div>
+              <div class="bp-dot" style="width: 18px; opacity: 0.6;" title="768px"></div>
+              <div class="bp-dot" style="width: 24px; opacity: 0.75;" title="1024px"></div>
+              <div class="bp-dot" style="width: 32px; opacity: 0.9;" title="1280px"></div>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Animations</div>
+            <div class="anim-viz">
+              <div class="anim-wave">
+                <div class="anim-bar" style="animation-delay: 0s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.1s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.2s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.3s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.4s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.5s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.6s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.7s;"></div>
+              </div>
+              <span class="readout-row">
+                <span class="readout-key">@keyframes:</span>
+                <span class="readout-val">50</span>
+                <span class="readout-sep">|</span>
+                <span class="readout-key">transitions:</span>
+                <span class="readout-val">30</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         VERCEL
+         ═══════════════════════════════ -->
+    <div class="dossier" id="vercel">
+      <div class="dossier-header">
+        <div class="dossier-target">
+          <div class="dossier-dot" style="background: #ffffff; color: #ffffff;"></div>
+          <div class="dossier-site" style="color: #e2e8f0;">VERCEL.COM</div>
+        </div>
+        <div class="dossier-status">&#x2713; EXTRACTED</div>
+      </div>
+      <div class="dossier-body">
+        <div class="dossier-profile">
+          <div>
+            <div class="profile-section-label">Description</div>
+            <div class="profile-desc">Build and deploy on the AI Cloud. Developer tools and cloud infrastructure to build, scale, and secure a faster, more personalized web.</div>
+          </div>
+          <div>
+            <div class="profile-section-label">Extracted Palette</div>
+            <div class="palette">
+              <div class="swatch-row">
+                <div class="swatch" style="background: #171717;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#171717</span><span class="swatch-count">8,333x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background: #4d4d4d;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#4d4d4d</span><span class="swatch-count">3,677x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background: #000000;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#000000</span><span class="swatch-count">935x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch" style="background: #666666;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#666666</span><span class="swatch-count">481x</span></div>
+              </div>
+              <div class="swatch-row">
+                <div class="swatch light" style="background: #ffffff;"></div>
+                <div class="swatch-info"><span class="swatch-hex">#ffffff</span><span class="swatch-count">332x</span></div>
+              </div>
+            </div>
+            <div class="palette-bar">
+              <div class="palette-bar-seg" style="flex: 8333; background: #171717;"></div>
+              <div class="palette-bar-seg" style="flex: 3677; background: #4d4d4d;"></div>
+              <div class="palette-bar-seg" style="flex: 935; background: #000000;"></div>
+              <div class="palette-bar-seg" style="flex: 481; background: #666666;"></div>
+              <div class="palette-bar-seg" style="flex: 332; background: #ffffff; border: 1px solid rgba(255,255,255,0.1);"></div>
+            </div>
+          </div>
+          <div>
+            <div class="profile-section-label">Tech Stack</div>
+            <span class="stack-badge">&#9670; Tailwind CSS</span>
+          </div>
+        </div>
+
+        <div class="dossier-readout">
+          <div class="readout-group">
+            <div class="readout-label">Typography</div>
+            <div class="font-stack">
+              <span class="font-tag">Geist<span class="uses">767x</span></span>
+              <span class="font-tag">Geist Mono<span class="uses">59x</span></span>
+              <span class="font-tag">monospace<span class="uses">1x</span></span>
+            </div>
+            <div class="readout-row" style="margin-top: 0.4rem;">
+              <span class="readout-key">sizes:</span>
+              <span class="readout-val">15</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">weights:</span>
+              <span class="readout-val">4</span>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Performance</div>
+            <div class="perf-bars">
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">TTFB</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="2" style="width: 0%; background: var(--neon-green); color: var(--neon-green);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-green);">16ms</div>
+              </div>
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">DOM Loaded</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="17" style="width: 0%; background: var(--neon-cyan); color: var(--neon-cyan);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-cyan);">330ms</div>
+              </div>
+              <div class="perf-bar-row">
+                <div class="perf-bar-label">Full Load</div>
+                <div class="perf-bar-track">
+                  <div class="perf-bar-fill" data-width="24" style="width: 0%; background: var(--neon-blue); color: var(--neon-blue);"></div>
+                </div>
+                <div class="perf-bar-val" style="color: var(--neon-blue);">472ms</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Resources</div>
+            <div class="readout-row">
+              <span class="readout-key">dom_nodes:</span>
+              <span class="readout-val">3,060</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">resources:</span>
+              <span class="readout-val">250</span>
+            </div>
+            <div class="readout-row">
+              <span class="readout-key">js_payload:</span>
+              <span class="readout-val">2,179</span><span class="readout-unit">KB</span>
+              <span class="readout-sep">|</span>
+              <span class="readout-key">scripts:</span>
+              <span class="readout-val">92</span>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Breakpoints</div>
+            <div class="readout-row">
+              <span class="readout-key">detected:</span>
+              <span class="readout-val" style="color: var(--neon-orange);">47</span>
+              <span class="readout-unit">&nbsp;(dense responsive grid)</span>
+            </div>
+            <div class="bp-viz">
+              <!-- 47 breakpoints visualized as varying-width bars -->
+              <div class="bp-dot" style="width: 3px;"></div><div class="bp-dot" style="width: 3px;"></div>
+              <div class="bp-dot" style="width: 3px;"></div><div class="bp-dot" style="width: 3px;"></div>
+              <div class="bp-dot" style="width: 4px;"></div><div class="bp-dot" style="width: 4px;"></div>
+              <div class="bp-dot" style="width: 4px;"></div><div class="bp-dot" style="width: 4px;"></div>
+              <div class="bp-dot" style="width: 4px;"></div><div class="bp-dot" style="width: 5px;"></div>
+              <div class="bp-dot" style="width: 5px;"></div><div class="bp-dot" style="width: 5px;"></div>
+              <div class="bp-dot" style="width: 5px;"></div><div class="bp-dot" style="width: 5px;"></div>
+              <div class="bp-dot" style="width: 6px;"></div><div class="bp-dot" style="width: 6px;"></div>
+              <div class="bp-dot" style="width: 6px;"></div><div class="bp-dot" style="width: 6px;"></div>
+              <div class="bp-dot" style="width: 6px;"></div><div class="bp-dot" style="width: 7px;"></div>
+              <div class="bp-dot" style="width: 7px;"></div><div class="bp-dot" style="width: 7px;"></div>
+              <div class="bp-dot" style="width: 8px;"></div><div class="bp-dot" style="width: 8px;"></div>
+              <div class="bp-dot" style="width: 8px;"></div><div class="bp-dot" style="width: 9px;"></div>
+              <div class="bp-dot" style="width: 9px;"></div><div class="bp-dot" style="width: 9px;"></div>
+              <div class="bp-dot" style="width: 10px;"></div><div class="bp-dot" style="width: 10px;"></div>
+              <div class="bp-dot" style="width: 10px;"></div><div class="bp-dot" style="width: 11px;"></div>
+              <div class="bp-dot" style="width: 11px;"></div><div class="bp-dot" style="width: 11px;"></div>
+              <div class="bp-dot" style="width: 12px;"></div><div class="bp-dot" style="width: 12px;"></div>
+              <div class="bp-dot" style="width: 12px;"></div><div class="bp-dot" style="width: 13px;"></div>
+              <div class="bp-dot" style="width: 13px;"></div><div class="bp-dot" style="width: 14px;"></div>
+              <div class="bp-dot" style="width: 14px;"></div><div class="bp-dot" style="width: 15px;"></div>
+              <div class="bp-dot" style="width: 16px;"></div><div class="bp-dot" style="width: 16px;"></div>
+              <div class="bp-dot" style="width: 17px;"></div><div class="bp-dot" style="width: 18px;"></div>
+              <div class="bp-dot" style="width: 20px;"></div>
+            </div>
+          </div>
+
+          <div class="readout-group">
+            <div class="readout-label">Animations</div>
+            <div class="anim-viz">
+              <div class="anim-wave">
+                <div class="anim-bar" style="animation-delay: 0s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.08s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.16s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.24s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.32s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.40s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.48s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.56s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.64s;"></div>
+                <div class="anim-bar" style="animation-delay: 0.72s;"></div>
+              </div>
+              <span class="readout-row">
+                <span class="readout-key">@keyframes:</span>
+                <span class="readout-val">50</span>
+                <span class="readout-sep">|</span>
+                <span class="readout-key">transitions:</span>
+                <span class="readout-val">30</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- ═══════════════════════════════
+     SUMMARY FOOTER
+     ═══════════════════════════════ -->
+<footer class="summary content">
+  <div class="summary-stats">
+    <div class="summary-stat">
+      <div class="summary-val v1">3</div>
+      <div class="summary-unit">Sites Deconstructed</div>
+    </div>
+    <div class="summary-stat">
+      <div class="summary-val v2">187</div>
+      <div class="summary-unit">Data Points Extracted</div>
+    </div>
+    <div class="summary-stat">
+      <div class="summary-val v3">0</div>
+      <div class="summary-unit">Credentials Exposed</div>
+    </div>
+  </div>
+
+  <p class="summary-tagline">
+    Every color swatch, font name, performance metric, and breakpoint on this page
+    was <em>extracted live</em> by cbrowser's MCP tools. No manual inspection. No browser DevTools.
+    Just AI + cbrowser.
+  </p>
+
+  <div class="summary-logo">CBROWSER</div>
+  <div class="summary-stack">Node.js &bull; Playwright &bull; Model Context Protocol</div>
+  <div class="summary-copy">37 tools. One persistent session. Total web intelligence.</div>
+</footer>
+
+<script>
+  // ── RAIN ──
+  const rc = document.getElementById('rain');
+  for (let i = 0; i < 70; i++) {
+    const d = document.createElement('div');
+    d.className = 'rain-drop';
+    d.style.cssText = `left:${Math.random()*100}%;height:${50+Math.random()*80}px;animation-duration:${0.5+Math.random()*0.7}s;animation-delay:${Math.random()*3}s;opacity:${0.1+Math.random()*0.2};`;
+    rc.appendChild(d);
+  }
+
+  // ── SCROLL REVEAL ──
+  const els = document.querySelectorAll('.dossier, .section-label, .section-title, .section-desc, .summary-stats, .summary-tagline');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  els.forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(25px)';
+    el.style.transition = 'opacity 0.7s ease, transform 0.7s ease';
+    obs.observe(el);
+  });
+
+  // ── PERF BAR ANIMATION ──
+  const barObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const bars = e.target.querySelectorAll('.perf-bar-fill');
+        bars.forEach((b, i) => {
+          setTimeout(() => { b.style.width = b.dataset.width + '%'; }, i * 150);
+        });
+        barObs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('.dossier').forEach(d => barObs.observe(d));
+</script>
+
+</body>
+</html>

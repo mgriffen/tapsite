@@ -2,6 +2,19 @@
 
 Web intelligence toolkit — an MCP server + CLI built with Node.js and Playwright. Designed for authenticated dashboard inspection, design system extraction, and UI analysis. Reuses browser sessions across tool calls so MFA-protected sites only need one manual login.
 
+## Showcase
+
+Click any image to see the full interactive page:
+
+[![cbrowser Product Overview](docs/screenshots/product.png)](https://mgriffen.github.io/cbrowser/product.html)
+
+**37 MCP tools** for authenticated web intelligence extraction — colors, fonts, performance, accessibility, content, forms, assets, and more.
+
+| Design System Extraction | Deep Intelligence |
+|:---:|:---:|
+| [![Showcase I](docs/screenshots/showcase-design.png)](https://mgriffen.github.io/cbrowser/showcase-design.html) | [![Showcase II](docs/screenshots/showcase-deep.png)](https://mgriffen.github.io/cbrowser/showcase-deep.html) |
+| Live-extracted colors, fonts, perf, breakpoints, and animations from Stripe, Linear, and Vercel | Accessibility audits, content extraction, form analysis, asset inventory, component detection |
+
 ## Setup
 
 ```bash

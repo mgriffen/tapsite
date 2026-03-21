@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBROWSER // Web Intelligence MCP Server</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:ital,wght@0,200;0,300;0,400;0,500;0,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --void: #04060c;
+      --neon-blue: #00d4ff;
+      --neon-pink: #ff2d78;
+      --neon-cyan: #22ecdb;
+      --neon-magenta: #e040fb;
+      --text-primary: #e2e8f0;
+      --text-dim: #7a8faa;
+      --text-muted: #344560;
+    }
+    body {
+      background: var(--void);
+      color: var(--text-primary);
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .logo {
+      font-family: 'Orbitron', sans-serif; font-weight: 900;
+      font-size: clamp(2.5rem, 6vw, 4rem); letter-spacing: 0.08em;
+      background: linear-gradient(135deg, var(--neon-blue), #fff, var(--neon-cyan));
+      background-size: 200% 200%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: holo 6s ease-in-out infinite;
+      margin-bottom: 0.5rem;
+    }
+    @keyframes holo { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+    .tagline {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 3rem;
+    }
+
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem; max-width: 1000px; width: 100%;
+    }
+
+    .card {
+      background: #000; border: 1px solid rgba(0,212,255,0.1);
+      padding: 2rem; text-decoration: none; color: var(--text-primary);
+      position: relative; overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+      opacity: 0.4;
+    }
+    .card:hover {
+      border-color: rgba(0,212,255,0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 0 30px rgba(0,212,255,0.06);
+    }
+
+    .card-label {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+    .card-title {
+      font-family: 'Orbitron', sans-serif; font-weight: 700;
+      font-size: 1.1rem; letter-spacing: 0.06em; margin-bottom: 0.8rem;
+    }
+    .card-desc {
+      font-size: 0.95rem; color: var(--text-dim); line-height: 1.6;
+    }
+    .card-arrow {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      color: var(--neon-cyan); margin-top: 1.2rem; display: block;
+    }
+
+    .footer {
+      margin-top: 4rem; text-align: center;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+      color: var(--text-muted); letter-spacing: 0.15em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">CBROWSER</div>
+  <div class="tagline">Web Intelligence MCP Server</div>
+
+  <div class="cards">
+    <a class="card" href="product.html">
+      <div class="card-label" style="color: var(--neon-cyan);">Product</div>
+      <div class="card-title">The MCP Server</div>
+      <div class="card-desc">37 tools for authenticated web intelligence extraction. Built with Node.js and Playwright for Claude Code.</div>
+      <span class="card-arrow">View &rsaquo;&rsaquo;</span>
+    </a>
+    <a class="card" href="showcase-design.html">
+      <div class="card-label" style="color: var(--neon-pink);">Showcase I</div>
+      <div class="card-title">Design System Extraction</div>
+      <div class="card-desc">Live-extracted colors, fonts, performance, breakpoints, and animations from Stripe, Linear, and Vercel.</div>
+      <span class="card-arrow">View &rsaquo;&rsaquo;</span>
+    </a>
+    <a class="card" href="showcase-deep.html">
+      <div class="card-label" style="color: var(--neon-magenta);">Showcase II</div>
+      <div class="card-title">Deep Intelligence</div>
+      <div class="card-desc">Accessibility audits, content extraction, form analysis, asset inventory, component detection, and spacing forensics.</div>
+      <span class="card-arrow">View &rsaquo;&rsaquo;</span>
+    </a>
+  </div>
+
+  <div class="footer">Node.js &bull; Playwright &bull; Model Context Protocol</div>
+
+</body>
+</html>
