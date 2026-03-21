@@ -64,6 +64,20 @@ async function closeBrowser() {
 }
 
 /**
+ * Write full extraction data to disk and return a compact summary for the context window.
+ */
+function summarizeResult(name, data, summary) {
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const dir = path.join(config.OUTPUT_DIR, 'extractions');
+  fs.mkdirSync(dir, { recursive: true });
+  const filePath = path.join(dir, `${name}-${ts}.json`);
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  return {
+    content: [{ type: "text", text: `${summary}\n\nFull data: ${filePath}` }],
+  };
+}
+
+/**
  * Re-index the current page: extract interactive elements and compressed DOM.
  * Stores element map in module state for use by cbrowser_act.
  */
@@ -102,23 +116,23 @@ const server = new McpServer({
 
 server.tool(
   "cbrowser_login",
-  "Log into a website by navigating to the URL, filling credentials, and submitting. Keeps the browser session alive for subsequent tool calls.",
+  "Auto-login with credentials. Session persists across calls.",
   {
     url: z.string().describe("Login page URL"),
-    username: z.string().describe("Username to fill"),
-    password: z.string().describe("Password to fill"),
+    username: z.string().describe("Username"),
+    password: z.string().describe("Password"),
     usernameSelector: z
       .string()
       .default('input[name="username"]')
-      .describe("CSS selector for username field"),
+      .describe("Username field selector"),
     passwordSelector: z
       .string()
       .default('input[name="password"]')
-      .describe("CSS selector for password field"),
+      .describe("Password field selector"),
     submitSelector: z
       .string()
       .default('input[type="submit"]')
-      .describe("CSS selector for submit button"),
+      .describe("Submit button selector"),
   },
   async ({ url, username, password, usernameSelector, passwordSelector, submitSelector }) => {
     await ensureBrowser();
@@ -148,9 +162,9 @@ server.tool(
 
 server.tool(
   "cbrowser_login_manual",
-  "Launch a VISIBLE browser window for manual login (for sites requiring MFA/authenticator). The user logs in themselves. Call cbrowser_login_check to verify when they're done.",
+  "Open headed browser for manual login (MFA). Call login_check when done.",
   {
-    url: z.string().describe("Login page URL to open"),
+    url: z.string().describe("Login page URL"),
   },
   async ({ url }) => {
     await ensureBrowser(false); // headed mode
@@ -170,7 +184,7 @@ server.tool(
 
 server.tool(
   "cbrowser_login_check",
-  "Check the current state of the browser after manual login. Returns the current page title, URL, and content preview to verify the user is authenticated.",
+  "Verify auth state after manual login. Returns title, URL, content preview.",
   {},
   async () => {
     if (!context || !page) {
@@ -203,7 +217,7 @@ server.tool(
 
 server.tool(
   "cbrowser_navigate",
-  "Navigate the current browser session to a URL. Returns a compressed DOM with numbered interactive elements that can be used with cbrowser_act.",
+  "Navigate to URL. Returns compressed DOM with numbered interactive elements.",
   {
     url: z.string().describe("URL to navigate to"),
   },
@@ -230,10 +244,10 @@ server.tool(
 
 server.tool(
   "cbrowser_inspect",
-  "Inspect the current page or a URL — returns compressed DOM with numbered interactive elements. Optionally includes a screenshot.",
+  "Inspect page DOM with numbered interactive elements. Optional screenshot.",
   {
-    url: z.string().optional().describe("URL to inspect (omit to inspect current page)"),
-    screenshot: z.boolean().default(false).describe("Include a screenshot alongside the DOM"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    screenshot: z.boolean().default(false).describe("Include screenshot"),
   },
   async ({ url, screenshot }) => {
     await ensureBrowser();
@@ -267,14 +281,14 @@ server.tool(
 
 server.tool(
   "cbrowser_screenshot",
-  "Take a screenshot of the current page or a URL. Optionally highlight interactive elements with numbered badges.",
+  "Screenshot the page. Optional element highlighting with numbered badges.",
   {
-    url: z.string().optional().describe("URL to screenshot (omit for current page)"),
-    fullPage: z.boolean().default(true).describe("Capture full scrollable page"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    fullPage: z.boolean().default(true).describe("Full scrollable page"),
     highlight: z
       .boolean()
       .default(false)
-      .describe("Overlay numbered badges on interactive elements"),
+      .describe("Overlay numbered element badges"),
   },
   async ({ url, fullPage, highlight }) => {
     await ensureBrowser();
@@ -341,11 +355,11 @@ server.tool(
 
 server.tool(
   "cbrowser_extract_table",
-  "Extract structured table data from the current page. Useful for customer lists, data grids, etc.",
+  "Extract table data as structured rows.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    minColumns: z.number().default(2).describe("Minimum columns a row must have to be included"),
-    limit: z.number().default(50).describe("Maximum number of rows to return"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    minColumns: z.number().default(2).describe("Min columns per row"),
+    limit: z.number().default(50).describe("Max rows"),
   },
   async ({ url, minColumns, limit }) => {
     await ensureBrowser();
@@ -378,23 +392,21 @@ server.tool(
       { minColumns, limit }
     );
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(tableData, null, 2),
-        },
-      ],
-    };
+    const rows = tableData || [];
+    const cols = rows[0]?.length || 0;
+    const headers = rows[0]?.map(c => c.text).join(' | ') || '';
+    const preview = rows.slice(1, 4).map(r => r.map(c => c.text?.slice(0, 25)).join(' | ')).join('\n  ');
+    const summary = `Table: ${rows.length} rows x ${cols} columns\nHeaders: ${headers}\nPreview:\n  ${preview || '(empty)'}`;
+    return summarizeResult('table', tableData, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_links",
-  "Extract all links from the current page, including image-only links (with alt text).",
+  "Extract all links with text and href.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    filter: z.string().optional().describe("Only return links whose href contains this string"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    filter: z.string().optional().describe("Filter: href contains this string"),
   },
   async ({ url, filter }) => {
     await ensureBrowser();
@@ -416,42 +428,41 @@ server.tool(
       links = links.filter((l) => l.href.includes(filter));
     }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(links, null, 2),
-        },
-      ],
-    };
+    const pageUrl = page.url();
+    let internal = 0, external = 0;
+    try {
+      const host = new URL(pageUrl).hostname;
+      links.forEach(l => { try { new URL(l.href).hostname === host ? internal++ : external++; } catch { external++; } });
+    } catch { external = links.length; }
+    const sample = links.slice(0, 6).map(l => `${l.text.slice(0, 30)} (${l.href.slice(0, 50)})`).join('\n  ');
+    const summary = `Links: ${links.length} found (${internal} internal, ${external} external)\n  ${sample || 'none'}`;
+    return summarizeResult('links', links, summary);
   }
 );
 
 server.tool(
   "cbrowser_run_js",
-  "Execute JavaScript in the current page context and return the result. Useful for custom data extraction.",
+  "Run JS in page context. Large results (>2KB) write to disk.",
   {
-    script: z.string().describe("JavaScript to evaluate in the page (must return a value)"),
+    script: z.string().describe("JS expression (must return a value)"),
   },
   async ({ script }) => {
     await ensureBrowser();
     const result = await page.evaluate(script);
-    return {
-      content: [
-        {
-          type: "text",
-          text: typeof result === "string" ? result : JSON.stringify(result, null, 2),
-        },
-      ],
-    };
+    const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+    if (text.length > 2000) {
+      const preview = text.slice(0, 500) + '\n…(truncated)';
+      return summarizeResult('run-js', result, `Result (${text.length} chars, truncated):\n${preview}`);
+    }
+    return { content: [{ type: "text", text }] };
   }
 );
 
 server.tool(
   "cbrowser_export",
-  "Export inspection results for one or more URLs as Markdown report + HTML report + JSON + CSV tables + screenshots.",
+  "Export URLs as Markdown + HTML report + JSON + CSV + screenshots.",
   {
-    urls: z.array(z.string()).describe("URLs to inspect and export"),
+    urls: z.array(z.string()).describe("URLs to export"),
   },
   async ({ urls }) => {
     await ensureBrowser();
@@ -493,16 +504,16 @@ server.tool(
 
 server.tool(
   "cbrowser_act",
-  "Interact with a page element by its index number (from navigate/inspect output). Performs click, fill, select, check, or hover. Returns updated page state with new element indices.",
+  "Click, fill, select, check, or hover an indexed element. Returns updated DOM.",
   {
     action: z
       .enum(["click", "fill", "select", "check", "hover"])
-      .describe("Action to perform"),
-    index: z.number().describe("Element index from inspect/navigate output"),
+      .describe("Action type"),
+    index: z.number().describe("Element index from inspect/navigate"),
     value: z
       .string()
       .optional()
-      .describe("Value to fill or option to select (required for fill/select)"),
+      .describe("Value for fill/select"),
   },
   async ({ action, index, value }) => {
     await ensureBrowser();
@@ -585,16 +596,16 @@ server.tool(
 
 server.tool(
   "cbrowser_scroll",
-  "Scroll the page in a direction, or scroll a specific element into view.",
+  "Scroll page or scroll an element into view.",
   {
     direction: z
       .enum(["up", "down", "top", "bottom"])
       .optional()
-      .describe("Scroll direction (ignored if index is provided)"),
+      .describe("Direction (ignored if index set)"),
     index: z
       .number()
       .optional()
-      .describe("Element index to scroll into view"),
+      .describe("Element index to scroll to"),
   },
   async ({ direction, index }) => {
     await ensureBrowser();
@@ -630,10 +641,10 @@ server.tool(
 
 server.tool(
   "cbrowser_extract_colors",
-  "Extract the color palette from the current page — all unique colors from computed styles, sorted by frequency.",
+  "Extract color palette sorted by frequency.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    limit: z.number().default(30).describe("Maximum number of colors to return"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    limit: z.number().default(30).describe("Max colors"),
   },
   async ({ url, limit }) => {
     await ensureBrowser();
@@ -642,17 +653,18 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractColorsInBrowser, { limit });
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const colors = result.colors || [];
+    const top5 = colors.slice(0, 5).map(c => `${c.hex} (${c.count}x)`).join(', ');
+    const summary = `Colors: ${colors.length} unique\nTop: ${top5 || 'none'}`;
+    return summarizeResult('colors', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_fonts",
-  "Extract typography information — font families, sizes, weights, line-heights, and font sources (Google Fonts, Typekit, self-hosted).",
+  "Extract fonts: families, sizes, weights, sources.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
   },
   async ({ url }) => {
     await ensureBrowser();
@@ -661,18 +673,19 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractFontsInBrowser);
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const families = (result.fonts || []).map(f => `"${f.family}" (${f.usage}x)`).join(', ');
+    const sizes = (result.fontSizes || []).slice(0, 5).map(s => s.size).join(', ');
+    const summary = `Fonts: ${(result.fonts || []).length} families, ${(result.fontSizes || []).length} sizes, ${(result.fontWeights || []).length} weights\nFamilies: ${families || 'none'}\nSizes: ${sizes || 'none'}`;
+    return summarizeResult('fonts', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_css_vars",
-  "Extract all CSS custom properties (variables) from :root and body, auto-categorized by type (color, spacing, typography, etc.).",
+  "Extract CSS custom properties, categorized by type.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    includeAll: z.boolean().default(false).describe("Also scan inline styles on all elements"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    includeAll: z.boolean().default(false).describe("Also scan inline styles"),
   },
   async ({ url, includeAll }) => {
     await ensureBrowser();
@@ -681,17 +694,21 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractCssVarsInBrowser, { includeAll });
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const vars = result.vars || [];
+    const cats = {};
+    vars.forEach(v => { cats[v.category || 'other'] = (cats[v.category || 'other'] || 0) + 1; });
+    const catStr = Object.entries(cats).map(([k, v]) => `${k} (${v})`).join(', ');
+    const samples = vars.slice(0, 4).map(v => `${v.name}: ${v.value}`).join(', ');
+    const summary = `CSS vars: ${vars.length} total | ${catStr}\nSample: ${samples || 'none'}`;
+    return summarizeResult('css-vars', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_spacing",
-  "Extract the spacing scale — unique margin, padding, gap, and border-radius values with inferred base unit.",
+  "Extract spacing scale: margins, padding, gaps, radii.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
     sampleSize: z.number().default(200).describe("Max elements to sample"),
   },
   async ({ url, sampleSize }) => {
@@ -701,9 +718,10 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractSpacingInBrowser, { sampleSize });
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const scale = (result.scale || []).slice(0, 10).map(s => s.value).join(', ');
+    const top5 = (result.scale || []).slice(0, 5).map(s => `${s.value} (${s.count}x)`).join(', ');
+    const summary = `Spacing: ${(result.scale || []).length} values | Base: ${result.inferredBase || 'unknown'}\nScale: ${scale || 'none'}\nTop: ${top5 || 'none'}`;
+    return summarizeResult('spacing', result, summary);
   }
 );
 
@@ -711,11 +729,11 @@ server.tool(
 
 server.tool(
   "cbrowser_extract_images",
-  "Discover all images on the page: <img>, CSS background-image, <picture> sources, OG/meta images. Returns metadata: src, dimensions, alt text, format.",
+  "Extract all images with src, dimensions, alt, format.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    minWidth: z.number().default(1).describe("Minimum width in px to include"),
-    filter: z.string().optional().describe("Only return images whose src contains this string"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    minWidth: z.number().default(1).describe("Min width in px"),
+    filter: z.string().optional().describe("Filter: src contains string"),
   },
   async ({ url, minWidth, filter }) => {
     await ensureBrowser();
@@ -724,21 +742,25 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || "" });
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const imgs = result.images || [];
+    const byType = {};
+    imgs.forEach(i => { byType[i.source || 'unknown'] = (byType[i.source || 'unknown'] || 0) + 1; });
+    const typeStr = Object.entries(byType).map(([k, v]) => `${k} (${v})`).join(', ');
+    const top3 = imgs.slice(0, 3).map(i => `${(i.src || '').split('/').pop()?.slice(0, 30)} ${i.width}x${i.height}`).join(', ');
+    const summary = `Images: ${imgs.length} found | ${typeStr}\nTop: ${top3 || 'none'}`;
+    return summarizeResult('images', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_download_images",
-  "Download discovered images to output/assets/images/. Uses browser session cookies for authenticated assets.",
+  "Download images to disk. Uses session cookies for auth assets.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    minWidth: z.number().default(50).describe("Minimum width in px to include"),
-    filter: z.string().optional().describe("Only download images whose src contains this string"),
-    limit: z.number().default(50).describe("Maximum number of images to download"),
-    formats: z.array(z.string()).optional().describe("Only download images with these extensions (e.g. ['png', 'jpg'])"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    minWidth: z.number().default(50).describe("Min width in px"),
+    filter: z.string().optional().describe("Filter: src contains string"),
+    limit: z.number().default(50).describe("Max images"),
+    formats: z.array(z.string()).optional().describe("Extensions filter (e.g. ['png','jpg'])"),
   },
   async ({ url, minWidth, filter, limit, formats }) => {
     await ensureBrowser();
@@ -812,11 +834,11 @@ server.tool(
 
 server.tool(
   "cbrowser_extract_svgs",
-  "Extract inline SVG markup (cleaned/minified) and external SVG URLs. Classifies as icon vs illustration by size. Detects currentColor usage.",
+  "Extract SVGs: inline markup, external URLs, icon/illustration classification.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    limit: z.number().default(50).describe("Maximum number of SVGs to return"),
-    download: z.boolean().default(false).describe("Also download SVGs to output/assets/svgs/"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    limit: z.number().default(50).describe("Max SVGs"),
+    download: z.boolean().default(false).describe("Download to output/assets/svgs/"),
   },
   async ({ url, limit, download }) => {
     await ensureBrowser();
@@ -856,18 +878,21 @@ server.tool(
       result.downloadDir = svgDir;
     }
 
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const svgs = result.svgs || [];
+    const inline = svgs.filter(s => s.type === 'inline').length;
+    const external = svgs.filter(s => s.type === 'external').length;
+    const icons = svgs.filter(s => s.classification === 'icon').length;
+    const summary = `SVGs: ${svgs.length} total (${inline} inline, ${external} external) | Icons: ${icons}, Illustrations: ${svgs.length - icons}${result.downloaded != null ? ` | Downloaded: ${result.downloaded}` : ''}`;
+    return summarizeResult('svgs', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_favicon",
-  "Extract all favicon and icon references: link[rel=icon], apple-touch-icon, manifest icons, msapplication-TileImage. Optionally download them.",
+  "Extract favicon and icon references. Optional download.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    download: z.boolean().default(false).describe("Download favicons to output/assets/favicons/"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    download: z.boolean().default(false).describe("Download to output/assets/favicons/"),
   },
   async ({ url, download }) => {
     await ensureBrowser();
@@ -929,9 +954,13 @@ server.tool(
       result.downloadDir = favDir;
     }
 
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const icons = result.icons || [];
+    const types = {};
+    icons.forEach(i => { types[i.type || 'icon'] = (types[i.type || 'icon'] || 0) + 1; });
+    const typeStr = Object.entries(types).map(([k, v]) => `${k} (${v})`).join(', ');
+    const sizes = icons.map(i => i.sizes).filter(Boolean).join(', ');
+    const summary = `Favicons: ${icons.length} found | ${typeStr}\nSizes: ${sizes || 'none'}${result.downloaded != null ? `\nDownloaded: ${result.downloaded}` : ''}`;
+    return summarizeResult('favicon', result, summary);
   }
 );
 
@@ -969,10 +998,10 @@ function formatLayoutTree(node, indent = "") {
 
 server.tool(
   "cbrowser_extract_layout",
-  "Map the layout structure of the page — display type (flex/grid/block), direction, template, gap, alignment per container. Returns a compressed layout tree.",
+  "Extract layout tree: flex/grid/block containers with properties.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    maxDepth: z.number().default(6).describe("Maximum tree depth to traverse"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    maxDepth: z.number().default(6).describe("Max tree depth"),
   },
   async ({ url, maxDepth }) => {
     await ensureBrowser();
@@ -990,10 +1019,10 @@ server.tool(
 
 server.tool(
   "cbrowser_extract_components",
-  "Detect repeated visual patterns — groups of elements with the same class structure appearing multiple times. Returns pattern templates, class names, instance count, and sample HTML.",
+  "Detect repeated UI component patterns with instance counts.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    minOccurrences: z.number().default(3).describe("Minimum number of occurrences to qualify as a component"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    minOccurrences: z.number().default(3).describe("Min occurrences to qualify"),
   },
   async ({ url, minOccurrences }) => {
     await ensureBrowser();
@@ -1002,17 +1031,18 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractComponentsInBrowser, { minOccurrences });
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const comps = result.components || [];
+    const top5 = comps.slice(0, 5).map(c => `${c.selector} (${c.count}x${c.role ? ', ' + c.role : ''})`).join('\n  ');
+    const summary = `Components: ${comps.length} patterns detected\n  ${top5 || 'none'}`;
+    return summarizeResult('components', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_breakpoints",
-  "Extract all CSS media query breakpoints from stylesheets. Detects framework breakpoints (Tailwind, Bootstrap, MUI). Reports current viewport.",
+  "Extract CSS breakpoints and detect framework (Tailwind/Bootstrap/MUI).",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
   },
   async ({ url }) => {
     await ensureBrowser();
@@ -1021,9 +1051,11 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractBreakpointsInBrowser);
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const bps = result.breakpoints || [];
+    const vals = bps.map(b => b.minWidth || b.maxWidth || b.query).join(', ');
+    const fw = result.framework ? ` | Framework: ${result.framework}` : '';
+    const summary = `Breakpoints: ${bps.length} found${fw}\nValues: ${vals || 'none'}\nViewport: ${result.viewport?.width || '?'}x${result.viewport?.height || '?'}`;
+    return summarizeResult('breakpoints', result, summary);
   }
 );
 
@@ -1089,13 +1121,13 @@ async function captureNetwork({ duration, includeStatic, filterUrl, filterMethod
 
 server.tool(
   "cbrowser_capture_network",
-  "Capture all network requests/responses on the current page for a configurable duration. Records URL, method, status, content-type, headers, and request/response bodies (JSON/text). Filters out static assets by default.",
+  "Capture network traffic for a duration. Filters static assets by default.",
   {
-    url: z.string().optional().describe("Navigate to this URL before capturing (omit to capture on current page)"),
-    duration: z.number().default(10).describe("How many seconds to capture (default 10)"),
-    includeStatic: z.boolean().default(false).describe("Include image/CSS/font/media requests"),
-    filterUrl: z.string().optional().describe("Only capture requests whose URL contains this string"),
-    filterMethod: z.string().optional().describe("Only capture requests with this HTTP method (e.g. GET, POST)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    duration: z.number().default(10).describe("Seconds to capture"),
+    includeStatic: z.boolean().default(false).describe("Include images/CSS/fonts"),
+    filterUrl: z.string().optional().describe("Filter: URL contains string"),
+    filterMethod: z.string().optional().describe("Filter: HTTP method (GET, POST)"),
   },
   async ({ url, duration, includeStatic, filterUrl, filterMethod }) => {
     await ensureBrowser();
@@ -1107,25 +1139,28 @@ server.tool(
     }
 
     const requests = await captureNetwork({ duration, includeStatic, filterUrl, filterMethod });
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ total: requests.length, requests }, null, 2),
-        },
-      ],
-    };
+    const data = { total: requests.length, requests };
+    const byType = {};
+    const byStatus = {};
+    requests.forEach(r => {
+      byType[r.resourceType || 'other'] = (byType[r.resourceType || 'other'] || 0) + 1;
+      byStatus[r.status || '?'] = (byStatus[r.status || '?'] || 0) + 1;
+    });
+    const typeStr = Object.entries(byType).map(([k, v]) => `${k} (${v})`).join(', ');
+    const statusStr = Object.entries(byStatus).map(([k, v]) => `${k} (${v})`).join(', ');
+    const top5 = requests.slice(0, 5).map(r => `${r.method} ${r.url.slice(0, 60)} → ${r.status}`).join('\n  ');
+    const summary = `Network: ${requests.length} requests (${duration}s)\nBy type: ${typeStr}\nBy status: ${statusStr}\nTop:\n  ${top5 || 'none'}`;
+    return summarizeResult('network', data, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_api_schema",
-  "Capture API calls and infer JSON schemas from responses. Groups endpoints by normalized path (strips IDs), detects pagination patterns and auth headers.",
+  "Infer API schemas from captured network traffic.",
   {
-    url: z.string().optional().describe("Navigate to this URL before capturing (omit to capture on current page)"),
-    duration: z.number().default(15).describe("How many seconds to capture (default 15)"),
-    filterUrl: z.string().optional().describe("Only analyze requests whose URL contains this string"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    duration: z.number().default(15).describe("Seconds to capture"),
+    filterUrl: z.string().optional().describe("Filter: URL contains string"),
   },
   async ({ url, duration, filterUrl }) => {
     await ensureBrowser();
@@ -1227,30 +1262,20 @@ server.tool(
 
     const endpoints = [...endpointMap.values()].sort((a, b) => b.calls - a.calls);
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              totalApiCalls: apiCalls.length,
-              uniqueEndpoints: endpoints.length,
-              endpoints,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+    const data = { totalApiCalls: apiCalls.length, uniqueEndpoints: endpoints.length, endpoints };
+    const epLines = endpoints.slice(0, 8).map(e =>
+      `${e.method} ${e.endpoint} — ${e.calls}x, [${e.statuses.join(',')}]${e.hasAuth ? ', auth' : ''}${e.pagination ? ', paginated' : ''}`
+    ).join('\n  ');
+    const summary = `API: ${endpoints.length} endpoints from ${apiCalls.length} calls (${duration}s)\n  ${epLines || 'none detected'}`;
+    return summarizeResult('api-schema', data, summary);
   }
 );
 
 server.tool(
   "cbrowser_detect_stack",
-  "Fingerprint the technology stack: JS frameworks (React, Vue, Angular, Next.js, Svelte), CSS frameworks (Tailwind, Bootstrap, MUI), build tools, analytics, CMS, CDNs. Uses globals, DOM attributes, script URLs, meta tags, and response headers.",
+  "Detect tech stack: frameworks, libraries, CMS, analytics, CDNs.",
   {
-    url: z.string().optional().describe("Navigate to this URL before detecting (omit for current page)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
   },
   async ({ url }) => {
     await ensureBrowser();
@@ -1293,14 +1318,10 @@ server.tool(
       if (hosting.length) stack.hosting = hosting;
     }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(stack, null, 2),
-        },
-      ],
-    };
+    const techs = (stack.technologies || []).map(t => t.name + (t.version ? ` ${t.version}` : '')).join(', ');
+    const hosting = (stack.hosting || []).join(', ');
+    const summary = `Stack: ${techs || 'none detected'}${hosting ? `\nHosting: ${hosting}` : ''}`;
+    return summarizeResult('stack', stack, summary);
   }
 );
 
@@ -1308,9 +1329,9 @@ server.tool(
 
 server.tool(
   "cbrowser_extract_metadata",
-  "Extract all page metadata: meta tags, OpenGraph, Twitter Cards, JSON-LD/schema.org, RSS/Atom feeds, canonical URL, manifest, theme-color.",
+  "Extract metadata: OG, Twitter Cards, JSON-LD, RSS, canonical.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
   },
   async ({ url }) => {
     await ensureBrowser();
@@ -1319,19 +1340,21 @@ server.tool(
       await page.waitForTimeout(1000);
     }
     const result = await page.evaluate(extractMetadataInBrowser);
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const og = (result.openGraph || []).length;
+    const tw = (result.twitterCards || []).length;
+    const ld = (result.jsonLd || []).length;
+    const summary = `Metadata: "${result.title || ''}" | OG: ${og} tags | Twitter: ${tw} tags | JSON-LD: ${ld}\nCanonical: ${result.canonical || 'none'} | Lang: ${result.lang || '?'}`;
+    return summarizeResult('metadata', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_content",
-  "Extract main page content as clean structured markdown. Detects article containers, strips nav/sidebar/footer chrome. Preserves heading hierarchy, lists, links, inline formatting.",
+  "Extract main content as clean markdown, stripping chrome.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
-    selector: z.string().optional().describe("Scope extraction to this CSS selector (e.g. 'article', '.post-body')"),
-    includeImages: z.boolean().default(false).describe("Include image markdown in output"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    selector: z.string().optional().describe("CSS selector to scope extraction"),
+    includeImages: z.boolean().default(false).describe("Include images in output"),
   },
   async ({ url, selector, includeImages }) => {
     await ensureBrowser();
@@ -1348,9 +1371,9 @@ server.tool(
 
 server.tool(
   "cbrowser_extract_forms",
-  "Detailed form analysis: fields, validation rules (pattern, required, min/max), action URLs, methods, fieldset grouping, select options, hidden fields, CSRF tokens.",
+  "Extract forms: fields, validation, actions, hidden fields.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
   },
   async ({ url }) => {
     await ensureBrowser();
@@ -1359,9 +1382,14 @@ server.tool(
       await page.waitForTimeout(1000);
     }
     const result = await page.evaluate(extractFormsInBrowser);
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const forms = result.forms || [];
+    const totalFields = forms.reduce((sum, f) => sum + (f.fields || []).length, 0);
+    const formLines = forms.slice(0, 5).map(f => {
+      const names = (f.fields || []).slice(0, 5).map(fld => fld.name || fld.type).join(', ');
+      return `${f.method || '?'} ${f.action || '?'} — ${(f.fields || []).length} fields [${names}]`;
+    }).join('\n  ');
+    const summary = `Forms: ${forms.length} found, ${totalFields} total fields\n  ${formLines || 'none'}`;
+    return summarizeResult('forms', result, summary);
   }
 );
 
@@ -1369,14 +1397,14 @@ server.tool(
 
 server.tool(
   "cbrowser_crawl",
-  "Crawl a site using BFS, visiting up to maxPages pages within maxDepth link hops. Runs configurable extraction on each page and writes results to output/crawl-{timestamp}/. Returns a summary JSON with per-page file paths.",
+  "BFS crawl with extraction per page. Writes to output/crawl-{ts}/.",
   {
-    url: z.string().describe("Starting URL"),
-    maxPages: z.number().default(10).describe("Max pages to visit (default 10)"),
-    maxDepth: z.number().default(2).describe("Max BFS depth from start URL (default 2)"),
-    extract: z.array(z.enum(["content", "metadata", "links", "colors", "fonts", "css_vars", "components", "forms"])).default(["content"]).describe("Extraction types to run on each page"),
-    filterPath: z.string().optional().describe("Only follow links whose path starts with this prefix (e.g. '/blog/')"),
-    sameDomain: z.boolean().default(true).describe("Only follow links on the same domain (default true)"),
+    url: z.string().describe("Start URL"),
+    maxPages: z.number().default(10).describe("Max pages"),
+    maxDepth: z.number().default(2).describe("Max link depth"),
+    extract: z.array(z.enum(["content", "metadata", "links", "colors", "fonts", "css_vars", "components", "forms"])).default(["content"]).describe("Extractions per page"),
+    filterPath: z.string().optional().describe("Path prefix filter (e.g. '/blog/')"),
+    sameDomain: z.boolean().default(true).describe("Same domain only"),
   },
   async ({ url, maxPages, maxDepth, extract, filterPath, sameDomain }) => {
     await ensureBrowser();
@@ -1460,20 +1488,20 @@ server.tool(
     };
     fs.writeFileSync(path.join(runDir, "summary.json"), JSON.stringify(summary, null, 2));
 
-    return {
-      content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
-    };
+    const pageList = summary.pages.map(p => `${p.depth > 0 ? '  '.repeat(p.depth) : ''}${p.url}${p.error ? ' (ERROR)' : ''}`).join('\n');
+    const summaryText = `Crawl: ${summary.pagesVisited} pages from ${summary.startUrl}\nOutput: ${summary.outputDir}\n${pageList}`;
+    return { content: [{ type: "text", text: summaryText }] };
   }
 );
 
 server.tool(
   "cbrowser_diff_pages",
-  "Compare two URLs: DOM structure (headings), text content (word count), colors, images, forms, and metadata. Useful for responsive testing (same URL at two viewports) or staging vs prod.",
+  "Compare two URLs: structure, content, colors, images, metadata.",
   {
     url1: z.string().describe("First URL"),
     url2: z.string().describe("Second URL"),
-    viewport1: z.object({ width: z.number(), height: z.number() }).optional().describe("Viewport for url1 (e.g. {width:375,height:667})"),
-    viewport2: z.object({ width: z.number(), height: z.number() }).optional().describe("Viewport for url2 (e.g. {width:1440,height:900})"),
+    viewport1: z.object({ width: z.number(), height: z.number() }).optional().describe("Viewport for url1"),
+    viewport2: z.object({ width: z.number(), height: z.number() }).optional().describe("Viewport for url2"),
   },
   async ({ url1, url2, viewport1, viewport2 }) => {
     await ensureBrowser();
@@ -1539,9 +1567,15 @@ server.tool(
       },
     };
 
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const d = result.diff;
+    const lines = [];
+    lines.push(`Title: ${d.title === 'same' ? 'same' : 'DIFFERENT'}`);
+    lines.push(`Words: ${d.wordCount.url1} vs ${d.wordCount.url2} (${d.wordCount.delta >= 0 ? '+' : ''}${d.wordCount.delta})`);
+    lines.push(`Links: ${d.linkCount.url1} vs ${d.linkCount.url2} | Images: ${d.imageCount.url1} vs ${d.imageCount.url2}`);
+    lines.push(`Headings: ${d.headings.shared} shared, ${d.headings.onlyIn1.length} only in url1, ${d.headings.onlyIn2.length} only in url2`);
+    lines.push(`Colors: ${d.colors.shared.length} shared, ${d.colors.onlyIn1.length} only in url1, ${d.colors.onlyIn2.length} only in url2`);
+    const summary = `Diff: ${url1} vs ${url2}\n${lines.join('\n')}`;
+    return summarizeResult('diff', result, summary);
   }
 );
 
@@ -1549,9 +1583,9 @@ server.tool(
 
 server.tool(
   "cbrowser_extract_animations",
-  "Extract CSS @keyframes, transition properties, and per-element animation assignments. Detect JS animation libraries (GSAP, Framer Motion, anime.js, Lottie, etc.) and CSS animation libraries (Animate.css, AOS).",
+  "Extract CSS animations, transitions, and detect animation libraries.",
   {
-    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
   },
   async ({ url }) => {
     await ensureBrowser();
@@ -1560,18 +1594,21 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractAnimationsInBrowser);
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const kf = (result.keyframes || []).length;
+    const tr = (result.transitions || []).length;
+    const libs = (result.libraries || []).map(l => l.name || l).join(', ');
+    const kfNames = (result.keyframes || []).slice(0, 5).map(k => k.name).join(', ');
+    const summary = `Animations: ${kf} @keyframes, ${tr} transitions${libs ? ` | Libraries: ${libs}` : ''}\nKeyframes: ${kfNames || 'none'}`;
+    return summarizeResult('animations', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_a11y",
-  "Accessibility audit: missing alt text, unlabelled form fields, buttons/links without accessible names, heading hierarchy, landmark roles, color contrast (WCAG AA/AAA), positive tabindex, lang attribute, page title. Returns a score (0-100) and issues by severity.",
+  "Accessibility audit with score (0-100) and issues by severity.",
   {
-    url: z.string().optional().describe("URL to audit (omit for current page)"),
-    standard: z.enum(["aa", "aaa"]).default("aa").describe("WCAG contrast standard to apply (aa or aaa)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    standard: z.enum(["aa", "aaa"]).default("aa").describe("WCAG standard (aa or aaa)"),
   },
   async ({ url, standard }) => {
     await ensureBrowser();
@@ -1580,18 +1617,22 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractA11yInBrowser, { standard });
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const issues = result.issues || [];
+    const bySev = {};
+    issues.forEach(i => { bySev[i.severity || 'info'] = (bySev[i.severity || 'info'] || 0) + 1; });
+    const sevStr = Object.entries(bySev).map(([k, v]) => `${v} ${k}`).join(', ');
+    const topIssues = issues.filter(i => i.severity === 'critical' || i.severity === 'error').slice(0, 3).map(i => i.message || i.type).join('; ');
+    const summary = `A11y Score: ${result.score ?? '?'}/100 (WCAG ${standard.toUpperCase()}) | ${sevStr || 'no issues'}\nTop issues: ${topIssues || 'none critical'}`;
+    return summarizeResult('a11y', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_detect_darkmode",
-  "Detect dark mode support: prefers-color-scheme media queries, CSS class-toggle patterns (e.g. .dark, [data-theme='dark']). Optionally activates dark mode via emulateMedia and captures the dark palette alongside the light palette.",
+  "Detect dark mode support. Optionally capture dark palette.",
   {
-    url: z.string().optional().describe("URL to check (omit for current page)"),
-    activateDark: z.boolean().default(false).describe("If true, emulate prefers-color-scheme:dark and capture dark palette"),
+    url: z.string().optional().describe("URL (omit for current page)"),
+    activateDark: z.boolean().default(false).describe("Emulate dark mode and capture palette"),
   },
   async ({ url, activateDark }) => {
     await ensureBrowser();
@@ -1623,17 +1664,18 @@ server.tool(
       await page.emulateMedia({ colorScheme: "no-preference" });
     }
 
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const method = result.method || (result.prefersColorScheme ? 'prefers-color-scheme' : 'unknown');
+    const darkColors = (result.darkPalette || []).slice(0, 5).join(', ');
+    const summary = `Dark mode: ${result.supported ? 'supported' : 'not detected'} (${method})${darkColors ? `\nDark palette: ${darkColors}` : ''}`;
+    return summarizeResult('darkmode', result, summary);
   }
 );
 
 server.tool(
   "cbrowser_extract_perf",
-  "Performance metrics: navigation timing (TTFB, DOMContentLoaded, load), Core Web Vitals (LCP, CLS), resource waterfall summary by type (JS, CSS, images, fonts), total transfer sizes, DOM node count, and JS heap size.",
+  "Performance metrics: Web Vitals, resource sizes, timing.",
   {
-    url: z.string().optional().describe("URL to measure (omit for current page)"),
+    url: z.string().optional().describe("URL (omit for current page)"),
   },
   async ({ url }) => {
     await ensureBrowser();
@@ -1642,9 +1684,12 @@ server.tool(
       await page.waitForTimeout(2000);
     }
     const result = await page.evaluate(extractPerfInBrowser);
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-    };
+    const t = result.timing || {};
+    const v = result.vitals || {};
+    const res = result.resources || {};
+    const resStr = Object.entries(res).map(([k, v]) => `${k}: ${v.count || '?'} files, ${v.size || '?'}`).join(' | ');
+    const summary = `Perf: TTFB ${t.ttfb || '?'}ms, FCP ${t.fcp || '?'}ms, LCP ${v.lcp || '?'}ms, CLS ${v.cls ?? '?'} | DOM: ${result.domNodes || '?'} nodes\nResources: ${resStr || 'none'}\nTotal: ${result.totalTransfer || '?'}`;
+    return summarizeResult('perf', result, summary);
   }
 );
 
@@ -1652,13 +1697,13 @@ server.tool(
 
 server.tool(
   "cbrowser_export_design_report",
-  "Orchestrate Phase 1-3 design extraction tools to produce a full design system report for a URL. Outputs: report.html (visual), design-tokens.json (W3C format), design-tokens.css (copy-pasteable CSS variables).",
+  "Full design system report: HTML + W3C tokens JSON + CSS vars.",
   {
-    url: z.string().describe("URL to extract design system from"),
+    url: z.string().describe("URL to analyze"),
     include: z
       .array(z.enum(["colors", "fonts", "css_vars", "spacing", "components", "breakpoints"]))
       .default(["colors", "fonts", "css_vars", "spacing", "components", "breakpoints"])
-      .describe("Sections to include in the report"),
+      .describe("Sections to include"),
   },
   async ({ url, include }) => {
     await ensureBrowser();
