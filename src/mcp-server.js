@@ -4,7 +4,7 @@ const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
 const { z } = require("zod");
 const { chromium } = require("playwright");
-const { inspectPage } = require("./inspector");
+const { inspectPage, inspectPageV2 } = require("./inspector");
 const { createRunDir, screenshotPath, exportJSON, exportMarkdown } = require("./exporter");
 const config = require("./config");
 const fs = require("fs");
@@ -14,6 +14,7 @@ const path = require("path");
 let context = null;
 let page = null;
 let isHeadless = null;
+let elementMap = []; // indexed interactive elements, refreshed on each action/navigation
 
 async function ensureBrowser(headless = true) {
   // If we have a context but need a different mode, close it first
@@ -38,7 +39,38 @@ async function closeBrowser() {
     context = null;
     page = null;
     isHeadless = null;
+    elementMap = [];
   }
+}
+
+/**
+ * Re-index the current page: extract interactive elements and compressed DOM.
+ * Stores element map in module state for use by cbrowser_act.
+ */
+async function indexPage() {
+  const result = await inspectPageV2(page);
+  elementMap = result.elements;
+  return result;
+}
+
+/**
+ * Resolve an element index to a Playwright locator.
+ */
+function resolveElement(index) {
+  const el = elementMap.find((e) => e.index === index);
+  if (!el) {
+    throw new Error(
+      `Element [${index}] not found. Valid indices: 1-${elementMap.length}. Re-inspect the page to get updated indices.`
+    );
+  }
+  return { locator: page.locator(el.selector).first(), element: el };
+}
+
+/**
+ * Format index result as a response string.
+ */
+function formatIndexResult(result) {
+  return `Title: ${result.title}\nURL: ${result.url}\n\nInteractive elements: ${result.elements.length}\n\n${result.compressedDOM}`;
 }
 
 const server = new McpServer({
@@ -151,7 +183,7 @@ server.tool(
 
 server.tool(
   "cbrowser_navigate",
-  "Navigate the current browser session to a URL and return page content summary.",
+  "Navigate the current browser session to a URL. Returns a compressed DOM with numbered interactive elements that can be used with cbrowser_act.",
   {
     url: z.string().describe("URL to navigate to"),
   },
@@ -164,17 +196,12 @@ server.tool(
     }
     await page.waitForTimeout(1500);
 
-    const title = await page.title();
-    const currentUrl = page.url();
-    const bodyText = await page.evaluate(() =>
-      (document.body?.innerText || "").replace(/\s+/g, " ").trim().slice(0, 3000)
-    );
-
+    const result = await indexPage();
     return {
       content: [
         {
           type: "text",
-          text: `Title: ${title}\nURL: ${currentUrl}\n\nContent:\n${bodyText}`,
+          text: formatIndexResult(result),
         },
       ],
     };
@@ -183,11 +210,12 @@ server.tool(
 
 server.tool(
   "cbrowser_inspect",
-  "Inspect the current page or a URL — extracts navigation, headings, buttons, forms, tables, links, and body text. Returns structured data.",
+  "Inspect the current page or a URL — returns compressed DOM with numbered interactive elements. Optionally includes a screenshot.",
   {
     url: z.string().optional().describe("URL to inspect (omit to inspect current page)"),
+    screenshot: z.boolean().default(false).describe("Include a screenshot alongside the DOM"),
   },
-  async ({ url }) => {
+  async ({ url, screenshot }) => {
     await ensureBrowser();
     if (url) {
       try {
@@ -196,26 +224,39 @@ server.tool(
       await page.waitForTimeout(1500);
     }
 
-    const data = await inspectPage(page);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(data, null, 2),
-        },
-      ],
-    };
+    const result = await indexPage();
+    const content = [
+      {
+        type: "text",
+        text: formatIndexResult(result),
+      },
+    ];
+
+    if (screenshot) {
+      const buffer = await page.screenshot({ fullPage: true });
+      content.push({
+        type: "image",
+        data: buffer.toString("base64"),
+        mimeType: "image/png",
+      });
+    }
+
+    return { content };
   }
 );
 
 server.tool(
   "cbrowser_screenshot",
-  "Take a screenshot of the current page or a URL. Returns the screenshot as an image.",
+  "Take a screenshot of the current page or a URL. Optionally highlight interactive elements with numbered badges.",
   {
     url: z.string().optional().describe("URL to screenshot (omit for current page)"),
     fullPage: z.boolean().default(true).describe("Capture full scrollable page"),
+    highlight: z
+      .boolean()
+      .default(false)
+      .describe("Overlay numbered badges on interactive elements"),
   },
-  async ({ url, fullPage }) => {
+  async ({ url, fullPage, highlight }) => {
     await ensureBrowser();
     if (url) {
       try {
@@ -224,7 +265,48 @@ server.tool(
       await page.waitForTimeout(1500);
     }
 
+    // If highlight requested, index the page and inject overlays
+    if (highlight) {
+      if (!elementMap.length) {
+        await indexPage();
+      }
+      await page.evaluate((elements) => {
+        const container = document.createElement("div");
+        container.id = "__cbrowser_highlights__";
+        container.style.cssText = "position:absolute;top:0;left:0;z-index:999999;pointer-events:none;";
+        for (const el of elements) {
+          const badge = document.createElement("div");
+          badge.className = "__cbrowser_badge__";
+          badge.textContent = el.index;
+          badge.style.cssText = `
+            position:absolute;
+            left:${el.boundingBox.x}px;
+            top:${Math.max(0, el.boundingBox.y - 16)}px;
+            background:#e53e3e;
+            color:#fff;
+            font-size:11px;
+            font-weight:bold;
+            padding:1px 4px;
+            border-radius:3px;
+            font-family:monospace;
+            line-height:14px;
+            white-space:nowrap;
+          `;
+          container.appendChild(badge);
+        }
+        document.body.appendChild(container);
+      }, elementMap);
+    }
+
     const buffer = await page.screenshot({ fullPage });
+
+    // Remove overlays
+    if (highlight) {
+      await page.evaluate(() => {
+        document.getElementById("__cbrowser_highlights__")?.remove();
+      });
+    }
+
     return {
       content: [
         {
@@ -375,6 +457,141 @@ server.tool(
         {
           type: "text",
           text: `Exported ${results.length} page(s):\n  JSON: ${jsonPath}\n  Markdown: ${mdPath}\n  Screenshots: ${runDir}/screenshots/`,
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_act",
+  "Interact with a page element by its index number (from navigate/inspect output). Performs click, fill, select, check, or hover. Returns updated page state with new element indices.",
+  {
+    action: z
+      .enum(["click", "fill", "select", "check", "hover"])
+      .describe("Action to perform"),
+    index: z.number().describe("Element index from inspect/navigate output"),
+    value: z
+      .string()
+      .optional()
+      .describe("Value to fill or option to select (required for fill/select)"),
+  },
+  async ({ action, index, value }) => {
+    await ensureBrowser();
+    if (!elementMap.length) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "No element map available. Use cbrowser_navigate or cbrowser_inspect first to index the page.",
+          },
+        ],
+      };
+    }
+
+    const { locator, element } = resolveElement(index);
+
+    try {
+      switch (action) {
+        case "click":
+          await locator.click();
+          break;
+        case "fill":
+          if (!value && value !== "")
+            return {
+              content: [
+                { type: "text", text: 'Error: "value" is required for fill action.' },
+              ],
+            };
+          await locator.fill(value);
+          break;
+        case "select":
+          if (!value)
+            return {
+              content: [
+                { type: "text", text: 'Error: "value" is required for select action.' },
+              ],
+            };
+          await locator.selectOption(value);
+          break;
+        case "check": {
+          const checked = await locator.isChecked().catch(() => false);
+          if (checked) {
+            await locator.uncheck();
+          } else {
+            await locator.check();
+          }
+          break;
+        }
+        case "hover":
+          await locator.hover();
+          break;
+      }
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Action "${action}" on [${index}] (${element.tag}) failed: ${err.message}`,
+          },
+        ],
+      };
+    }
+
+    // Wait for any resulting navigation or rendering
+    await page.waitForLoadState("networkidle").catch(() => {});
+    await page.waitForTimeout(500);
+
+    // Re-index and return updated state
+    const result = await indexPage();
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Action "${action}" on [${index}] (${element.tag} "${element.text || ""}") completed.\n\n${formatIndexResult(result)}`,
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_scroll",
+  "Scroll the page in a direction, or scroll a specific element into view.",
+  {
+    direction: z
+      .enum(["up", "down", "top", "bottom"])
+      .optional()
+      .describe("Scroll direction (ignored if index is provided)"),
+    index: z
+      .number()
+      .optional()
+      .describe("Element index to scroll into view"),
+  },
+  async ({ direction, index }) => {
+    await ensureBrowser();
+
+    if (index !== undefined) {
+      const { locator } = resolveElement(index);
+      await locator.scrollIntoViewIfNeeded();
+    } else {
+      const scrollMap = {
+        up: "window.scrollBy(0, -window.innerHeight * 0.8)",
+        down: "window.scrollBy(0, window.innerHeight * 0.8)",
+        top: "window.scrollTo(0, 0)",
+        bottom: "window.scrollTo(0, document.body.scrollHeight)",
+      };
+      await page.evaluate(scrollMap[direction || "down"]);
+    }
+
+    await page.waitForTimeout(300);
+
+    const result = await indexPage();
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Scrolled ${index !== undefined ? `element [${index}] into view` : direction || "down"}.\n\n${formatIndexResult(result)}`,
         },
       ],
     };
