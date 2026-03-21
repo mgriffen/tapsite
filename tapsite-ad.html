@@ -603,10 +603,10 @@
   <div class="stamp stamp-corner" style="transform: rotate(-6deg);">Declassified</div>
 
   <div class="cover-header">
-    Department of Web Intelligence &mdash; Document CB-2026-0321
+    Department of Web Intelligence &mdash; Document TS-2026-0321
   </div>
 
-  <h1 class="cover-title">cbrowser</h1>
+  <h1 class="cover-title">tapsite</h1>
   <p class="cover-subtitle">Web Intelligence Toolkit</p>
 
   <div class="cover-line"></div>
@@ -636,7 +636,7 @@
   <h2 class="section-title">A persistent, authenticated Chromium<br>under Claude's direct control.</h2>
 
   <p class="body-text">
-    cbrowser is a local MCP server that gives Claude a real browser with persistent sessions. Navigate to any web dashboard&mdash;including those behind MFA&mdash;and deploy 37 extraction tools to pull design tokens, API schemas, accessibility audits, performance metrics, and full visual reports. No credentials ever enter the chat.
+    tapsite is a local MCP server that gives Claude a real browser with persistent sessions. Navigate to any web dashboard&mdash;including those behind MFA&mdash;and deploy 37 extraction tools to pull design tokens, API schemas, accessibility audits, performance metrics, and full visual reports. No credentials ever enter the chat.
   </p>
 
   <p class="highlight-text">
@@ -663,7 +663,7 @@
   <hr class="section-rule">
 
   <p class="body-text" style="font-size: 0.88rem; color: var(--ink-light);">
-    <strong style="color: var(--ink-mid);">How sessions work:</strong> You log into the target dashboard once in a headed browser window, complete any MFA challenges yourself, and cbrowser saves the session state to a local Playwright persistent context. Every subsequent tool call reuses that authenticated session automatically. Session cookies survive across restarts.
+    <strong style="color: var(--ink-mid);">How sessions work:</strong> You log into the target dashboard once in a headed browser window, complete any MFA challenges yourself, and tapsite saves the session state to a local Playwright persistent context. Every subsequent tool call reuses that authenticated session automatically. Session cookies survive across restarts.
   </p>
 </div>
 
@@ -791,7 +791,7 @@
       <p class="directive-body">
         Open a headed browser. Log in manually. Complete MFA yourself. The session is saved to a persistent Chromium profile on your machine. You won't log in again until the session expires.
       </p>
-      <span class="directive-tag">cbrowser_login_manual</span>
+      <span class="directive-tag">tapsite_login_manual</span>
     </div>
   </div>
 
@@ -802,7 +802,7 @@
       <p class="directive-body">
         Ask Claude to navigate to any page within the authenticated session. Run any combination of the 37 tools&mdash;inspect, screenshot, extract design tokens, capture network traffic, audit accessibility. No credentials in the chat, ever.
       </p>
-      <span class="directive-tag">cbrowser_navigate + any tool</span>
+      <span class="directive-tag">tapsite_navigate + any tool</span>
     </div>
   </div>
 
@@ -813,7 +813,7 @@
       <p class="directive-body">
         Generate a full design system report with visual HTML, W3C design token JSON, copy-paste CSS variables, Markdown documentation, CSV table exports, and page screenshots&mdash;all in one command.
       </p>
-      <span class="directive-tag">cbrowser_export_design_report</span>
+      <span class="directive-tag">tapsite_export_design_report</span>
     </div>
   </div>
 
@@ -878,9 +878,9 @@
     <div><span class="code-comment"># add to Claude config (~/.claude/.mcp.json)</span></div>
     <div>{</div>
     <div>&nbsp;&nbsp;<span class="code-str">"mcpServers"</span>: {</div>
-    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-str">"cbrowser"</span>: {</div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-str">"tapsite"</span>: {</div>
     <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-str">"command"</span>: <span class="code-val">"node"</span>,</div>
-    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-str">"args"</span>: [<span class="code-val">"/path/to/cbrowser/src/mcp-server.js"</span>]</div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-str">"args"</span>: [<span class="code-val">"/path/to/tapsite/src/server.js"</span>]</div>
     <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
     <div>&nbsp;&nbsp;}</div>
     <div>}</div>
@@ -900,7 +900,7 @@
 
   <div style="text-align: center; margin-top: 2rem;">
     <p class="cover-meta">
-      <strong>v3.0.0</strong> &mdash; github.com/mgriffen/cbrowser<br>
+      <strong>v3.0.0</strong> &mdash; github.com/mgriffen/tapsite<br>
       Node.js + Playwright &mdash; <span class="redacted">xxxx</span> lines of JavaScript
     </p>
   </div>
@@ -909,7 +909,7 @@
 
 <!-- FOOTER -->
 <div class="footer-bar">
-  <span>Document CB-2026-0321 &mdash; cbrowser v3.0.0</span>
+  <span>Document TS-2026-0321 &mdash; tapsite v3.0.0</span>
   <span>Distribution: Unlimited</span>
 </div>
 

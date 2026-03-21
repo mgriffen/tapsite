@@ -914,7 +914,7 @@
     <div class="section-label">System Architecture</div>
     <h2 class="section-title">How <span class="accent">It Connects</span></h2>
     <p class="section-desc">
-      cbrowser runs as a local MCP server, bridging Claude Code to a persistent Playwright browser.
+      tapsite runs as a local MCP server, bridging Claude Code to a persistent Playwright browser.
       Login once, extract forever.
     </p>
 
@@ -1103,7 +1103,7 @@
     <div class="section-label">In Action</div>
     <h2 class="section-title">From <span class="accent">Prompt to Data</span></h2>
     <p class="section-desc">
-      Tell Claude what you need. cbrowser handles authentication, navigation, and extraction behind the scenes.
+      Tell Claude what you need. tapsite handles authentication, navigation, and extraction behind the scenes.
     </p>
 
     <div class="terminal">
@@ -1111,22 +1111,22 @@
         <div class="terminal-dot red"></div>
         <div class="terminal-dot yellow"></div>
         <div class="terminal-dot green"></div>
-        <span class="terminal-title">cbrowser &mdash; mcp session</span>
+        <span class="terminal-title">tapsite — mcp session</span>
       </div>
       <div class="terminal-body">
         <div><span class="t-comment">// Login with MFA &mdash; credentials never touch the chat</span></div>
-        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">cbrowser_login_manual</span></div>
+        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">tapsite_login_manual</span></div>
         <div><span class="t-success">&check;</span> <span class="t-dim">Browser opened. Complete login &amp; MFA in the window...</span></div>
         <div><span class="t-success">&check;</span> <span class="t-dim">Session saved to persistent profile</span></div>
         <br>
         <div><span class="t-comment">// Extract the design system from an internal dashboard</span></div>
-        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">cbrowser_extract_colors</span> <span class="t-string">{ url: "https://internal.app/dashboard" }</span></div>
+        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">tapsite_extract_colors</span> <span class="t-string">{ url: "https://internal.app/dashboard" }</span></div>
         <div>&nbsp;&nbsp;<span class="t-key">colors:</span> <span class="t-value">42 unique</span> <span class="t-dim">|</span> <span class="t-key">palette:</span> <span class="t-value">#1a1a2e, #16213e, #0f3460, #e94560...</span></div>
         <br>
-        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">cbrowser_extract_fonts</span></div>
+        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">tapsite_extract_fonts</span></div>
         <div>&nbsp;&nbsp;<span class="t-key">families:</span> <span class="t-value">3</span> <span class="t-dim">|</span> <span class="t-key">sizes:</span> <span class="t-value">8</span> <span class="t-dim">|</span> <span class="t-key">weights:</span> <span class="t-value">4</span></div>
         <br>
-        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">cbrowser_export_design_report</span></div>
+        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">tapsite_export_design_report</span></div>
         <div><span class="t-success">&check;</span> <span class="t-dim">Design report written:</span> <span class="t-value">output/design-report-2026/</span></div>
         <div>&nbsp;&nbsp;<span class="t-dim">design-report.html</span> <span class="t-dim">|</span> <span class="t-dim">design-tokens.json</span> <span class="t-dim">|</span> <span class="t-dim">variables.css</span></div>
         <br>
