@@ -6,9 +6,28 @@ function extractStructure() {
   const textOf = (el) => (el.textContent || '').trim();
   const unique = (arr) => [...new Set(arr.filter(Boolean))];
 
+  // Hidden element filter — prevents extraction of invisible prompt injection text
+  function isHiddenElement(el) {
+    if (!el || el.nodeType !== 1) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none') return true;
+    if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+    if (parseFloat(cs.opacity) === 0) return true;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0 && cs.overflow === 'hidden') return true;
+    if (cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(100%)') return true;
+    if (cs.position === 'absolute' || cs.position === 'fixed') {
+      if (rect.right < 0 || rect.bottom < 0 || rect.left > window.innerWidth || rect.top > window.innerHeight) {
+        if (rect.width < 2 || rect.height < 2) return true;
+      }
+    }
+    return false;
+  }
+
   // Navigation items — links inside nav elements, or common nav patterns
   const navItems = unique(
     [...document.querySelectorAll('nav a, [role="navigation"] a, .nav a, .sidebar a, .menu a')]
+      .filter((a) => !isHiddenElement(a))
       .map((a) => ({ text: textOf(a), href: a.getAttribute('href') }))
       .filter((n) => n.text)
       .map((n) => JSON.stringify(n))
@@ -16,6 +35,7 @@ function extractStructure() {
 
   // Also grab all links as potential nav if no semantic nav found
   const allLinks = [...document.querySelectorAll('a[href]')]
+    .filter((a) => !isHiddenElement(a))
     .map((a) => ({
       text: textOf(a),
       href: a.getAttribute('href'),
@@ -24,12 +44,14 @@ function extractStructure() {
 
   // Headings
   const headings = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')]
+    .filter((h) => !isHiddenElement(h))
     .map((h) => ({ level: parseInt(h.tagName[1]), text: textOf(h) }))
     .filter((h) => h.text);
 
   // Buttons
   const buttons = unique(
     [...document.querySelectorAll('button, [role="button"], input[type="submit"], input[type="button"]')]
+      .filter((b) => !isHiddenElement(b))
       .map((b) => textOf(b) || b.getAttribute('value') || b.getAttribute('aria-label') || '')
   );
 

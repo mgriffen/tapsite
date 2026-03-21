@@ -1,12 +1,14 @@
 {
   "name": "cbrowser",
   "version": "3.0.0",
-  "description": "Authenticated Dashboard Discovery Tool",
+  "description": "MCP server for web intelligence extraction — design systems, accessibility audits, competitive analysis, and migration prep",
   "main": "src/cli.js",
   "bin": {
-    "cbrowser": "src/cli.js"
+    "cbrowser": "src/cli.js",
+    "cbrowser-mcp": "src/mcp-server.js"
   },
   "scripts": {
+    "start": "node src/mcp-server.js",
     "login": "node src/cli.js login",
     "inspect": "node src/cli.js inspect"
   },
@@ -16,7 +18,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/mgriffen/cbrowser/issues"

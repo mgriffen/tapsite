@@ -64,6 +64,18 @@ async function closeBrowser() {
 }
 
 /**
+ * Navigate to a URL if provided. Swallows errors (continues with whatever loaded).
+ * Most tools accept an optional `url` param — this centralizes the boilerplate.
+ */
+async function navigateIfNeeded(url, waitMs = 1500) {
+  if (!url) return;
+  try {
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+  } catch {}
+  await page.waitForTimeout(waitMs);
+}
+
+/**
  * Write full extraction data to disk and return a compact summary for the context window.
  */
 function summarizeResult(name, data, summary) {
@@ -160,7 +172,7 @@ function formatIndexResult(result) {
 
 const server = new McpServer({
   name: "cbrowser",
-  version: "1.0.0",
+  version: "3.0.0",
 });
 
 // --- Tools ---
@@ -274,12 +286,7 @@ server.tool(
   },
   async ({ url }) => {
     await ensureBrowser();
-    try {
-      await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-    } catch {
-      // Continue with whatever loaded
-    }
-    await page.waitForTimeout(1500);
+    await navigateIfNeeded(url);
 
     const result = await indexPage();
     return {
@@ -302,12 +309,7 @@ server.tool(
   },
   async ({ url, screenshot }) => {
     await ensureBrowser();
-    if (url) {
-      try {
-        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-      } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
 
     const result = await indexPage();
     const content = [
@@ -343,12 +345,7 @@ server.tool(
   },
   async ({ url, fullPage, highlight }) => {
     await ensureBrowser();
-    if (url) {
-      try {
-        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-      } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
 
     // If highlight requested, index the page and inject overlays
     if (highlight) {
@@ -414,12 +411,7 @@ server.tool(
   },
   async ({ url, minColumns, limit }) => {
     await ensureBrowser();
-    if (url) {
-      try {
-        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-      } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
 
     const tableData = await page.evaluate(
       ({ minColumns, limit }) => {
@@ -461,23 +453,27 @@ server.tool(
   },
   async ({ url, filter }) => {
     await ensureBrowser();
-    if (url) {
-      try {
-        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-      } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
 
     let links = await page.evaluate(() => {
-      function isHidden(el) {
+      function isHiddenElement(el) {
+        if (!el || el.nodeType !== 1) return false;
         const cs = getComputedStyle(el);
-        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return true;
-        const r = el.getBoundingClientRect();
-        if (r.width === 0 && r.height === 0 && cs.overflow === 'hidden') return true;
+        if (cs.display === 'none') return true;
+        if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+        if (parseFloat(cs.opacity) === 0) return true;
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0 && cs.overflow === 'hidden') return true;
+        if (cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(100%)') return true;
+        if (cs.position === 'absolute' || cs.position === 'fixed') {
+          if (rect.right < 0 || rect.bottom < 0 || rect.left > window.innerWidth || rect.top > window.innerHeight) {
+            if (rect.width < 2 || rect.height < 2) return true;
+          }
+        }
         return false;
       }
       return [...document.querySelectorAll("a[href]")]
-        .filter(a => !isHidden(a))
+        .filter(a => !isHiddenElement(a))
         .map((a) => ({
           text: a.textContent.trim() || a.querySelector("img")?.alt || "(image link)",
           href: a.href,
@@ -708,10 +704,7 @@ server.tool(
   },
   async ({ url, limit }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractColorsInBrowser, { limit });
     const colors = result.colors || [];
     const top5 = colors.slice(0, 5).map(c => `${c.hex} (${c.count}x)`).join(', ');
@@ -728,10 +721,7 @@ server.tool(
   },
   async ({ url }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractFontsInBrowser);
     const families = (result.families || []).map(f => `"${f.value}" (${f.count}x)`).join(', ');
     const sizes = (result.sizes || []).slice(0, 5).map(s => s.value).join(', ');
@@ -749,10 +739,7 @@ server.tool(
   },
   async ({ url, includeAll }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractCssVarsInBrowser, { includeAll });
     const vars = result.variables || [];
     const catStr = Object.entries(result.summary || {}).map(([k, v]) => `${k} (${v})`).join(', ');
@@ -771,10 +758,7 @@ server.tool(
   },
   async ({ url, sampleSize }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractSpacingInBrowser, { sampleSize });
     const spacing = result.spacing || [];
     const scale = spacing.slice(0, 10).map(s => s.value).join(', ');
@@ -796,10 +780,7 @@ server.tool(
   },
   async ({ url, minWidth, filter }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || "" });
     const imgs = result.images || [];
     const byType = {};
@@ -823,10 +804,7 @@ server.tool(
   },
   async ({ url, minWidth, filter, limit, formats }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
 
     // Discover images
     const { images } = await page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || "" });
@@ -901,10 +879,7 @@ server.tool(
   },
   async ({ url, limit, download }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractSvgsInBrowser, { limit });
 
     if (download) {
@@ -955,10 +930,7 @@ server.tool(
   },
   async ({ url, download }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractFaviconInBrowser);
 
     // If there's a manifest URL, try to fetch and extract its icons
@@ -1064,10 +1036,7 @@ server.tool(
   },
   async ({ url, maxDepth }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractLayoutInBrowser, { maxDepth });
     const text = formatLayoutTree(result.layout);
     return {
@@ -1085,10 +1054,7 @@ server.tool(
   },
   async ({ url, minOccurrences }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractComponentsInBrowser, { minOccurrences });
     const comps = result.components || [];
     const top5 = comps.slice(0, 5).map(c => `${c.tag}${c.classes ? '.' + c.classes.split(' ')[0] : ''} (${c.count}x)`).join('\n  ');
@@ -1105,10 +1071,7 @@ server.tool(
   },
   async ({ url }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractBreakpointsInBrowser);
     const bps = result.breakpoints || [];
     const vals = bps.map(b => b.value || b.query || '').join(', ');
@@ -1190,12 +1153,7 @@ server.tool(
   },
   async ({ url, duration, includeStatic, filterUrl, filterMethod }) => {
     await ensureBrowser();
-    if (url) {
-      try {
-        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-      } catch {}
-      await page.waitForTimeout(500);
-    }
+    await navigateIfNeeded(url, 500);
 
     const requests = await captureNetwork({ duration, includeStatic, filterUrl, filterMethod });
     const data = { total: requests.length, requests };
@@ -1223,12 +1181,7 @@ server.tool(
   },
   async ({ url, duration, filterUrl }) => {
     await ensureBrowser();
-    if (url) {
-      try {
-        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-      } catch {}
-      await page.waitForTimeout(500);
-    }
+    await navigateIfNeeded(url, 500);
 
     const all = await captureNetwork({ duration, includeStatic: false, filterUrl, filterMethod: undefined });
 
@@ -1401,10 +1354,7 @@ server.tool(
   },
   async ({ url }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1000);
-    }
+    await navigateIfNeeded(url, 1000);
     const result = await page.evaluate(extractMetadataInBrowser);
     const og = result.openGraph ? Object.keys(result.openGraph).length : 0;
     const tw = result.twitterCard ? Object.keys(result.twitterCard).length : 0;
@@ -1424,10 +1374,7 @@ server.tool(
   },
   async ({ url, selector, includeImages }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1000);
-    }
+    await navigateIfNeeded(url, 1000);
     const result = await page.evaluate(extractContentInBrowser, { selector, includeImages });
     return {
       content: [{ type: "text", text: result.content }],
@@ -1443,10 +1390,7 @@ server.tool(
   },
   async ({ url }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1000);
-    }
+    await navigateIfNeeded(url, 1000);
     const result = await page.evaluate(extractFormsInBrowser);
     const forms = result.forms || [];
     const totalFields = forms.reduce((sum, f) => sum + (f.fields || []).length, 0);
@@ -1506,8 +1450,23 @@ server.tool(
             if (type === "content") pageResult.extractions.content = (await page.evaluate(extractContentInBrowser, { selector: null, includeImages: false })).content;
             else if (type === "metadata") pageResult.extractions.metadata = await page.evaluate(extractMetadataInBrowser);
             else if (type === "links") pageResult.extractions.links = await page.evaluate(() => {
-              function isHidden(el) { const cs = getComputedStyle(el); return cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0; }
-              return [...document.querySelectorAll("a[href]")].filter(a => !isHidden(a)).map(a => ({ text: a.textContent.trim().slice(0, 100), href: a.href }));
+              function isHiddenElement(el) {
+                if (!el || el.nodeType !== 1) return false;
+                const cs = getComputedStyle(el);
+                if (cs.display === 'none') return true;
+                if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return true;
+                if (parseFloat(cs.opacity) === 0) return true;
+                const rect = el.getBoundingClientRect();
+                if (rect.width === 0 && rect.height === 0 && cs.overflow === 'hidden') return true;
+                if (cs.clip === 'rect(0px, 0px, 0px, 0px)' || cs.clipPath === 'inset(100%)') return true;
+                if (cs.position === 'absolute' || cs.position === 'fixed') {
+                  if (rect.right < 0 || rect.bottom < 0 || rect.left > window.innerWidth || rect.top > window.innerHeight) {
+                    if (rect.width < 2 || rect.height < 2) return true;
+                  }
+                }
+                return false;
+              }
+              return [...document.querySelectorAll("a[href]")].filter(a => !isHiddenElement(a)).map(a => ({ text: a.textContent.trim().slice(0, 100), href: a.href }));
             });
             else if (type === "colors") pageResult.extractions.colors = await page.evaluate(extractColorsInBrowser, { limit: 50 });
             else if (type === "fonts") pageResult.extractions.fonts = await page.evaluate(extractFontsInBrowser);
@@ -1658,10 +1617,7 @@ server.tool(
   },
   async ({ url }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractAnimationsInBrowser);
     const kf = (result.keyframes || []).length;
     const tr = (result.transitions || []).length;
@@ -1681,10 +1637,7 @@ server.tool(
   },
   async ({ url, standard }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
     const result = await page.evaluate(extractA11yInBrowser, { standard });
     const issues = result.issues || [];
     const bySev = {};
@@ -1705,10 +1658,7 @@ server.tool(
   },
   async ({ url, activateDark }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(1500);
-    }
+    await navigateIfNeeded(url);
 
     const result = await page.evaluate(detectDarkmodeInBrowser);
 
@@ -1748,10 +1698,7 @@ server.tool(
   },
   async ({ url }) => {
     await ensureBrowser();
-    if (url) {
-      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-      await page.waitForTimeout(2000);
-    }
+    await navigateIfNeeded(url, 2000);
     const result = await page.evaluate(extractPerfInBrowser);
     const t = result.timing || {};
     const dom = result.dom || {};
@@ -1777,8 +1724,7 @@ server.tool(
   },
   async ({ url, include }) => {
     await ensureBrowser();
-    try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
-    await page.waitForTimeout(1500);
+    await navigateIfNeeded(url);
 
     const data = {};
     if (include.includes("colors"))      data.colors      = await page.evaluate(extractColorsInBrowser, { limit: 50 });
