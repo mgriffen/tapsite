@@ -43,11 +43,12 @@ This prevents credentials from lingering on disk in session transcripts.
 
 ## Project structure
 
-- `src/mcp-server.js` — MCP server entry point (all tools defined here)
+- `src/mcp-server.js` — MCP server entry point (all 37 tool definitions)
+- `src/extractors.js` — browser-context extraction functions (run inside `page.evaluate()`; no Node.js APIs)
+- `src/exporter.js` — file export helpers: JSON, Markdown, HTML visual report, CSV tables
+- `src/inspector.js` — legacy DOM extraction used by `cbrowser_inspect` (nav, headings, buttons, forms, tables, links)
+- `src/browser.js` — persistent Chromium context management (used by CLI only)
 - `src/cli.js` — standalone CLI (login, inspect, session commands)
-- `src/browser.js` — persistent Chromium context management
-- `src/inspector.js` — DOM extraction (nav, headings, buttons, forms, tables, links, frames, body text)
-- `src/exporter.js` — Markdown report + JSON + screenshot export
 - `src/config.js` — paths and defaults
 
 ## Key details
