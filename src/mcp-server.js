@@ -1051,8 +1051,8 @@ server.tool(
     }
     const result = await page.evaluate(extractBreakpointsInBrowser);
     const bps = result.breakpoints || [];
-    const vals = bps.map(b => b.minWidth || b.maxWidth || b.query).join(', ');
-    const fw = result.framework ? ` | Framework: ${result.framework}` : '';
+    const vals = bps.map(b => b.value || b.query || '').join(', ');
+    const fw = (result.detectedFrameworks || []).length ? ` | Framework: ${result.detectedFrameworks.join(', ')}` : '';
     const summary = `Breakpoints: ${bps.length} found${fw}\nValues: ${vals || 'none'}\nViewport: ${result.viewport?.width || '?'}x${result.viewport?.height || '?'}`;
     return summarizeResult('breakpoints', result, summary);
   }
@@ -1446,10 +1446,10 @@ server.tool(
             if (type === "content") pageResult.extractions.content = (await page.evaluate(extractContentInBrowser, { selector: null, includeImages: false })).content;
             else if (type === "metadata") pageResult.extractions.metadata = await page.evaluate(extractMetadataInBrowser);
             else if (type === "links") pageResult.extractions.links = await page.evaluate(() => [...document.querySelectorAll("a[href]")].map(a => ({ text: a.textContent.trim().slice(0, 100), href: a.href })));
-            else if (type === "colors") pageResult.extractions.colors = await page.evaluate(extractColorsInBrowser);
+            else if (type === "colors") pageResult.extractions.colors = await page.evaluate(extractColorsInBrowser, { limit: 50 });
             else if (type === "fonts") pageResult.extractions.fonts = await page.evaluate(extractFontsInBrowser);
-            else if (type === "css_vars") pageResult.extractions.css_vars = await page.evaluate(extractCssVarsInBrowser);
-            else if (type === "components") pageResult.extractions.components = await page.evaluate(extractComponentsInBrowser);
+            else if (type === "css_vars") pageResult.extractions.css_vars = await page.evaluate(extractCssVarsInBrowser, { includeAll: false });
+            else if (type === "components") pageResult.extractions.components = await page.evaluate(extractComponentsInBrowser, { minOccurrences: 2 });
             else if (type === "forms") pageResult.extractions.forms = await page.evaluate(extractFormsInBrowser);
           } catch (e) {
             pageResult.extractions[type] = { error: e.message };
@@ -1602,7 +1602,7 @@ server.tool(
     const result = await page.evaluate(extractAnimationsInBrowser);
     const kf = (result.keyframes || []).length;
     const tr = (result.transitions || []).length;
-    const libs = (result.libraries || []).map(l => l.name || l).join(', ');
+    const libs = [...(result.jsLibraries || []), ...(result.cssLibraries || [])].join(', ');
     const kfNames = (result.keyframes || []).slice(0, 5).map(k => k.name).join(', ');
     const summary = `Animations: ${kf} @keyframes, ${tr} transitions${libs ? ` | Libraries: ${libs}` : ''}\nKeyframes: ${kfNames || 'none'}`;
     return summarizeResult('animations', result, summary);
@@ -1670,7 +1670,7 @@ server.tool(
       await page.emulateMedia({ colorScheme: "no-preference" });
     }
 
-    const method = result.method || (result.prefersColorScheme ? 'prefers-color-scheme' : 'unknown');
+    const method = result.hasDarkmodeMedia ? 'prefers-color-scheme' : (result.darkmodeClasses?.length ? 'css-classes' : 'unknown');
     const darkColors = (result.darkPalette || []).slice(0, 5).join(', ');
     const summary = `Dark mode: ${result.supported ? 'supported' : 'not detected'} (${method})${darkColors ? `\nDark palette: ${darkColors}` : ''}`;
     return summarizeResult('darkmode', result, summary);

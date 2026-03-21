@@ -80,8 +80,17 @@ function exportMarkdown(runDir, results) {
       lines.push('### Tables', '');
       for (const t of page.tables) {
         if (t.caption) lines.push(`**${t.caption}**`);
-        if (t.headers.length) {
-          lines.push(`Columns: ${t.headers.join(', ')}`);
+        if (t.headers?.length) {
+          lines.push(`| ${t.headers.join(' | ')} |`);
+          lines.push(`| ${t.headers.map(() => '---').join(' | ')} |`);
+          if (t.rows?.length) {
+            for (const row of t.rows) {
+              lines.push(`| ${row.join(' | ')} |`);
+            }
+          }
+        }
+        if (t.rowCount > (t.rows?.length || 0)) {
+          lines.push(`*${t.rowCount - (t.rows?.length || 0)} more rows omitted*`);
         }
         lines.push('');
       }

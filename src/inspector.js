@@ -46,12 +46,19 @@ function extractStructure() {
     }))
     .filter((f) => f.type !== 'hidden');
 
-  // Table headers
+  // Tables — headers + row data (capped at 50 rows per table)
   const tables = [...document.querySelectorAll('table')].map((table) => {
     const headers = [...table.querySelectorAll('th')].map((th) => textOf(th));
     const caption = table.querySelector('caption')?.textContent?.trim();
-    const rowCount = table.querySelectorAll('tr').length;
-    return { caption, headers, rowCount };
+    const bodyRows = [...table.querySelectorAll('tbody tr, tr')].filter(
+      (tr) => !tr.querySelector('th') || tr.closest('thead')
+    );
+    const dataRows = [...table.querySelectorAll('tbody tr')];
+    const rows = dataRows.slice(0, 50).map((tr) =>
+      [...tr.querySelectorAll('td')].map((td) => textOf(td))
+    );
+    const rowCount = dataRows.length;
+    return { caption, headers, rows, rowCount };
   });
 
   // Links (non-nav)
