@@ -537,7 +537,7 @@ function extractLayoutInBrowser({ maxDepth }) {
       (display === 'block' && el.children.length > 1);
 
     if (!isLayoutContainer && depth > 0) return null;
-    if (el.offsetParent === null && position !== 'fixed' && position !== 'sticky') return null;
+    if (depth > 0 && el.offsetParent === null && position !== 'fixed' && position !== 'sticky') return null;
 
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0 && depth > 0) return null;
@@ -704,6 +704,170 @@ function extractBreakpointsInBrowser() {
   return { breakpoints, detectedFrameworks, viewport, total: breakpoints.length };
 }
 
+/**
+ * Detect technology stack: JS frameworks, CSS frameworks, build tools, analytics, CMS.
+ * Uses global variables, DOM attributes, class names, script URLs, and meta tags.
+ */
+function detectStackInBrowser() {
+  const stack = {};
+
+  // --- JS Frameworks ---
+  const frameworks = [];
+
+  if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || window.React || document.querySelector('[data-reactroot], [data-reactid]')) {
+    const entry = { name: 'React' };
+    if (window.React && window.React.version) entry.version = window.React.version;
+    frameworks.push(entry);
+  }
+
+  const nextDataEl = document.getElementById('__NEXT_DATA__');
+  if (window.__NEXT_DATA__ || nextDataEl) {
+    const entry = { name: 'Next.js' };
+    try {
+      const d = JSON.parse(nextDataEl ? nextDataEl.textContent : '{}');
+      if (d.buildId) entry.buildId = d.buildId;
+    } catch {}
+    frameworks.push(entry);
+  }
+
+  if (window.Vue || window.__VUE__ || document.querySelector('[data-v-]')) {
+    const entry = { name: 'Vue.js' };
+    if (window.Vue && window.Vue.version) entry.version = window.Vue.version;
+    frameworks.push(entry);
+  }
+
+  if (window.__NUXT__ || window.$nuxt) {
+    frameworks.push({ name: 'Nuxt.js' });
+  }
+
+  const ngEl = document.querySelector('[ng-version]');
+  if (ngEl || window.angular || (window.ng && window.ng.version)) {
+    const entry = { name: 'Angular' };
+    if (ngEl) entry.version = ngEl.getAttribute('ng-version');
+    frameworks.push(entry);
+  }
+
+  if (window.__svelte || document.querySelector('[class*="svelte-"]')) {
+    frameworks.push({ name: 'Svelte' });
+  }
+
+  if (window.Ember) {
+    const entry = { name: 'Ember.js' };
+    if (window.Ember.VERSION) entry.version = window.Ember.VERSION;
+    frameworks.push(entry);
+  }
+
+  const jqVersion = (window.jQuery && window.jQuery.fn && window.jQuery.fn.jquery) ||
+                    (window.$ && window.$.fn && window.$.fn.jquery);
+  if (jqVersion) {
+    frameworks.push({ name: 'jQuery', version: jqVersion });
+  }
+
+  if (frameworks.length) stack.frameworks = frameworks;
+
+  // --- CSS Frameworks (class-based detection) ---
+  const allClasses = new Set();
+  for (const el of document.querySelectorAll('[class]')) {
+    if (typeof el.className === 'string') {
+      for (const c of el.className.split(/\s+/)) if (c) allClasses.add(c);
+    }
+  }
+
+  const cssFrameworks = [];
+
+  const twPattern = /^(text-[a-z]|bg-[a-z]|p-\d|px-\d|py-\d|pt-\d|pb-\d|m-\d|mx-\d|my-\d|mt-\d|mb-\d|w-\d|h-\d|flex$|grid$|items-|justify-|rounded|border-?[a-z]|shadow|gap-\d|space-[xy]|font-[a-z]|opacity-)/;
+  const twMatches = [...allClasses].filter(c => twPattern.test(c)).length;
+  if (twMatches >= 10) cssFrameworks.push({ name: 'Tailwind CSS' });
+
+  const bsPrefixes = ['container', 'row', 'col', 'btn', 'navbar', 'card', 'modal', 'badge', 'alert', 'd-flex', 'd-grid'];
+  const bsMatches = bsPrefixes.filter(p => allClasses.has(p) || [...allClasses].some(c => c === p || c.startsWith(p + '-'))).length;
+  if (bsMatches >= 3) cssFrameworks.push({ name: 'Bootstrap' });
+
+  if ([...allClasses].some(c => c.startsWith('Mui') || c.startsWith('css-') && document.querySelector('[class*="Mui"]'))) {
+    cssFrameworks.push({ name: 'Material UI (MUI)' });
+  }
+
+  if ([...allClasses].some(c => c.startsWith('chakra-') || c.startsWith('css-') && window.chakra)) {
+    cssFrameworks.push({ name: 'Chakra UI' });
+  }
+
+  if (cssFrameworks.length) stack.cssFrameworks = cssFrameworks;
+
+  // --- Build Tools ---
+  const scriptSrcs = [...document.scripts].map(s => s.src).filter(Boolean);
+  const buildTools = [];
+
+  if (window.__webpack_require__ || window.webpackJsonp || scriptSrcs.some(s => /[./]chunk\.[a-f0-9]+\.js/.test(s))) {
+    buildTools.push({ name: 'Webpack' });
+  }
+  if (scriptSrcs.some(s => s.includes('/@vite/') || s.includes('?v=') && s.includes('@vite'))) {
+    buildTools.push({ name: 'Vite' });
+  }
+  if (scriptSrcs.some(s => s.includes('/_next/static/'))) {
+    // Already noted via Next.js framework
+  }
+  if (document.querySelector('script[type="module"]') && !buildTools.length) {
+    buildTools.push({ name: 'ES Modules (bundler unknown)' });
+  }
+
+  if (buildTools.length) stack.buildTools = buildTools;
+
+  // --- Analytics & Tracking ---
+  const analytics = [];
+  if (window.ga || window.gtag || window.dataLayer) analytics.push('Google Analytics / GTM');
+  if (window.fbq || window._fbq) analytics.push('Facebook Pixel');
+  if (window.mixpanel) analytics.push('Mixpanel');
+  if (window.amplitude) analytics.push('Amplitude');
+  if (window.posthog) analytics.push('PostHog');
+  if (window.heap) analytics.push('Heap');
+  if (window.Intercom) analytics.push('Intercom');
+  if (window.analytics && window.analytics.identify) analytics.push('Segment');
+  if (window.rudderanalytics) analytics.push('RudderStack');
+  if (window.hj) analytics.push('Hotjar');
+  if (window.Clarity) analytics.push('Microsoft Clarity');
+
+  if (analytics.length) stack.analytics = analytics;
+
+  // --- CMS / Platform ---
+  const cms = [];
+  const generatorMeta = document.querySelector('meta[name="generator"]');
+  if (generatorMeta) {
+    const gen = generatorMeta.content || '';
+    const g = gen.toLowerCase();
+    if (g.includes('wordpress')) cms.push({ name: 'WordPress', detail: gen });
+    else if (g.includes('drupal')) cms.push({ name: 'Drupal', detail: gen });
+    else if (g.includes('joomla')) cms.push({ name: 'Joomla', detail: gen });
+    else if (g.includes('shopify')) cms.push({ name: 'Shopify', detail: gen });
+    else if (g.includes('squarespace')) cms.push({ name: 'Squarespace' });
+    else if (g.includes('wix')) cms.push({ name: 'Wix' });
+    else if (gen) cms.push({ name: 'CMS', generator: gen });
+  }
+  if (window.Shopify && !cms.some(c => c.name === 'Shopify')) cms.push({ name: 'Shopify' });
+  if (window.wp && !cms.some(c => c.name === 'WordPress')) cms.push({ name: 'WordPress' });
+
+  if (cms.length) stack.cms = cms;
+
+  // --- External Script Domains (CDN / third-party) ---
+  const extDomains = [...new Set(
+    scriptSrcs
+      .map(s => { try { return new URL(s).hostname; } catch { return null; } })
+      .filter(h => h && h !== window.location.hostname)
+  )].slice(0, 20);
+  if (extDomains.length) stack.externalScriptDomains = extDomains;
+
+  // --- Page Meta ---
+  const meta = { title: document.title };
+  const descEl = document.querySelector('meta[name="description"]');
+  if (descEl) meta.description = descEl.content;
+  const viewportEl = document.querySelector('meta[name="viewport"]');
+  if (viewportEl) meta.viewport = viewportEl.content;
+  const robotsEl = document.querySelector('meta[name="robots"]');
+  if (robotsEl) meta.robots = robotsEl.content;
+  stack.meta = meta;
+
+  return stack;
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -715,4 +879,5 @@ module.exports = {
   extractLayoutInBrowser,
   extractComponentsInBrowser,
   extractBreakpointsInBrowser,
+  detectStackInBrowser,
 };

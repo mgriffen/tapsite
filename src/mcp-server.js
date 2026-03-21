@@ -17,6 +17,7 @@ const {
   extractLayoutInBrowser,
   extractComponentsInBrowser,
   extractBreakpointsInBrowser,
+  detectStackInBrowser,
 } = require("./extractors");
 const config = require("./config");
 const fs = require("fs");
@@ -1007,6 +1008,283 @@ server.tool(
     const result = await page.evaluate(extractBreakpointsInBrowser);
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+// --- Phase 4: Network Intelligence ---
+
+// Resource types treated as static assets (filtered out by default)
+const STATIC_RESOURCE_TYPES = new Set(["image", "stylesheet", "font", "media"]);
+
+/**
+ * Shared network capture helper. Sets up request/response listeners, waits for
+ * `duration` seconds, then returns collected entries.
+ */
+async function captureNetwork({ duration, includeStatic, filterUrl, filterMethod }) {
+  const entryMap = new Map(); // request -> entry object
+  const bodyPromises = [];
+
+  const onRequest = (req) => {
+    if (!includeStatic && STATIC_RESOURCE_TYPES.has(req.resourceType())) return;
+    const url = req.url();
+    if (filterUrl && !url.includes(filterUrl)) return;
+    if (filterMethod && req.method().toLowerCase() !== filterMethod.toLowerCase()) return;
+
+    entryMap.set(req, {
+      url,
+      method: req.method(),
+      resourceType: req.resourceType(),
+      requestHeaders: req.headers(),
+      postData: req.postData() || null,
+    });
+  };
+
+  const onResponse = (res) => {
+    const req = res.request();
+    const entry = entryMap.get(req);
+    if (!entry) return;
+
+    entry.status = res.status();
+    entry.responseHeaders = res.headers();
+    entry.contentType = (res.headers()["content-type"] || "").split(";")[0].trim();
+
+    const ct = entry.contentType;
+    if (ct.includes("json") || ct.includes("text/plain") || ct.includes("text/html")) {
+      const p = res.text().then((text) => {
+        entry.responseBody = text.length > 10000 ? text.slice(0, 10000) + "…" : text;
+      }).catch(() => {});
+      bodyPromises.push(p);
+    }
+  };
+
+  page.on("request", onRequest);
+  page.on("response", onResponse);
+
+  await page.waitForTimeout(duration * 1000);
+
+  page.off("request", onRequest);
+  page.off("response", onResponse);
+
+  // Wait up to 2s for any pending body reads
+  await Promise.all(bodyPromises.map((p) => Promise.race([p, new Promise((r) => setTimeout(r, 2000))])));
+
+  return [...entryMap.values()].filter((e) => e.status !== undefined);
+}
+
+server.tool(
+  "cbrowser_capture_network",
+  "Capture all network requests/responses on the current page for a configurable duration. Records URL, method, status, content-type, headers, and request/response bodies (JSON/text). Filters out static assets by default.",
+  {
+    url: z.string().optional().describe("Navigate to this URL before capturing (omit to capture on current page)"),
+    duration: z.number().default(10).describe("How many seconds to capture (default 10)"),
+    includeStatic: z.boolean().default(false).describe("Include image/CSS/font/media requests"),
+    filterUrl: z.string().optional().describe("Only capture requests whose URL contains this string"),
+    filterMethod: z.string().optional().describe("Only capture requests with this HTTP method (e.g. GET, POST)"),
+  },
+  async ({ url, duration, includeStatic, filterUrl, filterMethod }) => {
+    await ensureBrowser();
+    if (url) {
+      try {
+        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+      } catch {}
+      await page.waitForTimeout(500);
+    }
+
+    const requests = await captureNetwork({ duration, includeStatic, filterUrl, filterMethod });
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({ total: requests.length, requests }, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_api_schema",
+  "Capture API calls and infer JSON schemas from responses. Groups endpoints by normalized path (strips IDs), detects pagination patterns and auth headers.",
+  {
+    url: z.string().optional().describe("Navigate to this URL before capturing (omit to capture on current page)"),
+    duration: z.number().default(15).describe("How many seconds to capture (default 15)"),
+    filterUrl: z.string().optional().describe("Only analyze requests whose URL contains this string"),
+  },
+  async ({ url, duration, filterUrl }) => {
+    await ensureBrowser();
+    if (url) {
+      try {
+        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+      } catch {}
+      await page.waitForTimeout(500);
+    }
+
+    const all = await captureNetwork({ duration, includeStatic: false, filterUrl, filterMethod: undefined });
+
+    // Only analyze JSON responses
+    const apiCalls = all.filter((r) => r.contentType && r.contentType.includes("json"));
+
+    // Infer simple type schema from a parsed JSON value
+    function inferSchema(value, depth = 0) {
+      if (value === null) return "null";
+      if (Array.isArray(value)) {
+        if (value.length === 0) return "array<unknown>";
+        const itemTypes = [...new Set(value.slice(0, 3).map((v) => inferSchema(v, depth + 1)))];
+        return `array<${itemTypes.join("|")}>`;
+      }
+      const t = typeof value;
+      if (t === "object") {
+        if (depth >= 3) return "object";
+        const schema = {};
+        for (const [k, v] of Object.entries(value).slice(0, 30)) {
+          schema[k] = inferSchema(v, depth + 1);
+        }
+        return schema;
+      }
+      return t;
+    }
+
+    // Normalize URL path: strip UUIDs and numeric IDs
+    function normalizeUrl(rawUrl) {
+      try {
+        const u = new URL(rawUrl);
+        const path = u.pathname
+          .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "/{uuid}")
+          .replace(/\/\d{4,}/g, "/{id}")
+          .replace(/\/\d+/g, "/{id}");
+        return u.origin + path;
+      } catch {
+        return rawUrl;
+      }
+    }
+
+    // Group by normalized endpoint
+    const endpointMap = new Map(); // normalizedUrl+method -> aggregated info
+
+    for (const req of apiCalls) {
+      const normalized = normalizeUrl(req.url);
+      const key = `${req.method} ${normalized}`;
+
+      if (!endpointMap.has(key)) {
+        endpointMap.set(key, {
+          method: req.method,
+          endpoint: normalized,
+          calls: 0,
+          statuses: [],
+          requestSchema: null,
+          responseSchema: null,
+          hasAuth: false,
+          pagination: false,
+        });
+      }
+
+      const entry = endpointMap.get(key);
+      entry.calls++;
+      if (!entry.statuses.includes(req.status)) entry.statuses.push(req.status);
+
+      // Auth headers
+      const authHeader = req.requestHeaders["authorization"] || req.requestHeaders["x-auth-token"] || req.requestHeaders["x-api-key"];
+      if (authHeader) entry.hasAuth = true;
+
+      // Request body schema
+      if (req.postData && !entry.requestSchema) {
+        try {
+          const parsed = JSON.parse(req.postData);
+          entry.requestSchema = inferSchema(parsed);
+        } catch {}
+      }
+
+      // Response body schema
+      if (req.responseBody && !entry.responseSchema) {
+        try {
+          const parsed = JSON.parse(req.responseBody);
+          entry.responseSchema = inferSchema(parsed);
+          // Detect pagination keys
+          const keys = Object.keys(typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {});
+          if (keys.some((k) => ["page", "cursor", "next", "nextPage", "offset", "hasMore", "total_pages"].includes(k))) {
+            entry.pagination = true;
+          }
+        } catch {}
+      }
+    }
+
+    const endpoints = [...endpointMap.values()].sort((a, b) => b.calls - a.calls);
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              totalApiCalls: apiCalls.length,
+              uniqueEndpoints: endpoints.length,
+              endpoints,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_detect_stack",
+  "Fingerprint the technology stack: JS frameworks (React, Vue, Angular, Next.js, Svelte), CSS frameworks (Tailwind, Bootstrap, MUI), build tools, analytics, CMS, CDNs. Uses globals, DOM attributes, script URLs, meta tags, and response headers.",
+  {
+    url: z.string().optional().describe("Navigate to this URL before detecting (omit for current page)"),
+  },
+  async ({ url }) => {
+    await ensureBrowser();
+
+    let serverHeaders = null;
+
+    if (url) {
+      let mainResponse = null;
+      try {
+        mainResponse = await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+      } catch {}
+      await page.waitForTimeout(1500);
+
+      if (mainResponse) {
+        const headers = mainResponse.headers();
+        // Extract interesting server-side headers
+        const interesting = ["server", "x-powered-by", "x-generator", "x-framework", "via", "cf-ray", "x-vercel-id", "x-amzn-requestid"];
+        serverHeaders = {};
+        for (const h of interesting) {
+          if (headers[h]) serverHeaders[h] = headers[h];
+        }
+        if (Object.keys(serverHeaders).length === 0) serverHeaders = null;
+      }
+    }
+
+    const stack = await page.evaluate(detectStackInBrowser);
+
+    if (serverHeaders) {
+      stack.serverHeaders = serverHeaders;
+
+      // Infer hosting/CDN from response headers
+      const hosting = [];
+      if (serverHeaders["cf-ray"]) hosting.push("Cloudflare");
+      if (serverHeaders["x-vercel-id"]) hosting.push("Vercel");
+      if (serverHeaders["x-amzn-requestid"] || (serverHeaders["server"] || "").includes("AmazonS3")) hosting.push("AWS");
+      if ((serverHeaders["server"] || "").toLowerCase().includes("nginx")) hosting.push("nginx");
+      if ((serverHeaders["server"] || "").toLowerCase().includes("apache")) hosting.push("Apache");
+      if ((serverHeaders["x-powered-by"] || "").toLowerCase().includes("php")) hosting.push("PHP");
+      if ((serverHeaders["x-powered-by"] || "").toLowerCase().includes("express")) hosting.push("Express.js");
+      if (hosting.length) stack.hosting = hosting;
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(stack, null, 2),
+        },
+      ],
     };
   }
 );
