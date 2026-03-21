@@ -11,6 +11,12 @@ const {
   extractFontsInBrowser,
   extractCssVarsInBrowser,
   extractSpacingInBrowser,
+  extractImagesInBrowser,
+  extractSvgsInBrowser,
+  extractFaviconInBrowser,
+  extractLayoutInBrowser,
+  extractComponentsInBrowser,
+  extractBreakpointsInBrowser,
 } = require("./extractors");
 const config = require("./config");
 const fs = require("fs");
@@ -679,6 +685,326 @@ server.tool(
       await page.waitForTimeout(1500);
     }
     const result = await page.evaluate(extractSpacingInBrowser, { sampleSize });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+// --- Phase 2: Visual Asset Extraction ---
+
+server.tool(
+  "cbrowser_extract_images",
+  "Discover all images on the page: <img>, CSS background-image, <picture> sources, OG/meta images. Returns metadata: src, dimensions, alt text, format.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    minWidth: z.number().default(1).describe("Minimum width in px to include"),
+    filter: z.string().optional().describe("Only return images whose src contains this string"),
+  },
+  async ({ url, minWidth, filter }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || "" });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_download_images",
+  "Download discovered images to output/assets/images/. Uses browser session cookies for authenticated assets.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    minWidth: z.number().default(50).describe("Minimum width in px to include"),
+    filter: z.string().optional().describe("Only download images whose src contains this string"),
+    limit: z.number().default(50).describe("Maximum number of images to download"),
+    formats: z.array(z.string()).optional().describe("Only download images with these extensions (e.g. ['png', 'jpg'])"),
+  },
+  async ({ url, minWidth, filter, limit, formats }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+
+    // Discover images
+    const { images } = await page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || "" });
+
+    // Filter by format if specified
+    let toDownload = images;
+    if (formats && formats.length > 0) {
+      const exts = formats.map(f => f.toLowerCase().replace(/^\./, ""));
+      toDownload = toDownload.filter(img => {
+        const urlPath = new URL(img.src, page.url()).pathname.toLowerCase();
+        return exts.some(ext => urlPath.endsWith(`.${ext}`));
+      });
+    }
+    toDownload = toDownload.slice(0, limit);
+
+    // Create output directory
+    const assetsDir = path.join(config.OUTPUT_DIR, "assets", "images");
+    fs.mkdirSync(assetsDir, { recursive: true });
+
+    const downloaded = [];
+    const errors = [];
+
+    for (const img of toDownload) {
+      try {
+        const imgUrl = new URL(img.src, page.url()).href;
+        const response = await page.context().request.get(imgUrl);
+        if (!response.ok()) {
+          errors.push({ src: img.src, status: response.status() });
+          continue;
+        }
+        const body = await response.body();
+
+        // Derive filename from URL
+        const urlObj = new URL(imgUrl);
+        let filename = path.basename(urlObj.pathname) || "image";
+        // Sanitize filename
+        filename = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
+        // Deduplicate
+        let savePath = path.join(assetsDir, filename);
+        let counter = 1;
+        while (fs.existsSync(savePath)) {
+          const ext = path.extname(filename);
+          const base = path.basename(filename, ext);
+          savePath = path.join(assetsDir, `${base}_${counter}${ext}`);
+          counter++;
+        }
+
+        fs.writeFileSync(savePath, body);
+        downloaded.push({ src: img.src, saved: savePath, size: body.length });
+      } catch (err) {
+        errors.push({ src: img.src, error: err.message });
+      }
+    }
+
+    const summary = `Downloaded ${downloaded.length}/${toDownload.length} images to ${assetsDir}\n` +
+      downloaded.map(d => `  ✓ ${path.basename(d.saved)} (${(d.size / 1024).toFixed(1)}KB)`).join("\n") +
+      (errors.length ? "\n\nErrors:\n" + errors.map(e => `  ✗ ${e.src}: ${e.error || `HTTP ${e.status}`}`).join("\n") : "");
+
+    return {
+      content: [{ type: "text", text: summary }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_svgs",
+  "Extract inline SVG markup (cleaned/minified) and external SVG URLs. Classifies as icon vs illustration by size. Detects currentColor usage.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    limit: z.number().default(50).describe("Maximum number of SVGs to return"),
+    download: z.boolean().default(false).describe("Also download SVGs to output/assets/svgs/"),
+  },
+  async ({ url, limit, download }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractSvgsInBrowser, { limit });
+
+    if (download) {
+      const svgDir = path.join(config.OUTPUT_DIR, "assets", "svgs");
+      fs.mkdirSync(svgDir, { recursive: true });
+      let savedCount = 0;
+
+      for (let i = 0; i < result.svgs.length; i++) {
+        const svg = result.svgs[i];
+        try {
+          if (svg.type === "inline" && svg.markup && !svg.markup.endsWith("…")) {
+            const filePath = path.join(svgDir, `inline_${i + 1}.svg`);
+            fs.writeFileSync(filePath, svg.markup);
+            svg.savedTo = filePath;
+            savedCount++;
+          } else if (svg.type === "external" && svg.src) {
+            const response = await page.context().request.get(svg.src);
+            if (response.ok()) {
+              const body = await response.body();
+              const filename = path.basename(new URL(svg.src, page.url()).pathname).replace(/[^a-zA-Z0-9._-]/g, "_") || `svg_${i + 1}.svg`;
+              const filePath = path.join(svgDir, filename);
+              fs.writeFileSync(filePath, body);
+              svg.savedTo = filePath;
+              savedCount++;
+            }
+          }
+        } catch {}
+      }
+      result.downloaded = savedCount;
+      result.downloadDir = svgDir;
+    }
+
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_favicon",
+  "Extract all favicon and icon references: link[rel=icon], apple-touch-icon, manifest icons, msapplication-TileImage. Optionally download them.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    download: z.boolean().default(false).describe("Download favicons to output/assets/favicons/"),
+  },
+  async ({ url, download }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractFaviconInBrowser);
+
+    // If there's a manifest URL, try to fetch and extract its icons
+    if (result.manifestUrl) {
+      try {
+        const response = await page.context().request.get(result.manifestUrl);
+        if (response.ok()) {
+          const manifest = JSON.parse(await response.text());
+          if (manifest.icons && Array.isArray(manifest.icons)) {
+            for (const icon of manifest.icons) {
+              const src = new URL(icon.src, result.manifestUrl).href;
+              result.icons.push({
+                src,
+                type: "manifest-icon",
+                sizes: icon.sizes || null,
+                mimeType: icon.type || null,
+              });
+            }
+            result.total = result.icons.length;
+          }
+        }
+      } catch {}
+    }
+
+    if (download) {
+      const favDir = path.join(config.OUTPUT_DIR, "assets", "favicons");
+      fs.mkdirSync(favDir, { recursive: true });
+      let savedCount = 0;
+
+      for (const icon of result.icons) {
+        try {
+          const response = await page.context().request.get(icon.src);
+          if (response.ok()) {
+            const body = await response.body();
+            const urlObj = new URL(icon.src, page.url());
+            let filename = path.basename(urlObj.pathname).replace(/[^a-zA-Z0-9._-]/g, "_") || "favicon";
+            let savePath = path.join(favDir, filename);
+            let counter = 1;
+            while (fs.existsSync(savePath)) {
+              const ext = path.extname(filename);
+              const base = path.basename(filename, ext);
+              savePath = path.join(favDir, `${base}_${counter}${ext}`);
+              counter++;
+            }
+            fs.writeFileSync(savePath, body);
+            icon.savedTo = savePath;
+            savedCount++;
+          }
+        } catch {}
+      }
+      result.downloaded = savedCount;
+      result.downloadDir = favDir;
+    }
+
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+// --- Phase 3: Layout Intelligence ---
+
+/**
+ * Format a layout tree node into an indented text representation.
+ */
+function formatLayoutTree(node, indent = "") {
+  if (!node) return "";
+  const attrs = [];
+  if (node.display) attrs.push(node.display);
+  if (node.direction) attrs.push(node.direction);
+  if (node.columns) attrs.push(`cols: ${node.columns}`);
+  if (node.rows) attrs.push(`rows: ${node.rows}`);
+  if (node.gap) attrs.push(`gap: ${node.gap}`);
+  if (node.justify) attrs.push(`justify: ${node.justify}`);
+  if (node.align) attrs.push(`align: ${node.align}`);
+  if (node.wrap) attrs.push(`wrap: ${node.wrap}`);
+  if (node.position) attrs.push(`pos: ${node.position}`);
+  const dims = `${node.w}×${node.h}`;
+  const line = `${indent}${node.el} [${dims}] ${attrs.join(", ")}`;
+  const lines = [line];
+  if (node.children) {
+    for (const child of node.children) {
+      if (child === "…") {
+        lines.push(`${indent}  …`);
+      } else {
+        lines.push(formatLayoutTree(child, indent + "  "));
+      }
+    }
+  }
+  return lines.join("\n");
+}
+
+server.tool(
+  "cbrowser_extract_layout",
+  "Map the layout structure of the page — display type (flex/grid/block), direction, template, gap, alignment per container. Returns a compressed layout tree.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    maxDepth: z.number().default(6).describe("Maximum tree depth to traverse"),
+  },
+  async ({ url, maxDepth }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractLayoutInBrowser, { maxDepth });
+    const text = formatLayoutTree(result.layout);
+    return {
+      content: [{ type: "text", text }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_components",
+  "Detect repeated visual patterns — groups of elements with the same class structure appearing multiple times. Returns pattern templates, class names, instance count, and sample HTML.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+    minOccurrences: z.number().default(3).describe("Minimum number of occurrences to qualify as a component"),
+  },
+  async ({ url, minOccurrences }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractComponentsInBrowser, { minOccurrences });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "cbrowser_extract_breakpoints",
+  "Extract all CSS media query breakpoints from stylesheets. Detects framework breakpoints (Tailwind, Bootstrap, MUI). Reports current viewport.",
+  {
+    url: z.string().optional().describe("URL to extract from (omit for current page)"),
+  },
+  async ({ url }) => {
+    await ensureBrowser();
+    if (url) {
+      try { await page.goto(url, { waitUntil: "networkidle", timeout: 30000 }); } catch {}
+      await page.waitForTimeout(1500);
+    }
+    const result = await page.evaluate(extractBreakpointsInBrowser);
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };

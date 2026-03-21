@@ -332,9 +332,387 @@ function extractSpacingInBrowser({ sampleSize }) {
   };
 }
 
+/**
+ * Extract all images from the page: <img>, CSS background-image, <picture> sources, OG/meta images.
+ * @param {{ minWidth: number, filter: string }} args
+ */
+function extractImagesInBrowser({ minWidth, filter }) {
+  const images = [];
+  const seen = new Set();
+
+  function addImage(src, meta) {
+    if (!src || seen.has(src)) return;
+    if (filter && !src.includes(filter)) return;
+    seen.add(src);
+    images.push({ src, ...meta });
+  }
+
+  // <img> elements
+  for (const img of document.querySelectorAll('img[src]')) {
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (w < minWidth) continue;
+    addImage(img.src, {
+      type: 'img',
+      alt: img.alt || null,
+      width: w,
+      height: h,
+      loading: img.loading || null,
+    });
+  }
+
+  // <picture> <source> elements
+  for (const source of document.querySelectorAll('picture source[srcset]')) {
+    const srcset = source.getAttribute('srcset');
+    const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0]);
+    for (const url of urls) {
+      addImage(url, { type: 'picture-source', media: source.media || null });
+    }
+  }
+
+  // CSS background-image on visible elements
+  const elements = document.querySelectorAll('body *');
+  for (const el of elements) {
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+    const bg = getComputedStyle(el).backgroundImage;
+    if (bg && bg !== 'none') {
+      const urls = bg.match(/url\(["']?([^"')]+)["']?\)/g) || [];
+      for (const u of urls) {
+        const match = u.match(/url\(["']?([^"')]+)["']?\)/);
+        if (match) {
+          const src = match[1];
+          if (!src.startsWith('data:')) {
+            const tag = el.tagName.toLowerCase();
+            const desc = el.className ? `${tag}.${String(el.className).split(' ')[0]}` : tag;
+            addImage(src, { type: 'background-image', element: desc });
+          }
+        }
+      }
+    }
+  }
+
+  // OG and meta images
+  const metaSelectors = [
+    { sel: 'meta[property="og:image"]', attr: 'content', type: 'og:image' },
+    { sel: 'meta[name="twitter:image"]', attr: 'content', type: 'twitter:image' },
+    { sel: 'meta[property="og:image:secure_url"]', attr: 'content', type: 'og:image:secure_url' },
+    { sel: 'link[rel="image_src"]', attr: 'href', type: 'image_src' },
+  ];
+  for (const { sel, attr, type } of metaSelectors) {
+    const el = document.querySelector(sel);
+    if (el) {
+      const val = el.getAttribute(attr);
+      if (val) addImage(val, { type });
+    }
+  }
+
+  return { images, total: images.length };
+}
+
+/**
+ * Extract inline SVGs and external SVG references.
+ * Classify as icon vs illustration by size. Detect currentColor usage.
+ * @param {{ limit: number }} args
+ */
+function extractSvgsInBrowser({ limit }) {
+  const svgs = [];
+
+  // Inline SVGs
+  const inlineSvgs = document.querySelectorAll('svg');
+  for (const svg of inlineSvgs) {
+    if (svgs.length >= limit) break;
+
+    const rect = svg.getBoundingClientRect();
+    const w = rect.width || parseInt(svg.getAttribute('width')) || 0;
+    const h = rect.height || parseInt(svg.getAttribute('height')) || 0;
+    const viewBox = svg.getAttribute('viewBox') || null;
+    const markup = svg.outerHTML;
+    const usesCurrentColor = markup.includes('currentColor');
+    const classification = (w <= 48 && h <= 48) ? 'icon' : (w <= 200 && h <= 200) ? 'small' : 'illustration';
+
+    // Minify: collapse whitespace
+    const minified = markup.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
+
+    svgs.push({
+      type: 'inline',
+      width: Math.round(w),
+      height: Math.round(h),
+      viewBox,
+      classification,
+      usesCurrentColor,
+      markup: minified.length <= 5000 ? minified : minified.slice(0, 5000) + '…',
+      markupLength: minified.length,
+    });
+  }
+
+  // External SVG references (<img src="*.svg">, CSS url(*.svg), <use href="*.svg">)
+  const externalSeen = new Set();
+
+  for (const img of document.querySelectorAll('img[src$=".svg"], img[src*=".svg?"]')) {
+    if (svgs.length >= limit) break;
+    if (externalSeen.has(img.src)) continue;
+    externalSeen.add(img.src);
+    svgs.push({
+      type: 'external',
+      src: img.src,
+      alt: img.alt || null,
+      width: img.naturalWidth || img.width || null,
+      height: img.naturalHeight || img.height || null,
+    });
+  }
+
+  for (const use of document.querySelectorAll('use[href], use[xlink\\:href]')) {
+    if (svgs.length >= limit) break;
+    const href = use.getAttribute('href') || use.getAttribute('xlink:href');
+    if (href && href.includes('.svg') && !externalSeen.has(href)) {
+      externalSeen.add(href);
+      svgs.push({ type: 'external-use', src: href });
+    }
+  }
+
+  return { svgs, total: svgs.length };
+}
+
+/**
+ * Extract favicon and icon references from the page.
+ */
+function extractFaviconInBrowser() {
+  const icons = [];
+  const seen = new Set();
+
+  function addIcon(src, meta) {
+    if (!src || seen.has(src)) return;
+    seen.add(src);
+    icons.push({ src, ...meta });
+  }
+
+  // link[rel] icon variants
+  const iconRels = ['icon', 'shortcut icon', 'apple-touch-icon', 'apple-touch-icon-precomposed', 'mask-icon'];
+  for (const link of document.querySelectorAll('link[rel][href]')) {
+    const rel = link.getAttribute('rel').toLowerCase();
+    if (iconRels.some(r => rel.includes(r))) {
+      addIcon(link.href, {
+        type: rel,
+        sizes: link.getAttribute('sizes') || null,
+        mimeType: link.getAttribute('type') || null,
+      });
+    }
+  }
+
+  // msapplication-TileImage
+  const tileImg = document.querySelector('meta[name="msapplication-TileImage"]');
+  if (tileImg) {
+    addIcon(tileImg.getAttribute('content'), { type: 'msapplication-TileImage' });
+  }
+
+  // msapplication-config (browserconfig.xml)
+  const browserConfig = document.querySelector('meta[name="msapplication-config"]');
+  if (browserConfig) {
+    addIcon(browserConfig.getAttribute('content'), { type: 'msapplication-config' });
+  }
+
+  // Web app manifest
+  const manifestLink = document.querySelector('link[rel="manifest"]');
+  const manifestUrl = manifestLink ? manifestLink.href : null;
+
+  // Default /favicon.ico
+  addIcon(new URL('/favicon.ico', document.location.origin).href, { type: 'default-favicon' });
+
+  return { icons, manifestUrl, total: icons.length };
+}
+
+/**
+ * Map layout structure: display type, direction, template, gap, alignment per container.
+ * Returns a compressed layout tree.
+ * @param {{ maxDepth: number }} args
+ */
+function extractLayoutInBrowser({ maxDepth }) {
+  function getLayoutInfo(el, depth) {
+    const cs = getComputedStyle(el);
+    const display = cs.display;
+    const position = cs.position;
+
+    // Only include meaningful layout containers
+    const isLayoutContainer = ['flex', 'grid', 'inline-flex', 'inline-grid'].includes(display) ||
+      (display === 'block' && el.children.length > 1);
+
+    if (!isLayoutContainer && depth > 0) return null;
+    if (el.offsetParent === null && position !== 'fixed' && position !== 'sticky') return null;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0 && depth > 0) return null;
+
+    const tag = el.tagName.toLowerCase();
+    const className = el.className ? String(el.className).trim().split(/\s+/).slice(0, 3).join(' ') : '';
+    const id = el.id ? `#${el.id}` : '';
+    const label = `${tag}${id}${className ? '.' + className.replace(/\s+/g, '.') : ''}`;
+
+    const info = {
+      el: label.slice(0, 60),
+      display,
+      w: Math.round(rect.width),
+      h: Math.round(rect.height),
+    };
+
+    if (display === 'flex' || display === 'inline-flex') {
+      info.direction = cs.flexDirection;
+      info.wrap = cs.flexWrap !== 'nowrap' ? cs.flexWrap : undefined;
+      info.justify = cs.justifyContent !== 'normal' ? cs.justifyContent : undefined;
+      info.align = cs.alignItems !== 'normal' ? cs.alignItems : undefined;
+      if (cs.gap !== 'normal' && cs.gap !== '0px') info.gap = cs.gap;
+    } else if (display === 'grid' || display === 'inline-grid') {
+      info.columns = cs.gridTemplateColumns !== 'none' ? cs.gridTemplateColumns.slice(0, 80) : undefined;
+      info.rows = cs.gridTemplateRows !== 'none' ? cs.gridTemplateRows.slice(0, 80) : undefined;
+      if (cs.gap !== 'normal' && cs.gap !== '0px') info.gap = cs.gap;
+    }
+
+    if (position !== 'static') info.position = position;
+
+    if (depth < maxDepth) {
+      const children = [];
+      for (const child of el.children) {
+        if (children.length >= 8) { children.push('…'); break; }
+        const childInfo = getLayoutInfo(child, depth + 1);
+        if (childInfo) children.push(childInfo);
+      }
+      if (children.length > 0) info.children = children;
+    }
+
+    return info;
+  }
+
+  const tree = getLayoutInfo(document.body, 0);
+  return { layout: tree };
+}
+
+/**
+ * Detect repeated visual patterns — groups of elements with same class structure.
+ * @param {{ minOccurrences: number }} args
+ */
+function extractComponentsInBrowser({ minOccurrences }) {
+  // Generate a structural signature for an element
+  function signature(el) {
+    const tag = el.tagName.toLowerCase();
+    const classes = [...el.classList].sort().join('.');
+    const childSigs = [...el.children].slice(0, 5).map(c => {
+      const t = c.tagName.toLowerCase();
+      const cls = [...c.classList].sort().join('.');
+      return `${t}${cls ? '.' + cls : ''}`;
+    }).join('>');
+    return `${tag}${classes ? '.' + classes : ''}[${childSigs}]`;
+  }
+
+  const sigMap = new Map(); // sig -> [el, ...]
+
+  for (const el of document.querySelectorAll('body *')) {
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+    if (el.children.length === 0) continue; // leaf nodes only as children
+
+    const sig = signature(el);
+    if (!sigMap.has(sig)) sigMap.set(sig, []);
+    sigMap.get(sig).push(el);
+  }
+
+  const components = [];
+  for (const [sig, els] of sigMap.entries()) {
+    if (els.length < minOccurrences) continue;
+
+    const first = els[0];
+    const rect = first.getBoundingClientRect();
+    const sample = first.outerHTML;
+
+    components.push({
+      signature: sig.slice(0, 120),
+      count: els.length,
+      tag: first.tagName.toLowerCase(),
+      classes: [...first.classList].join(' ') || null,
+      sampleDimensions: { w: Math.round(rect.width), h: Math.round(rect.height) },
+      sampleHtml: sample.length <= 500 ? sample : sample.slice(0, 500) + '…',
+    });
+  }
+
+  // Sort by count descending
+  components.sort((a, b) => b.count - a.count);
+
+  return { components: components.slice(0, 40), total: components.length };
+}
+
+/**
+ * Extract all CSS media query breakpoints from stylesheets.
+ * Detect framework breakpoints (Tailwind, Bootstrap, MUI).
+ * @param {{}} args
+ */
+function extractBreakpointsInBrowser() {
+  const breakpoints = [];
+  const seen = new Set();
+
+  // Known framework breakpoint signatures
+  const FRAMEWORK_PATTERNS = {
+    tailwind: {
+      sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1536,
+    },
+    bootstrap: {
+      sm: 576, md: 768, lg: 992, xl: 1200, xxl: 1400,
+    },
+    mui: {
+      xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536,
+    },
+  };
+
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        if (rule instanceof CSSMediaRule) {
+          const mediaText = rule.conditionText || rule.media.mediaText;
+          // Extract px values
+          const matches = mediaText.matchAll(/(\d+(?:\.\d+)?)(px|em|rem)/g);
+          for (const m of matches) {
+            const raw = `${m[1]}${m[2]}`;
+            if (!seen.has(raw)) {
+              seen.add(raw);
+              const px = m[2] === 'px' ? parseFloat(m[1]) :
+                m[2] === 'em' || m[2] === 'rem' ? Math.round(parseFloat(m[1]) * 16) : null;
+              breakpoints.push({
+                value: raw,
+                px,
+                query: mediaText.slice(0, 120),
+              });
+            }
+          }
+        }
+      }
+    } catch { /* cross-origin */ }
+  }
+
+  // Sort by px value
+  breakpoints.sort((a, b) => (a.px || 0) - (b.px || 0));
+
+  // Detect framework
+  const detectedPx = new Set(breakpoints.map(b => b.px));
+  const detectedFrameworks = [];
+  for (const [framework, bps] of Object.entries(FRAMEWORK_PATTERNS)) {
+    const values = Object.values(bps).filter(v => v > 0);
+    const matches = values.filter(v => detectedPx.has(v)).length;
+    if (matches >= Math.ceil(values.length * 0.6)) {
+      detectedFrameworks.push(framework);
+    }
+  }
+
+  // Current viewport
+  const viewport = { width: window.innerWidth, height: window.innerHeight };
+
+  return { breakpoints, detectedFrameworks, viewport, total: breakpoints.length };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
   extractCssVarsInBrowser,
   extractSpacingInBrowser,
+  extractImagesInBrowser,
+  extractSvgsInBrowser,
+  extractFaviconInBrowser,
+  extractLayoutInBrowser,
+  extractComponentsInBrowser,
+  extractBreakpointsInBrowser,
 };
