@@ -15,6 +15,10 @@ Click any image to see the full interactive page:
 | [![Showcase I](docs/screenshots/showcase-design.png)](https://mgriffen.github.io/cbrowser/showcase-design.html) | [![Showcase II](docs/screenshots/showcase-deep.png)](https://mgriffen.github.io/cbrowser/showcase-deep.html) |
 | Live-extracted colors, fonts, perf, breakpoints, and animations from Stripe, Linear, and Vercel | Accessibility audits, content extraction, form analysis, asset inventory, component detection |
 
+[![Real World Intelligence](docs/screenshots/scenarios.png)](https://mgriffen.github.io/cbrowser/scenarios.html)
+
+**Four real-world scenarios** — design system reverse-engineering, competitive intelligence, accessibility auditing, and asset migration prep.
+
 ## Setup
 
 ```bash
