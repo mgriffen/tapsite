@@ -959,7 +959,7 @@ function extractContentInBrowser({ selector, includeImages }) {
   // Tags to skip entirely
   const SKIP_TAGS = new Set(['nav', 'header', 'footer', 'aside', 'script', 'style', 'noscript', 'iframe', 'form', 'button']);
   // Classes/ids that suggest chrome (nav, ads, sidebar)
-  const SKIP_PATTERN = /\b(nav|navigation|sidebar|widget|banner|ad|ads|advertisement|promo|cookie|popup|modal|overlay|comment|share|social|related|recommended|newsletter|subscribe|follow|breadcrumb|pagination|pager|menu|toolbar|topbar|bottombar|footer|header|navbox|navmenu|side-bar|related-posts|related-articles|post-list|card-list|link-list|further-reading|see-also|toc-sidebar)\b/i;
+  const SKIP_PATTERN = /\b(nav|navigation|sidebar|widget|banner|ad|ads|advertisement|promo|cookie|popup|modal|overlay|comment|share|social|related|recommended|newsletter|subscribe|follow|breadcrumb|pagination|pager|menu|toolbar|topbar|bottombar|footer|header|navbox|navmenu|side-bar|related-posts|related-articles|post-list|card-list|link-list|further-reading|see-also|toc-sidebar|in-article-cards)\b/i;
 
   function shouldSkip(el) {
     if (SKIP_TAGS.has(el.tagName.toLowerCase())) return true;
