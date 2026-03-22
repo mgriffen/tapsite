@@ -12,9 +12,9 @@ module.exports = function registerSessionTools(server) {
       url: z.string().describe('Login page URL'),
       username: z.string().describe('Username'),
       password: z.string().describe('Password'),
-      usernameSelector: z.string().default('input[name="username"]').describe('Username field selector'),
-      passwordSelector: z.string().default('input[name="password"]').describe('Password field selector'),
-      submitSelector: z.string().default('input[type="submit"]').describe('Submit button selector'),
+      usernameSelector: z.string().max(500).default('input[name="username"]').describe('Username field selector'),
+      passwordSelector: z.string().max(500).default('input[name="password"]').describe('Password field selector'),
+      submitSelector: z.string().max(500).default('input[type="submit"]').describe('Submit button selector'),
     },
     async ({ url, username, password, usernameSelector, passwordSelector, submitSelector }) => {
       await browser.ensureBrowser();

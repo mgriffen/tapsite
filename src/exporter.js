@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
+const { sanitizeForLLM } = require('./sanitizer');
 
 /**
  * Create a timestamped output directory for this run.
@@ -47,7 +48,7 @@ function exportMarkdown(runDir, results) {
     if (page.compressedDOM) {
       lines.push('### Page Structure', '');
       lines.push('```');
-      lines.push(page.compressedDOM);
+      lines.push(sanitizeForLLM(page.compressedDOM));
       lines.push('```', '');
     }
 

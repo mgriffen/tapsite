@@ -383,7 +383,10 @@ module.exports = function registerExtractionTools(server) {
             const manifest = JSON.parse(await response.text());
             if (manifest.icons && Array.isArray(manifest.icons)) {
               for (const icon of manifest.icons) {
-                const src = new URL(icon.src, result.manifestUrl).href;
+                let src;
+                try { src = new URL(icon.src, result.manifestUrl).href; } catch { continue; }
+                const proto = new URL(src).protocol;
+                if (proto !== 'http:' && proto !== 'https:') continue;
                 result.icons.push({
                   src,
                   type: 'manifest-icon',
@@ -512,7 +515,7 @@ module.exports = function registerExtractionTools(server) {
     'Extract main content as clean markdown, stripping chrome.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
-      selector: z.string().optional().describe('CSS selector to scope extraction'),
+      selector: z.string().max(500).optional().describe('CSS selector to scope extraction'),
       includeImages: z.boolean().default(false).describe('Include images in output'),
     },
     async ({ url, selector, includeImages }) => {

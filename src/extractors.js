@@ -985,7 +985,7 @@ function extractContentInBrowser({ selector, includeImages }) {
   // Find content root
   let root;
   if (selector) {
-    root = document.querySelector(selector);
+    try { root = document.querySelector(selector); } catch { return { content: '', error: 'Invalid CSS selector' }; }
   } else {
     root = document.querySelector('article') ||
            document.querySelector('main') ||
@@ -1125,8 +1125,11 @@ function extractFormsInBrowser() {
     if (el.maxLength > 0 && el.maxLength < 524288) info.maxLength = el.maxLength;
     if (el.min !== '') info.min = el.min;
     if (el.max !== '') info.max = el.max;
-    // Hidden field value
-    if (el.type === 'hidden') info.value = el.value;
+    // Hidden fields: flag presence but don't expose values (may contain tokens/secrets)
+    if (el.type === 'hidden') {
+      info.hidden = true;
+      if (CSRF_NAMES.test(el.name || '')) info.csrf = true;
+    }
     // Checkboxes/radio
     if (el.type === 'checkbox' || el.type === 'radio') info.checked = el.checked;
     // Select options
@@ -1134,8 +1137,6 @@ function extractFormsInBrowser() {
       info.options = [...el.options].slice(0, 20).map(o => ({ value: o.value, label: o.text.trim(), selected: o.selected || undefined }));
       if (el.multiple) info.multiple = true;
     }
-    // CSRF flag
-    if (el.type === 'hidden' && CSRF_NAMES.test(el.name || '')) info.csrf = true;
     // Clean up undefineds
     Object.keys(info).forEach(k => info[k] === undefined && delete info[k]);
     return info;

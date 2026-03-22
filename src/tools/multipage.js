@@ -21,8 +21,8 @@ module.exports = function registerMultipageTools(server) {
     'BFS crawl with extraction per page. Writes to output/crawl-{ts}/.',
     {
       url: z.string().describe('Start URL'),
-      maxPages: z.number().default(10).describe('Max pages'),
-      maxDepth: z.number().default(2).describe('Max link depth'),
+      maxPages: z.number().min(1).max(100).default(10).describe('Max pages (1-100)'),
+      maxDepth: z.number().min(0).max(10).default(2).describe('Max link depth (0-10)'),
       extract: z.array(z.enum(['content', 'metadata', 'links', 'colors', 'fonts', 'css_vars', 'components', 'forms'])).default(['content']).describe('Extractions per page'),
       filterPath: z.string().optional().describe("Path prefix filter (e.g. '/blog/')"),
       sameDomain: z.boolean().default(true).describe('Same domain only'),
@@ -45,8 +45,11 @@ module.exports = function registerMultipageTools(server) {
       const visited = new Set();
       const queue = [{ url: normalizeUrl(url), depth: 0 }];
       const results = [];
+      const crawlStart = Date.now();
+      const CRAWL_TIMEOUT_MS = 300000; // 5 minutes
 
       while (queue.length > 0 && visited.size < maxPages) {
+        if (Date.now() - crawlStart > CRAWL_TIMEOUT_MS) break;
         const { url: currentUrl, depth } = queue.shift();
         if (visited.has(currentUrl)) continue;
         visited.add(currentUrl);

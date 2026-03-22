@@ -4,6 +4,15 @@ const browser = require('../browser');
 const { navigateIfNeeded, summarizeResult } = require('../helpers');
 
 const STATIC_RESOURCE_TYPES = new Set(['image', 'stylesheet', 'font', 'media']);
+const SENSITIVE_HEADERS = new Set(['authorization', 'cookie', 'set-cookie', 'x-auth-token', 'x-api-key', 'x-csrf-token', 'x-xsrf-token']);
+
+function redactHeaders(headers) {
+  const safe = {};
+  for (const [k, v] of Object.entries(headers)) {
+    safe[k] = SENSITIVE_HEADERS.has(k.toLowerCase()) ? '[REDACTED]' : v;
+  }
+  return safe;
+}
 
 async function captureNetwork({ duration, includeStatic, filterUrl, filterMethod }) {
   const entryMap = new Map();
@@ -19,7 +28,7 @@ async function captureNetwork({ duration, includeStatic, filterUrl, filterMethod
       url,
       method: req.method(),
       resourceType: req.resourceType(),
-      requestHeaders: req.headers(),
+      requestHeaders: redactHeaders(req.headers()),
       postData: req.postData() || null,
     });
   };
@@ -30,7 +39,7 @@ async function captureNetwork({ duration, includeStatic, filterUrl, filterMethod
     if (!entry) return;
 
     entry.status = res.status();
-    entry.responseHeaders = res.headers();
+    entry.responseHeaders = redactHeaders(res.headers());
     entry.contentType = (res.headers()['content-type'] || '').split(';')[0].trim();
 
     const ct = entry.contentType;
@@ -64,8 +73,8 @@ module.exports = function registerNetworkTools(server) {
       url: z.string().optional().describe('URL (omit for current page)'),
       duration: z.number().default(10).describe('Seconds to capture'),
       includeStatic: z.boolean().default(false).describe('Include images/CSS/fonts'),
-      filterUrl: z.string().optional().describe('Filter: URL contains string'),
-      filterMethod: z.string().optional().describe('Filter: HTTP method (GET, POST)'),
+      filterUrl: z.string().max(500).optional().describe('Filter: URL contains string'),
+      filterMethod: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']).optional().describe('Filter: HTTP method'),
     },
     async ({ url, duration, includeStatic, filterUrl, filterMethod }) => {
       await browser.ensureBrowser();
@@ -93,7 +102,7 @@ module.exports = function registerNetworkTools(server) {
     {
       url: z.string().optional().describe('URL (omit for current page)'),
       duration: z.number().default(15).describe('Seconds to capture'),
-      filterUrl: z.string().optional().describe('Filter: URL contains string'),
+      filterUrl: z.string().max(500).optional().describe('Filter: URL contains string'),
     },
     async ({ url, duration, filterUrl }) => {
       await browser.ensureBrowser();

@@ -7,6 +7,17 @@ const browser = require('./browser');
 
 const PKG_VERSION = require('../package.json').version;
 
+function sanitizeObject(obj) {
+  if (typeof obj === 'string') return sanitizeForLLM(obj);
+  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  if (obj && typeof obj === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) out[k] = sanitizeObject(v);
+    return out;
+  }
+  return obj;
+}
+
 async function navigateIfNeeded(url, waitMs = 1500) {
   if (!url) return;
   try {
@@ -31,7 +42,7 @@ function summarizeResult(name, data, summary, meta = {}) {
     summary,
   };
 
-  fs.writeFileSync(filePath, JSON.stringify({ _meta, ...data }, null, 2));
+  fs.writeFileSync(filePath, JSON.stringify(sanitizeObject({ _meta, ...data }), null, 2));
 
   if (process.env.TAPSITE_REPORT === '1') {
     const mdPath = path.join(dir, `${name}-${tsFile}.md`);
