@@ -13,7 +13,7 @@ const { inspectPageV2 } = require('../inspector');
 const { createRunDir, screenshotPath, exportJSON, exportMarkdown, exportHTML, exportCSV } = require('../exporter');
 const config = require('../config');
 const browser = require('../browser');
-const { navigateIfNeeded } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl } = require('../helpers');
 
 const PKG_VERSION = require('../../package.json').version;
 
@@ -35,6 +35,7 @@ module.exports = function registerExportTools(server) {
       const results = [];
 
       for (const [i, url] of urls.entries()) {
+        requireSafeUrl(url);
         try {
           await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
         } catch {}

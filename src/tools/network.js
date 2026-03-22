@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const { detectStackInBrowser } = require('../extractors');
 const browser = require('../browser');
-const { navigateIfNeeded, summarizeResult } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, summarizeResult } = require('../helpers');
 
 const STATIC_RESOURCE_TYPES = new Set(['image', 'stylesheet', 'font', 'media']);
 const SENSITIVE_HEADERS = new Set(['authorization', 'cookie', 'set-cookie', 'x-auth-token', 'x-api-key', 'x-csrf-token', 'x-xsrf-token']);
@@ -71,7 +71,7 @@ module.exports = function registerNetworkTools(server) {
     'Capture network traffic for a duration. Filters static assets by default.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
-      duration: z.number().default(10).describe('Seconds to capture'),
+      duration: z.number().min(1).max(60).default(10).describe('Seconds to capture (1-60)'),
       includeStatic: z.boolean().default(false).describe('Include images/CSS/fonts'),
       filterUrl: z.string().max(500).optional().describe('Filter: URL contains string'),
       filterMethod: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']).optional().describe('Filter: HTTP method'),
@@ -101,7 +101,7 @@ module.exports = function registerNetworkTools(server) {
     'Infer API schemas from captured network traffic.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
-      duration: z.number().default(15).describe('Seconds to capture'),
+      duration: z.number().min(1).max(60).default(15).describe('Seconds to capture (1-60)'),
       filterUrl: z.string().max(500).optional().describe('Filter: URL contains string'),
     },
     async ({ url, duration, filterUrl }) => {
@@ -210,6 +210,7 @@ module.exports = function registerNetworkTools(server) {
       let serverHeaders = null;
 
       if (url) {
+        requireSafeUrl(url);
         let mainResponse = null;
         try {
           mainResponse = await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });

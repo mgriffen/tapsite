@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const { sanitizeForLLM } = require('../sanitizer');
 const browser = require('../browser');
-const { navigateIfNeeded, indexPage, resolveElement, formatIndexResult, summarizeResult } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, indexPage, resolveElement, formatIndexResult, summarizeResult } = require('../helpers');
 
 module.exports = function registerSessionTools(server) {
 
@@ -17,7 +17,11 @@ module.exports = function registerSessionTools(server) {
       submitSelector: z.string().max(500).default('input[type="submit"]').describe('Submit button selector'),
     },
     async ({ url, username, password, usernameSelector, passwordSelector, submitSelector }) => {
+      if (process.env.TAPSITE_ALLOW_AUTO_LOGIN !== '1') {
+        return { content: [{ type: 'text', text: 'tapsite_login is disabled by default because credentials appear in MCP transport logs.\nSet TAPSITE_ALLOW_AUTO_LOGIN=1 to enable, or use tapsite_login_manual for safe interactive login.' }] };
+      }
       await browser.ensureBrowser();
+      requireSafeUrl(url);
       await browser.page.goto(url);
       await browser.page.fill(usernameSelector, username);
       await browser.page.fill(passwordSelector, password);
@@ -48,6 +52,7 @@ module.exports = function registerSessionTools(server) {
     },
     async ({ url }) => {
       await browser.ensureBrowser(false);
+      requireSafeUrl(url);
       await browser.page.goto(url);
 
       const title = await browser.page.title();

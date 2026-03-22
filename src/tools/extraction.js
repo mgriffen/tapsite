@@ -22,7 +22,7 @@ const {
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
-const { navigateIfNeeded, summarizeResult } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, summarizeResult } = require('../helpers');
 
 function formatLayoutTree(node, indent = '') {
   if (!node) return '';
@@ -250,7 +250,7 @@ module.exports = function registerExtractionTools(server) {
       url: z.string().optional().describe('URL (omit for current page)'),
       minWidth: z.number().default(50).describe('Min width in px'),
       filter: z.string().optional().describe('Filter: src contains string'),
-      limit: z.number().default(50).describe('Max images'),
+      limit: z.number().min(1).max(200).default(50).describe('Max images (1-200)'),
       formats: z.array(z.string()).optional().describe("Extensions filter (e.g. ['png','jpg'])"),
     },
     async ({ url, minWidth, filter, limit, formats }) => {
@@ -278,6 +278,7 @@ module.exports = function registerExtractionTools(server) {
       for (const img of toDownload) {
         try {
           const imgUrl = new URL(img.src, browser.page.url()).href;
+          try { requireSafeUrl(imgUrl); } catch { errors.push({ src: img.src, error: 'Blocked non-http(s) URL' }); continue; }
           const response = await browser.page.context().request.get(imgUrl);
           if (!response.ok()) {
             errors.push({ src: img.src, status: response.status() });
@@ -317,7 +318,7 @@ module.exports = function registerExtractionTools(server) {
     'Extract SVGs: inline markup, external URLs, icon/illustration classification.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
-      limit: z.number().default(50).describe('Max SVGs'),
+      limit: z.number().min(1).max(200).default(50).describe('Max SVGs (1-200)'),
       download: z.boolean().default(false).describe('Download to output/assets/svgs/'),
     },
     async ({ url, limit, download }) => {
@@ -339,6 +340,7 @@ module.exports = function registerExtractionTools(server) {
               svg.savedTo = filePath;
               savedCount++;
             } else if (svg.type === 'external' && svg.src) {
+              try { requireSafeUrl(new URL(svg.src, browser.page.url()).href); } catch { continue; }
               const response = await browser.page.context().request.get(svg.src);
               if (response.ok()) {
                 const body = await response.body();
@@ -407,6 +409,7 @@ module.exports = function registerExtractionTools(server) {
 
         for (const icon of result.icons) {
           try {
+            try { requireSafeUrl(new URL(icon.src, browser.page.url()).href); } catch { continue; }
             const response = await browser.page.context().request.get(icon.src);
             if (response.ok()) {
               const body = await response.body();

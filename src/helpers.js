@@ -18,8 +18,22 @@ function sanitizeObject(obj) {
   return obj;
 }
 
+function requireSafeUrl(urlStr) {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`Blocked URL scheme "${parsed.protocol}" — only http: and https: are allowed`);
+    }
+    return parsed;
+  } catch (e) {
+    if (e.message.startsWith('Blocked URL')) throw e;
+    throw new Error(`Invalid URL: ${urlStr}`);
+  }
+}
+
 async function navigateIfNeeded(url, waitMs = 1500) {
   if (!url) return;
+  requireSafeUrl(url);
   try {
     await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
   } catch {}
@@ -92,4 +106,4 @@ function formatIndexResult(result) {
   return sanitizeForLLM(text);
 }
 
-module.exports = { navigateIfNeeded, summarizeResult, indexPage, resolveElement, formatIndexResult };
+module.exports = { navigateIfNeeded, requireSafeUrl, summarizeResult, indexPage, resolveElement, formatIndexResult };

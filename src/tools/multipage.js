@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const path = require('path');
 const fs = require('fs');
-const { summarizeResult } = require('../helpers');
+const { summarizeResult, requireSafeUrl } = require('../helpers');
 const {
   extractContentInBrowser,
   extractMetadataInBrowser,
@@ -29,6 +29,7 @@ module.exports = function registerMultipageTools(server) {
     },
     async ({ url, maxPages, maxDepth, extract, filterPath, sameDomain }) => {
       await browser.ensureBrowser();
+      requireSafeUrl(url);
 
       const normalizeUrl = (u) => {
         try {
@@ -47,6 +48,8 @@ module.exports = function registerMultipageTools(server) {
       const results = [];
       const crawlStart = Date.now();
       const CRAWL_TIMEOUT_MS = 300000; // 5 minutes
+      const MAX_OUTPUT_BYTES = 50 * 1024 * 1024; // 50 MB
+      let totalBytes = 0;
 
       while (queue.length > 0 && visited.size < maxPages) {
         if (Date.now() - crawlStart > CRAWL_TIMEOUT_MS) break;
@@ -113,7 +116,10 @@ module.exports = function registerMultipageTools(server) {
 
         results.push(pageResult);
         const filename = `page-${String(results.length).padStart(3, '0')}.json`;
-        fs.writeFileSync(path.join(runDir, filename), JSON.stringify(pageResult, null, 2));
+        const json = JSON.stringify(pageResult, null, 2);
+        totalBytes += Buffer.byteLength(json);
+        if (totalBytes > MAX_OUTPUT_BYTES) break;
+        fs.writeFileSync(path.join(runDir, filename), json);
       }
 
       const summary = {
@@ -146,6 +152,8 @@ module.exports = function registerMultipageTools(server) {
     },
     async ({ url1, url2, viewport1, viewport2 }) => {
       await browser.ensureBrowser();
+      requireSafeUrl(url1);
+      requireSafeUrl(url2);
 
       const capturePage = async (url, viewport) => {
         if (viewport) await browser.page.setViewportSize(viewport);
