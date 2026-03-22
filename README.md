@@ -33,16 +33,16 @@ Add to your Claude config (`~/.claude/.mcp.json`):
 
 Click any image to see the full interactive page:
 
-[![tapsite Product Overview](docs/screenshots/product.png)](https://mgriffen.github.io/tapsite/product.html)
+[![tapsite Product Overview](docs/screenshots/product-v2.png)](https://mgriffen.github.io/tapsite/product.html)
 
 **43 extraction tools** for web design analysis — colors, fonts, performance, accessibility, content, forms, assets, and more. Works with any MCP-compatible AI agent.
 
 | Design System Extraction | Deep Intelligence |
 |:---:|:---:|
-| [![Showcase I](docs/screenshots/showcase-design.png)](https://mgriffen.github.io/tapsite/showcase-design.html) | [![Showcase II](docs/screenshots/showcase-deep.png)](https://mgriffen.github.io/tapsite/showcase-deep.html) |
+| [![Showcase I](docs/screenshots/showcase-design-v2.png)](https://mgriffen.github.io/tapsite/showcase-design.html) | [![Showcase II](docs/screenshots/showcase-deep-v2.png)](https://mgriffen.github.io/tapsite/showcase-deep.html) |
 | Live-extracted colors, fonts, perf, breakpoints, and animations from Stripe, Linear, and Vercel | Accessibility audits, content extraction, form analysis, asset inventory, component detection |
 
-[![Real World Workflows](docs/screenshots/scenarios.png)](https://mgriffen.github.io/tapsite/scenarios.html)
+[![Real World Workflows](docs/screenshots/scenarios-v2.png)](https://mgriffen.github.io/tapsite/scenarios.html)
 
 **Four real-world workflows** — design system extraction, competitive research, accessibility auditing, and asset migration prep.
 
