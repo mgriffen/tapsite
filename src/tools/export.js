@@ -15,7 +15,7 @@ const config = require('../config');
 const browser = require('../browser');
 const { navigateIfNeeded } = require('../helpers');
 
-const PKG_VERSION = require('../package.json').version;
+const PKG_VERSION = require('../../package.json').version;
 
 function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
