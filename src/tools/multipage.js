@@ -1,6 +1,7 @@
 const { z } = require('zod');
 const path = require('path');
 const fs = require('fs');
+const { summarizeResult } = require('../helpers');
 const {
   extractContentInBrowser,
   extractMetadataInBrowser,
@@ -210,7 +211,6 @@ module.exports = function registerMultipageTools(server) {
       lines.push(`Links: ${d.linkCount.url1} vs ${d.linkCount.url2} | Images: ${d.imageCount.url1} vs ${d.imageCount.url2}`);
       lines.push(`Headings: ${d.headings.shared} shared, ${d.headings.onlyIn1.length} only in url1, ${d.headings.onlyIn2.length} only in url2`);
       lines.push(`Colors: ${d.colors.shared.length} shared, ${d.colors.onlyIn1.length} only in url1, ${d.colors.onlyIn2.length} only in url2`);
-      const { summarizeResult } = require('../helpers');
       const summary = `Diff: ${url1} vs ${url2}\n${lines.join('\n')}`;
       return summarizeResult('diff', result, summary, { tool: 'tapsite_diff_pages', description: 'Structural and content comparison between two URLs' });
     }

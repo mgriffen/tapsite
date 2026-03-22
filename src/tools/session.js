@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const { sanitizeForLLM } = require('../sanitizer');
 const browser = require('../browser');
-const { navigateIfNeeded, indexPage, resolveElement, formatIndexResult } = require('../helpers');
+const { navigateIfNeeded, indexPage, resolveElement, formatIndexResult, summarizeResult } = require('../helpers');
 
 module.exports = function registerSessionTools(server) {
 
@@ -309,7 +309,6 @@ module.exports = function registerSessionTools(server) {
       const text = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
       if (text.length > 2000) {
         const preview = text.slice(0, 500) + '\n…(truncated)';
-        const { summarizeResult } = require('../helpers');
         return summarizeResult('run-js', result, `Result (${text.length} chars, truncated):\n${preview}`, { tool: 'tapsite_run_js', description: 'JavaScript evaluation result from page context' });
       }
       return { content: [{ type: 'text', text: sanitizeForLLM(text) }] };

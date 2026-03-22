@@ -1,4 +1,4 @@
-# cbrowser Development Roadmap
+# tapsite Development Roadmap
 
 > Generated 2026-03-21 | Opus 4.6 strategic planning session
 > Living document — update as decisions are made and phases complete.
@@ -7,25 +7,25 @@
 
 ## Strategic Assessment
 
-### What cbrowser actually is — and what it isn't
+### What tapsite actually is — and what it isn't
 
-cbrowser is not a browser automation tool. Playwright MCP, Puppeteer MCP, BrowserMCP, and every other MCP browser server give an AI the ability to *drive* a browser — click, type, navigate. That's table stakes. Microsoft ships Playwright MCP for free and it works fine for that.
+tapsite is not a browser automation tool. Playwright MCP, Puppeteer MCP, BrowserMCP, and every other MCP browser server give an AI the ability to *drive* a browser — click, type, navigate. That's table stakes. Microsoft ships Playwright MCP for free and it works fine for that.
 
-cbrowser's actual value proposition is **web intelligence extraction** — the ability to look at a web page and produce structured, actionable intelligence about its design system, accessibility posture, technology stack, API surface, content structure, and visual assets. The 37 tools include browser automation as a means to an end, but the differentiator is what happens *after* navigation: the extractors.
+tapsite's actual value proposition is **web intelligence extraction** — the ability to look at a web page and produce structured, actionable intelligence about its design system, accessibility posture, technology stack, API surface, content structure, and visual assets. The 37 tools include browser automation as a means to an end, but the differentiator is what happens *after* navigation: the extractors.
 
-This distinction matters because it determines positioning, competition, and where to invest development effort. cbrowser competes with Playwright MCP on browser automation (and will lose — Microsoft has infinite resources). It has **no meaningful competition** on structured web intelligence extraction via MCP. That's the moat.
+This distinction matters because it determines positioning, competition, and where to invest development effort. tapsite competes with Playwright MCP on browser automation (and will lose — Microsoft has infinite resources). It has **no meaningful competition** on structured web intelligence extraction via MCP. That's the moat.
 
-**Recommendation:** Stop calling cbrowser a "web intelligence toolkit" generically. Start calling it **"the MCP server for web intelligence extraction"** — design systems, accessibility auditing, competitive analysis, and migration prep. The browser automation tools (navigate, act, scroll, screenshot) are plumbing. The extractors are the product.
+**Recommendation:** Stop calling tapsite a "web intelligence toolkit" generically. Start calling it **"the MCP server for web intelligence extraction"** — design systems, accessibility auditing, competitive analysis, and migration prep. The browser automation tools (navigate, act, scroll, screenshot) are plumbing. The extractors are the product.
 
 ### Honest assessment of the three proposed directions
 
 #### Docker MCP Deployment — Right idea, wrong priority
 
-Docker solves installation friction, which matters. But cbrowser's installation is three commands (`npm install`, `npx playwright install chromium`, `npx playwright install-deps chromium`). That's not the adoption bottleneck.
+Docker solves installation friction, which matters. But tapsite's installation is three commands (`npm install`, `npx playwright install chromium`, `npx playwright install-deps chromium`). That's not the adoption bottleneck.
 
-The actual adoption bottleneck is **discoverability**: nobody knows cbrowser exists. Dockerizing an unknown tool doesn't make it known. And Docker introduces a real problem: `cbrowser_login_manual` (headed browser for MFA) breaks in standard containers. The VNC workaround is fragile and adds complexity that undermines the "zero-dependency" promise.
+The actual adoption bottleneck is **discoverability**: nobody knows tapsite exists. Dockerizing an unknown tool doesn't make it known. And Docker introduces a real problem: `tapsite_login_manual` (headed browser for MFA) breaks in standard containers. The VNC workaround is fragile and adds complexity that undermines the "zero-dependency" promise.
 
-**Better sequencing:** Publish to npm first (`npx cbrowser-mcp`). This is simpler, reaches the same audience, and doesn't break headed mode. Docker comes later, positioned for CI/server use cases where headless-only is acceptable.
+**Better sequencing:** Publish to npm first (`npx tapsite-mcp`). This is simpler, reaches the same audience, and doesn't break headed mode. Docker comes later, positioned for CI/server use cases where headless-only is acceptable.
 
 #### Browser Extension — Right idea, wrong time
 
@@ -49,11 +49,11 @@ The three proposed directions are all *outward-facing*: how to package, how to d
 
 2. **2000-line monolith.** `mcp-server.js` contains tool definitions, browser lifecycle management, network capture logic, HTML template strings for design reports, and the sanitization layer — all in one file. This is fine for solo development but blocks contributions and parallel work.
 
-3. **Inconsistent hidden element filtering.** The `isHiddenElement()` function is copy-pasted 4+ times with slight variations. The links extractor in `cbrowser_extract_links` uses a different `isHidden` function. The crawl tool inlines yet another variant. Inspector v1 (still used by `cbrowser_export`) has no hidden element filtering at all. This is a security gap in a project that lists security as a core commitment.
+3. **Inconsistent hidden element filtering.** The `isHiddenElement()` function is copy-pasted 4+ times with slight variations. The links extractor in `tapsite_extract_links` uses a different `isHidden` function. The crawl tool inlines yet another variant. Inspector v1 (still used by `tapsite_export`) has no hidden element filtering at all. This is a security gap in a project that lists security as a core commitment.
 
 4. **Version/license mismatch.** `package.json` says v3.0.0 and ISC. `McpServer` constructor says v1.0.0. README says MIT. These signal "nobody reviews this project carefully."
 
-5. **Inspector v1/v2 divergence.** `cbrowser_export` still uses the legacy `inspectPage` (v1) which returns different data shapes and lacks hidden element filtering. This means the export tool — the one that produces human-facing reports — is using the older, less secure code path.
+5. **Inspector v1/v2 divergence.** `tapsite_export` still uses the legacy `inspectPage` (v1) which returns different data shapes and lacks hidden element filtering. This means the export tool — the one that produces human-facing reports — is using the older, less secure code path.
 
 **My recommendation:** Before any outward-facing work, spend 2-3 sessions on foundation. Not because it's exciting, but because every outward-facing initiative will be more successful, more maintainable, and more credible with this foundation in place.
 
@@ -61,7 +61,7 @@ The three proposed directions are all *outward-facing*: how to package, how to d
 
 ## Competitive Landscape
 
-### Browser Automation MCP Servers (cbrowser's neighbors, not its competitors)
+### Browser Automation MCP Servers (tapsite's neighbors, not its competitors)
 
 | Tool | Stars | Type | What it does |
 |------|-------|------|-------------|
@@ -72,16 +72,16 @@ The three proposed directions are all *outward-facing*: how to package, how to d
 | **Puppeteer MCP** | — | Puppeteer | Original reference browser MCP server. Being eclipsed by Playwright MCP. |
 | **Browserbase** | — | Cloud API | Hosted headless browsers at scale. Anti-detection. Enterprise focus. |
 
-### Web Intelligence Extraction (cbrowser's actual category)
+### Web Intelligence Extraction (tapsite's actual category)
 
-**cbrowser owns this niche.** No other MCP server combines design system extraction, accessibility auditing, component detection, API schema inference, performance metrics, network analysis, and content extraction in a single package.
+**tapsite owns this niche.** No other MCP server combines design system extraction, accessibility auditing, component detection, API schema inference, performance metrics, network analysis, and content extraction in a single package.
 
 The closest single-purpose competitors:
 - **a11y-mcp** (39 stars) — Axe-core a11y audits. Two tools only.
 - **Deque axe MCP** — Enterprise a11y testing. Single-purpose, paid.
 - **MCP Design Dev** (49 installs) — Figma design tokens. Not live-site analysis.
 
-Chrome DevTools MCP has Lighthouse integration that overlaps with cbrowser's a11y/perf tools, but it exposes raw Lighthouse data rather than LLM-optimized summaries. cbrowser's `summarizeResult()` pattern — compact summary to context window, full data to disk — is a structural advantage for AI consumption.
+Chrome DevTools MCP has Lighthouse integration that overlaps with tapsite's a11y/perf tools, but it exposes raw Lighthouse data rather than LLM-optimized summaries. tapsite's `summarizeResult()` pattern — compact summary to context window, full data to disk — is a structural advantage for AI consumption.
 
 This niche position is both an opportunity (unoccupied) and a risk (possibly unoccupied because demand is thin). The roadmap validates demand through distribution (Phase 1) before heavy feature investment (Phase 5+).
 
@@ -91,7 +91,7 @@ The MCP ecosystem has exploded: 5,800+ registered servers, downloads from ~100k 
 
 Major clients: Claude Desktop, Claude Code, Cursor, VS Code (via Copilot/Continue/Cline), Windsurf, ChatGPT, Gemini, Zed, Replit. MCP is now supported by all major AI platforms — it's the de facto standard for tool integration.
 
-**Implication for cbrowser:** Being discoverable in MCP directories (mcp.so, Smithery, Glama, MCP Registry) is table stakes. cbrowser is currently in none of them. Phase 1B addresses this directly.
+**Implication for tapsite:** Being discoverable in MCP directories (mcp.so, Smithery, Glama, MCP Registry) is table stakes. tapsite is currently in none of them. Phase 1B addresses this directly.
 
 ---
 
@@ -108,7 +108,7 @@ Major clients: Claude Desktop, Claude Code, Cursor, VS Code (via Copilot/Continu
 - Fix version mismatch: `McpServer` constructor version → `3.0.0`
 - Fix license: `package.json` license → `MIT` (matching README and LICENSE file)
 - Add `"start": "node src/mcp-server.js"` script to package.json
-- Add `"bin": { "cbrowser-mcp": "src/mcp-server.js" }` for future npx support
+- Add `"bin": { "tapsite-mcp": "src/mcp-server.js" }` for future npx support
 - Ensure `src/mcp-server.js` has a proper shebang (`#!/usr/bin/env node`)
 - Extract the navigation boilerplate into a helper:
   ```js
@@ -119,7 +119,7 @@ Major clients: Claude Desktop, Claude Code, Cursor, VS Code (via Copilot/Continu
   }
   ```
 - Unify `isHiddenElement` / `isHidden` / `isVisible` — one canonical implementation used everywhere
-- Update `cbrowser_export` to use `inspectPageV2` instead of legacy `inspectPage`
+- Update `tapsite_export` to use `inspectPageV2` instead of legacy `inspectPage`
 
 **Security assessment:** The `isHiddenElement` unification directly closes a security gap. Inspector v1 removal eliminates an unfiltered extraction path.
 
@@ -171,7 +171,7 @@ src/
 
 Each `tools/*.js` file exports a function that takes `server` and registers its tools. `server.js` imports them all:
 ```js
-const server = new McpServer({ name: "cbrowser", version: "3.0.0" });
+const server = new McpServer({ name: "tapsite", version: "3.0.0" });
 require('./tools/session')(server);
 require('./tools/extraction')(server);
 // ...
@@ -188,11 +188,11 @@ require('./tools/extraction')(server);
 ### Phase 1: Distribution (2 sessions)
 
 #### 1A: npm Package
-**Scope:** Make cbrowser installable via npm/npx. Single session.
+**Scope:** Make tapsite installable via npm/npx. Single session.
 **Model:** Sonnet
 
 - Finalize `package.json`: name, description, keywords, author, repository, files field
-- Check npm for name availability (`cbrowser` or `cbrowser-mcp`)
+- Check npm for name availability (`tapsite` or `tapsite-mcp`)
 - Add `"files"` field to package.json to control what gets published (exclude docs/, test/, .github/)
 - Add `.npmignore` as backup
 - Test with `npm pack` and inspect the tarball
@@ -200,10 +200,10 @@ require('./tools/extraction')(server);
 - Update README installation instructions:
   ```bash
   # Quick start
-  npx cbrowser-mcp
+  npx tapsite-mcp
 
   # Or install globally
-  npm install -g cbrowser-mcp
+  npm install -g tapsite-mcp
   ```
 - Update `~/.claude/.mcp.json` example to use npx
 
@@ -211,7 +211,7 @@ require('./tools/extraction')(server);
 
 **Output quality:** The npm listing (package.json description, keywords, README) is itself a product surface. Write it for discoverability.
 
-**Done when:** `npx cbrowser-mcp` starts the MCP server. Package appears on npmjs.com.
+**Done when:** `npx tapsite-mcp` starts the MCP server. Package appears on npmjs.com.
 
 #### 1B: MCP Directory Listings
 **Scope:** Submit to MCP directories. Single session (mostly non-code).
@@ -228,7 +228,7 @@ For each, prepare:
 - One-paragraph description emphasizing extraction intelligence (not browser automation)
 - Category: "Web Intelligence" or "Browser & Web"
 - Icon/logo if required
-- Installation command (`npx cbrowser-mcp`)
+- Installation command (`npx tapsite-mcp`)
 
 **Done when:** Listed in at least 3 directories with correct installation instructions.
 
@@ -238,7 +238,7 @@ For each, prepare:
 
 This phase addresses the dual-consumer standard honestly. Currently:
 - **AI consumer:** Well-served by `summarizeResult()`. Compact summaries, full data on disk. This pattern is correct.
-- **Human consumer:** Poorly served outside of the two export tools. A developer who runs `cbrowser_extract_colors` gets a JSON file dropped in `output/extractions/`. No visual report, no terminal formatting, no self-documenting schema. The design report HTML is good but it's the *only* polished human output.
+- **Human consumer:** Poorly served outside of the two export tools. A developer who runs `tapsite_extract_colors` gets a JSON file dropped in `output/extractions/`. No visual report, no terminal formatting, no self-documenting schema. The design report HTML is good but it's the *only* polished human output.
 
 #### 2A: Extraction Output Upgrade
 **Scope:** Make extraction JSON files self-documenting. Single session.
@@ -249,7 +249,7 @@ For every extraction tool that uses `summarizeResult()`:
   ```json
   {
     "_meta": {
-      "tool": "cbrowser_extract_colors",
+      "tool": "tapsite_extract_colors",
       "url": "https://example.com",
       "timestamp": "2026-03-21T...",
       "version": "3.1.0",
@@ -273,24 +273,24 @@ For every extraction tool that uses `summarizeResult()`:
 **Model:** Sonnet
 
 This is NOT a CLI rewrite. It's a lightweight addition:
-- When `CBROWSER_REPORT=1` env var is set, `summarizeResult()` also writes a `<name>-<ts>.md` alongside the JSON
+- When `TAPSITE_REPORT=1` env var is set, `summarizeResult()` also writes a `<name>-<ts>.md` alongside the JSON
 - The Markdown file is a human-readable mini-report with the summary data formatted for readability
 - For color extractions: include a simple HTML file with color swatches (similar to the design report but standalone)
 - For a11y: include a pass/fail summary formatted for pasting into a ticket
 
-**Output quality:** This is the phase that makes cbrowser output directly useful to humans who aren't Claude.
+**Output quality:** This is the phase that makes tapsite output directly useful to humans who aren't Claude.
 
 **Done when:** Every extraction tool produces both JSON (machine) and Markdown (human) output when report mode is enabled.
 
 #### 2C: Export Tool Consolidation
-**Scope:** Upgrade `cbrowser_export` to use v2 inspector and modern extractors. Single session.
+**Scope:** Upgrade `tapsite_export` to use v2 inspector and modern extractors. Single session.
 **Model:** Sonnet
 
-- `cbrowser_export` currently uses `inspectPage` (v1) — switch to `inspectPageV2`
-- Add optional extraction types to `cbrowser_export` (like `cbrowser_crawl` already has)
-- Ensure the HTML report template matches the quality level of `cbrowser_export_design_report`
+- `tapsite_export` currently uses `inspectPage` (v1) — switch to `inspectPageV2`
+- Add optional extraction types to `tapsite_export` (like `tapsite_crawl` already has)
+- Ensure the HTML report template matches the quality level of `tapsite_export_design_report`
 
-**Done when:** `cbrowser_export` produces reports using the same code paths as all other tools.
+**Done when:** `tapsite_export` produces reports using the same code paths as all other tools.
 
 ---
 
@@ -318,8 +318,8 @@ Key decisions:
 - `output/` mounted as volume for extraction results
 - `docker-compose.yml` for easy `docker compose up`
 
-Headed mode note: Document that `cbrowser_login_manual` is not available in Docker. For authenticated extraction in containers, the workflow is:
-1. Run cbrowser locally, log in manually
+Headed mode note: Document that `tapsite_login_manual` is not available in Docker. For authenticated extraction in containers, the workflow is:
+1. Run tapsite locally, log in manually
 2. Copy `profiles/` directory into the container via volume mount
 3. Container uses the saved session cookies
 
@@ -327,7 +327,7 @@ Headed mode note: Document that `cbrowser_login_manual` is not available in Dock
 
 **Output quality:** README includes Docker quick-start that a developer can copy-paste.
 
-**Done when:** `docker run mgriffen/cbrowser` starts the MCP server. `docker compose up` works with volume-mounted output.
+**Done when:** `docker run mgriffen/tapsite` starts the MCP server. `docker compose up` works with volume-mounted output.
 
 ---
 
@@ -343,7 +343,7 @@ Deliverables:
 1. `SECURITY.md` — threat model document covering:
    - Prompt injection via extracted web content (primary threat)
    - Session cookie theft via `profiles/` exposure
-   - `cbrowser_run_js` as an escape hatch (arbitrary JS execution in page context)
+   - `tapsite_run_js` as an escape hatch (arbitrary JS execution in page context)
    - Exfiltration via network requests from page context
    - Supply chain attacks via npm dependencies
 
@@ -357,7 +357,7 @@ Deliverables:
    - Missing checks: `text-indent: -9999px`, `transform: scale(0)`, `font-size: 0`, `color` matching `background-color`, `overflow: hidden` with tiny dimensions
    - The `position: absolute/fixed` offscreen check has a `width < 2 || height < 2` threshold — is this the right cutoff?
 
-4. Audit `cbrowser_run_js`:
+4. Audit `tapsite_run_js`:
    - This tool executes arbitrary JavaScript in page context. The result is passed through `sanitizeForLLM()` but the *execution itself* is unrestricted.
    - Consider: should this tool require explicit opt-in? Should there be a blocklist of dangerous operations?
 
@@ -369,28 +369,28 @@ Deliverables:
 
 ### Phase 5: Differentiation (2-3 sessions)
 
-This phase doubles down on what makes cbrowser unique. Instead of adding more browser automation features (where Microsoft will always win), deepen the extraction intelligence.
+This phase doubles down on what makes tapsite unique. Instead of adding more browser automation features (where Microsoft will always win), deepen the extraction intelligence.
 
 #### 5A: Extraction Presets
 **Scope:** Bundled tool sequences for common workflows. Single session.
 **Model:** Sonnet
 
-Add a `cbrowser_analyze` meta-tool that runs a preset combination of extractors:
+Add a `tapsite_analyze` meta-tool that runs a preset combination of extractors:
 
 ```
-cbrowser_analyze(url, preset: "design-system")
+tapsite_analyze(url, preset: "design-system")
   → runs: colors, fonts, css_vars, spacing, components, breakpoints, animations
   → produces: unified design system report
 
-cbrowser_analyze(url, preset: "competitive")
+tapsite_analyze(url, preset: "competitive")
   → runs: stack, metadata, content, perf, a11y, breakpoints
   → produces: competitive intelligence brief
 
-cbrowser_analyze(url, preset: "migration")
+tapsite_analyze(url, preset: "migration")
   → runs: images, svgs, favicon, fonts, css_vars, forms, links
   → produces: asset inventory for site migration
 
-cbrowser_analyze(url, preset: "accessibility")
+tapsite_analyze(url, preset: "accessibility")
   → runs: a11y, content, forms, colors (for contrast), metadata (for lang/title)
   → produces: accessibility audit report
 ```
@@ -401,13 +401,13 @@ cbrowser_analyze(url, preset: "accessibility")
 
 **Output quality:** Each preset produces a comprehensive, self-contained report (JSON + HTML + Markdown). This is where the dual-consumer standard really shines.
 
-**Done when:** `cbrowser_analyze` with 4 presets is available. Each produces all three output formats.
+**Done when:** `tapsite_analyze` with 4 presets is available. Each produces all three output formats.
 
 #### 5B: Diff Intelligence
-**Scope:** Upgrade `cbrowser_diff_pages` from a simple comparison to a proper change detection tool. Single session.
+**Scope:** Upgrade `tapsite_diff_pages` from a simple comparison to a proper change detection tool. Single session.
 **Model:** Sonnet
 
-Current `cbrowser_diff_pages` compares two URLs. Upgrade to:
+Current `tapsite_diff_pages` compares two URLs. Upgrade to:
 - Temporal diff: compare the same URL at two points in time (using cached extraction data)
 - Design system diff: compare two sites' design systems (colors, fonts, spacing)
 - A11y regression: compare accessibility scores over time
@@ -419,7 +419,7 @@ Current `cbrowser_diff_pages` compares two URLs. Upgrade to:
 **Scope:** Periodic re-extraction for monitoring use cases. Single session.
 **Model:** Sonnet
 
-Add `cbrowser_watch` that re-runs an extraction on a schedule and reports changes:
+Add `tapsite_watch` that re-runs an extraction on a schedule and reports changes:
 - Monitor a competitor's pricing page for content changes
 - Track accessibility score over time
 - Detect design system drift across a site
@@ -442,7 +442,7 @@ This is a lightweight cron-like feature, not a full monitoring platform. Store h
 Key decisions:
 - Chrome Manifest V3 (service worker + content script)
 - Extension-as-MCP-server via native messaging OR sidepanel companion UI
-- Which cbrowser tools map to extension APIs vs. which still need Playwright
+- Which tapsite tools map to extension APIs vs. which still need Playwright
 - Permission model: which tabs can the extension access?
 - How does the extension communicate extraction results back to the MCP client?
 
@@ -459,7 +459,7 @@ Detailed planning deferred until 6A architecture is complete. Expected: 2-3 Sonn
 
 You described wanting Opus-as-orchestrator with Sonnet workers, worktrees for parallel development, and agent teams. I want to push back on the complexity of that setup for a project this size.
 
-cbrowser is ~4,600 lines of code across 7 files. Most changes are sequential — a refactor in Phase 0C must complete before Phase 1A can use the new structure. The overhead of orchestrating multiple agents on sequential work exceeds the time saved.
+tapsite is ~4,600 lines of code across 7 files. Most changes are sequential — a refactor in Phase 0C must complete before Phase 1A can use the new structure. The overhead of orchestrating multiple agents on sequential work exceeds the time saved.
 
 **Where parallelism actually helps:**
 
@@ -526,7 +526,7 @@ Follow semver. Current: 3.0.0.
 - Phase 2 (output quality): 3.2.0 — new output formats, backward compatible
 - Phase 3 (Docker): 3.2.0 containerized (no code changes)
 - Phase 4 (security): 3.3.0 if changes affect tool behavior
-- Phase 5 (presets): 4.0.0 — new `cbrowser_analyze` tool is a feature addition
+- Phase 5 (presets): 4.0.0 — new `tapsite_analyze` tool is a feature addition
 - Phase 6 (extension): separate package, own versioning
 
 ### Issue Templates
@@ -570,7 +570,7 @@ body:
 ### Files to create
 
 - `CONTRIBUTING.md` — how to add a tool (extractor in extractors.js → tool definition in tools/*.js → test in test/ → PR)
-- `SECURITY.md` — threat model + responsible disclosure (security@cbrowser.dev or a GitHub security advisory)
+- `SECURITY.md` — threat model + responsible disclosure (security@tapsite.dev or a GitHub security advisory)
 - `.github/workflows/ci.yml` — test + lint on push/PR
 - `.github/FUNDING.yml` — GitHub Sponsors link (when ready)
 
@@ -580,18 +580,18 @@ body:
 
 ### Positioning
 
-**One-liner:** cbrowser is an MCP server that extracts structured intelligence from web pages — design systems, accessibility audits, competitive analysis, and migration prep.
+**One-liner:** tapsite is an MCP server that extracts structured intelligence from web pages — design systems, accessibility audits, competitive analysis, and migration prep.
 
 **Not:** "a browser tool" or "a web scraper" or "an automation framework."
 
-**Key differentiator:** Every other MCP browser tool gives AI the ability to *click buttons*. cbrowser gives AI the ability to *understand websites*.
+**Key differentiator:** Every other MCP browser tool gives AI the ability to *click buttons*. tapsite gives AI the ability to *understand websites*.
 
 ### Channels (ordered by expected ROI)
 
 1. **MCP directories** (Phase 1B) — zero effort, high discoverability for people actively looking for MCP tools
 2. **Blog post / dev.to / Hashnode** — "How I built an MCP server for web intelligence extraction" — technical audience, SEO for "MCP server" queries
 3. **Reddit** (r/ClaudeAI, r/LocalLLaMA, r/webdev) — show don't tell. Post a real extraction result (design system report from a well-known site)
-4. **Twitter/X** — short demo videos showing cbrowser extracting a design system in 30 seconds
+4. **Twitter/X** — short demo videos showing tapsite extracting a design system in 30 seconds
 5. **Hacker News** — "Show HN" when there's a compelling demo. One shot — make it count. Wait until Docker + presets are ready.
 6. **YouTube** — 5-minute demo video. "Extract any website's design system with one command."
 
@@ -613,7 +613,7 @@ body:
 
 **Possible models when the time comes:**
 - GitHub Sponsors (lowest friction, aligns with open source ethos)
-- Hosted cbrowser (run extractions without local Playwright install) — SaaS with usage-based pricing
+- Hosted tapsite (run extractions without local Playwright install) — SaaS with usage-based pricing
 - Pro tier with premium presets (competitive intelligence dashboards, continuous monitoring)
 - Consulting/customization for specific verticals (agency design system extraction, e-commerce competitive analysis)
 
@@ -649,7 +649,7 @@ Label these `good first issue` and write detailed specs in the issue body — th
 > 4. Add a shebang line (#!/usr/bin/env node) to the top of src/mcp-server.js
 > 5. Extract the navigation boilerplate that appears ~20 times in mcp-server.js into a helper function called `navigateIfNeeded(url)`. It should: return immediately if url is falsy, otherwise try page.goto with networkidle/30s timeout (catch and ignore errors), then waitForTimeout(1500). Replace all instances.
 > 6. The `isHiddenElement` function is copy-pasted in extractors.js (extractContentInBrowser, extractFormsInBrowser, extractA11yInBrowser) and a different `isHidden` variant exists in the link extractor inside mcp-server.js. These all need to be identical. The canonical version is in the `HIDDEN_ELEMENT_CHECK` constant at the top of extractors.js. Replace all inline copies with that exact implementation. For the links extractor in mcp-server.js, inline the same function body.
-> 7. In the `cbrowser_export` tool handler, replace `inspectPage(page)` with `inspectPageV2(page)` — import inspectPageV2 if not already imported. The export flow will need minor adjustments since v2 returns different fields (compressedDOM, elements instead of navItems, headings, etc.) — adapt the exporter to handle both shapes or update it for v2.
+> 7. In the `tapsite_export` tool handler, replace `inspectPage(page)` with `inspectPageV2(page)` — import inspectPageV2 if not already imported. The export flow will need minor adjustments since v2 returns different fields (compressedDOM, elements instead of navItems, headings, etc.) — adapt the exporter to handle both shapes or update it for v2.
 >
 > After all changes, verify: `node -e "require('./src/mcp-server.js')"` loads without errors.
 > Do not create new files. Do not add tests yet. Do not refactor the file structure.
@@ -722,4 +722,4 @@ Honest evaluation of how well each tool category serves both consumers today:
 | Advanced | Good — score + issues | OK — JSON with issues | Need formatted audit report |
 | Export | Good — file paths returned | Good — HTML reports exist | Design report is well done; general export needs upgrade |
 
-**Key insight:** The design report (`cbrowser_export_design_report`) is the quality bar. Most other tools fall well below it for human consumption. Phase 2 exists to close this gap.
+**Key insight:** The design report (`tapsite_export_design_report`) is the quality bar. Most other tools fall well below it for human consumption. Phase 2 exists to close this gap.
