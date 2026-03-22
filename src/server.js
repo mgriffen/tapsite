@@ -10,6 +10,7 @@ require('./tools/extraction')(server);
 require('./tools/network')(server);
 require('./tools/multipage')(server);
 require('./tools/export')(server);
+require('./tools/workflows')(server);
 
 async function main() {
   const transport = new StdioServerTransport();

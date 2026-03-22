@@ -19,6 +19,9 @@ const {
   extractA11yInBrowser,
   detectDarkmodeInBrowser,
   extractPerfInBrowser,
+  extractShadowsInBrowser,
+  extractIconsInBrowser,
+  extractContrastInBrowser,
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
@@ -591,7 +594,7 @@ module.exports = function registerExtractionTools(server) {
   );
 
   server.tool(
-    'tapsite_detect_darkmode',
+    'tapsite_extract_darkmode',
     'Detect dark mode support. Optionally capture dark palette.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
@@ -627,7 +630,7 @@ module.exports = function registerExtractionTools(server) {
       const method = result.hasDarkmodeMedia ? 'prefers-color-scheme' : (result.darkmodeClasses?.length ? 'css-classes' : 'unknown');
       const darkColors = (result.darkPalette || []).slice(0, 5).join(', ');
       const summary = `Dark mode: ${result.supported ? 'supported' : 'not detected'} (${method})${darkColors ? `\nDark palette: ${darkColors}` : ''}`;
-      return summarizeResult('darkmode', result, summary, { tool: 'tapsite_detect_darkmode', description: 'Dark mode support detection and optional dark palette capture' });
+      return summarizeResult('darkmode', result, summary, { tool: 'tapsite_extract_darkmode', description: 'Dark mode support detection and optional dark palette capture' });
     }
   );
 
@@ -648,6 +651,63 @@ module.exports = function registerExtractionTools(server) {
       const resStr = Object.entries(byType).map(([k, v]) => `${k}: ${v.count} files, ${v.transferKB}KB`).join(' | ');
       const summary = `Perf: TTFB ${t.ttfbMs ?? '?'}ms, DOMContentLoaded ${t.domContentLoadedMs ?? '?'}ms, Load ${t.loadMs ?? '?'}ms | DOM: ${dom.nodeCount ?? '?'} nodes (${dom.domSizeKB ?? '?'}KB)\nResources: ${res.total ?? '?'} total | ${resStr || 'none'}`;
       return summarizeResult('perf', result, summary, { tool: 'tapsite_extract_perf', description: 'Performance metrics: Web Vitals, resource sizes, and load timing' });
+    }
+  );
+
+  server.tool(
+    'tapsite_extract_shadows',
+    'Extract box-shadow and text-shadow patterns as design tokens.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      sampleSize: z.number().default(300).describe('Max elements to sample'),
+    },
+    async ({ url, sampleSize }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractShadowsInBrowser, { sampleSize });
+      const bs = result.boxShadows || [];
+      const ts = result.textShadows || [];
+      const byElev = {};
+      bs.forEach(s => { byElev[s.elevation] = (byElev[s.elevation] || 0) + 1; });
+      const elevStr = Object.entries(byElev).map(([k, v]) => `${k} (${v})`).join(', ');
+      const top3 = bs.slice(0, 3).map(s => `${s.value.slice(0, 40)} (${s.count}x)`).join('\n  ');
+      const summary = `Shadows: ${bs.length} box-shadow, ${ts.length} text-shadow | Elevation: ${elevStr || 'none'}\nTop:\n  ${top3 || 'none'}`;
+      return summarizeResult('shadows', result, summary, { tool: 'tapsite_extract_shadows', description: 'Box-shadow and text-shadow patterns classified by elevation' });
+    }
+  );
+
+  server.tool(
+    'tapsite_extract_icons',
+    'Detect icon font libraries and extract icon usage (Font Awesome, Material, Bootstrap Icons, etc.).',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+    },
+    async ({ url }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractIconsInBrowser);
+      const libs = (result.libraries || []).join(', ');
+      const top5 = (result.icons || []).slice(0, 5).map(i => `${i.className} (${i.count}x)`).join(', ');
+      const summary = `Icons: ${result.totalUniqueIcons || 0} unique, ${result.totalIconElements || 0} elements | Libraries: ${libs || 'none'}${result.pseudoContentIcons ? ` | Pseudo-content: ${result.pseudoContentIcons}` : ''}\nTop: ${top5 || 'none'}`;
+      return summarizeResult('icons', result, summary, { tool: 'tapsite_extract_icons', description: 'Icon font libraries and individual icon usage detected on the page' });
+    }
+  );
+
+  server.tool(
+    'tapsite_extract_contrast',
+    'WCAG contrast ratio audit between text and background color pairs.',
+    {
+      url: z.string().optional().describe('URL (omit for current page)'),
+      sampleSize: z.number().default(200).describe('Max text elements to check'),
+      standard: z.enum(['aa', 'aaa']).default('aa').describe('WCAG standard (aa or aaa)'),
+    },
+    async ({ url, sampleSize, standard }) => {
+      await browser.ensureBrowser();
+      await navigateIfNeeded(url);
+      const result = await browser.page.evaluate(extractContrastInBrowser, { sampleSize, standard });
+      const worst = (result.worstPairs || []).slice(0, 3).map(p => `${p.foreground}/${p.background} = ${p.ratio}:1`).join(', ');
+      const summary = `Contrast (WCAG ${standard.toUpperCase()}): ${result.passing || 0} passing, ${result.failing || 0} failing out of ${result.totalPairs || 0} pairs\nWorst: ${worst || 'all passing'}`;
+      return summarizeResult('contrast', result, summary, { tool: 'tapsite_extract_contrast', description: 'WCAG contrast ratio audit for text/background color pairs' });
     }
   );
 

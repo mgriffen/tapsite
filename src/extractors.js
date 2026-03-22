@@ -1625,6 +1625,295 @@ function extractPerfInBrowser() {
   return result;
 }
 
+/**
+ * Extract box-shadow and text-shadow patterns as design tokens.
+ * Groups shadows by value and classifies by depth/spread.
+ * @param {{ sampleSize: number }} args
+ */
+function extractShadowsInBrowser({ sampleSize }) {
+  const boxShadowMap = new Map();
+  const textShadowMap = new Map();
+  let sampled = 0;
+
+  for (const el of document.querySelectorAll('body *')) {
+    if (sampled >= sampleSize) break;
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+    sampled++;
+
+    const cs = getComputedStyle(el);
+    const tag = el.tagName.toLowerCase();
+    const desc = el.className ? `${tag}.${String(el.className).split(' ')[0]}` : tag;
+
+    // Box shadows
+    const bs = cs.boxShadow;
+    if (bs && bs !== 'none') {
+      const entry = boxShadowMap.get(bs) || { value: bs, count: 0, samples: [] };
+      entry.count++;
+      if (entry.samples.length < 3) entry.samples.push(desc);
+      boxShadowMap.set(bs, entry);
+    }
+
+    // Text shadows
+    const ts = cs.textShadow;
+    if (ts && ts !== 'none') {
+      const entry = textShadowMap.get(ts) || { value: ts, count: 0, samples: [] };
+      entry.count++;
+      if (entry.samples.length < 3) entry.samples.push(desc);
+      textShadowMap.set(ts, entry);
+    }
+  }
+
+  function classifyShadow(value) {
+    const parts = value.match(/-?\d+(\.\d+)?px/g) || [];
+    const nums = parts.map(p => parseFloat(p));
+    const blur = nums[2] || 0;
+    const spread = nums[3] || 0;
+    if (blur <= 2 && spread <= 0) return 'subtle';
+    if (blur <= 8) return 'small';
+    if (blur <= 20) return 'medium';
+    return 'large';
+  }
+
+  const boxShadows = [...boxShadowMap.values()]
+    .sort((a, b) => b.count - a.count)
+    .map(s => ({ ...s, elevation: classifyShadow(s.value) }));
+
+  const textShadows = [...textShadowMap.values()]
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    boxShadows,
+    textShadows,
+    totalBoxShadows: boxShadows.length,
+    totalTextShadows: textShadows.length,
+    elementsSampled: sampled,
+  };
+}
+
+/**
+ * Detect icon font usage: Font Awesome, Material Icons, Bootstrap Icons, Phosphor, Lucide, etc.
+ * Extracts icon classes and maps them back to the icon library.
+ */
+function extractIconsInBrowser() {
+  const ICON_PATTERNS = [
+    { library: 'Font Awesome', pattern: /^fa[srldb]?\s+fa-[\w-]+$/i, classPrefix: /^fa[srldb]?$|^fa-/, linkPattern: /font-?awesome/i },
+    { library: 'Material Icons', pattern: /^material-icons(-\w+)?$/i, classPrefix: /^material-icons/, linkPattern: /material.*icons/i },
+    { library: 'Material Symbols', pattern: /^material-symbols(-\w+)?$/i, classPrefix: /^material-symbols/, linkPattern: /material.*symbols/i },
+    { library: 'Bootstrap Icons', pattern: /^bi\s+bi-[\w-]+$/i, classPrefix: /^bi-/, linkPattern: /bootstrap-icons/i },
+    { library: 'Phosphor Icons', pattern: /^ph(-\w+)?\s+ph-[\w-]+$/i, classPrefix: /^ph-/, linkPattern: /phosphor/i },
+    { library: 'Remix Icons', pattern: /^ri-[\w-]+$/i, classPrefix: /^ri-/, linkPattern: /remixicon/i },
+    { library: 'Lucide', pattern: /^lucide-[\w-]+$/i, classPrefix: /^lucide-/, linkPattern: /lucide/i },
+    { library: 'Heroicons', classPrefix: /^heroicon-/, linkPattern: /heroicons/i },
+    { library: 'Tabler Icons', classPrefix: /^ti-|^tabler-/, linkPattern: /tabler/i },
+    { library: 'Ionicons', classPrefix: /^ion-/, linkPattern: /ionicons/i },
+  ];
+
+  const detectedLibraries = new Set();
+  const iconMap = new Map(); // className -> { library, count }
+  const iconElements = [];
+
+  // Check stylesheet links for icon libraries
+  for (const link of document.querySelectorAll('link[href]')) {
+    const href = link.href.toLowerCase();
+    for (const p of ICON_PATTERNS) {
+      if (p.linkPattern && p.linkPattern.test(href)) {
+        detectedLibraries.add(p.library);
+      }
+    }
+  }
+
+  // Check script sources
+  for (const script of document.querySelectorAll('script[src]')) {
+    const src = script.src.toLowerCase();
+    for (const p of ICON_PATTERNS) {
+      if (p.linkPattern && p.linkPattern.test(src)) {
+        detectedLibraries.add(p.library);
+      }
+    }
+  }
+
+  // Scan elements with icon-related classes
+  for (const el of document.querySelectorAll('[class]')) {
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+    const classList = [...el.classList];
+
+    for (const p of ICON_PATTERNS) {
+      const iconClasses = classList.filter(c => p.classPrefix && p.classPrefix.test(c));
+      if (iconClasses.length > 0) {
+        detectedLibraries.add(p.library);
+        const iconName = iconClasses.find(c => c !== 'fa' && c !== 'fas' && c !== 'far' && c !== 'fal' && c !== 'fab' && c !== 'bi' && !c.match(/^material-(icons|symbols)/)) || iconClasses[0];
+        const key = `${p.library}:${iconName}`;
+        const entry = iconMap.get(key) || { library: p.library, className: iconName, count: 0 };
+        entry.count++;
+        iconMap.set(key, entry);
+      }
+    }
+
+    // Detect Material Icons by content (they use ligatures)
+    if (classList.some(c => /^material-icons/.test(c) || /^material-symbols/.test(c))) {
+      const text = el.textContent.trim();
+      if (text && text.length < 40) {
+        const key = `Material:${text}`;
+        const entry = iconMap.get(key) || { library: 'Material Icons', iconName: text, className: classList.join(' '), count: 0 };
+        entry.count++;
+        iconMap.set(key, entry);
+      }
+    }
+  }
+
+  // Also detect if using <i> elements with pseudo-content (common icon font pattern)
+  let pseudoIconCount = 0;
+  for (const el of document.querySelectorAll('i:empty, span:empty')) {
+    if (el.offsetParent === null) continue;
+    const before = getComputedStyle(el, '::before');
+    const content = before.getPropertyValue('content');
+    if (content && content !== 'none' && content !== 'normal' && content !== '""') {
+      const fontFamily = before.getPropertyValue('font-family').toLowerCase();
+      if (fontFamily.includes('icon') || fontFamily.includes('awesome') || fontFamily.includes('material') ||
+          fontFamily.includes('glyphicon') || fontFamily.includes('icomoon')) {
+        pseudoIconCount++;
+        if (!detectedLibraries.size) {
+          const cleanFont = fontFamily.replace(/['"]/g, '').trim();
+          detectedLibraries.add(`Custom (${cleanFont})`);
+        }
+      }
+    }
+  }
+
+  const icons = [...iconMap.values()].sort((a, b) => b.count - a.count);
+
+  return {
+    libraries: [...detectedLibraries],
+    icons: icons.slice(0, 100),
+    totalUniqueIcons: icons.length,
+    totalIconElements: icons.reduce((sum, i) => sum + i.count, 0) + pseudoIconCount,
+    pseudoContentIcons: pseudoIconCount,
+  };
+}
+
+/**
+ * Check WCAG contrast ratios between text and background colors on the page.
+ * @param {{ sampleSize: number, standard: string }} args
+ */
+function extractContrastInBrowser({ sampleSize, standard }) {
+  function parseRgb(str) {
+    if (!str || str === 'transparent' || str === 'rgba(0, 0, 0, 0)') return null;
+    const match = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) return { r: parseInt(match[1]), g: parseInt(match[2]), b: parseInt(match[3]) };
+    return null;
+  }
+
+  function relativeLuminance(rgb) {
+    const [rs, gs, bs] = [rgb.r, rgb.g, rgb.b].map(v => {
+      v = v / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+  }
+
+  function contrastRatio(rgb1, rgb2) {
+    const l1 = relativeLuminance(rgb1);
+    const l2 = relativeLuminance(rgb2);
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  function rgbToHex(rgb) {
+    return '#' + [rgb.r, rgb.g, rgb.b].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function getEffectiveBg(el) {
+    let current = el;
+    while (current && current !== document.body) {
+      const bg = parseRgb(getComputedStyle(current).backgroundColor);
+      if (bg && (bg.r !== 0 || bg.g !== 0 || bg.b !== 0 || getComputedStyle(current).backgroundColor !== 'rgba(0, 0, 0, 0)')) {
+        return bg;
+      }
+      current = current.parentElement;
+    }
+    // Default to white background
+    return { r: 255, g: 255, b: 255 };
+  }
+
+  const isAA = standard === 'aa';
+  const normalThreshold = isAA ? 4.5 : 7.0;
+  const largeThreshold = isAA ? 3.0 : 4.5;
+
+  const pairMap = new Map();
+  const issues = [];
+  let sampled = 0;
+
+  for (const el of document.querySelectorAll('body *')) {
+    if (sampled >= sampleSize) break;
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+    const text = el.textContent.trim();
+    if (!text || el.children.length > 0) continue; // leaf text nodes only
+
+    sampled++;
+    const cs = getComputedStyle(el);
+    const fg = parseRgb(cs.color);
+    const bg = getEffectiveBg(el);
+    if (!fg || !bg) continue;
+
+    const ratio = contrastRatio(fg, bg);
+    const fontSize = parseFloat(cs.fontSize);
+    const fontWeight = parseInt(cs.fontWeight) || 400;
+    const isLargeText = fontSize >= 24 || (fontSize >= 18.66 && fontWeight >= 700);
+    const threshold = isLargeText ? largeThreshold : normalThreshold;
+    const passes = ratio >= threshold;
+
+    const key = `${rgbToHex(fg)}|${rgbToHex(bg)}`;
+    if (!pairMap.has(key)) {
+      pairMap.set(key, {
+        foreground: rgbToHex(fg),
+        background: rgbToHex(bg),
+        ratio: Math.round(ratio * 100) / 100,
+        passes,
+        isLargeText: false,
+        count: 0,
+        samples: [],
+      });
+    }
+
+    const entry = pairMap.get(key);
+    entry.count++;
+    if (isLargeText) entry.isLargeText = true;
+    if (!passes && entry.samples.length < 3) {
+      const tag = el.tagName.toLowerCase();
+      const desc = el.className ? `${tag}.${String(el.className).split(' ')[0]}` : tag;
+      entry.samples.push({ element: desc, text: text.slice(0, 50), fontSize: `${fontSize}px` });
+    }
+
+    if (!passes) {
+      issues.push({
+        foreground: rgbToHex(fg),
+        background: rgbToHex(bg),
+        ratio: Math.round(ratio * 100) / 100,
+        required: threshold,
+        element: el.tagName.toLowerCase(),
+        text: text.slice(0, 60),
+        fontSize: `${fontSize}px`,
+      });
+    }
+  }
+
+  const pairs = [...pairMap.values()].sort((a, b) => a.ratio - b.ratio);
+  const failing = pairs.filter(p => !p.passes);
+  const passing = pairs.filter(p => p.passes);
+
+  return {
+    standard: standard.toUpperCase(),
+    totalPairs: pairs.length,
+    passing: passing.length,
+    failing: failing.length,
+    worstPairs: failing.slice(0, 10),
+    allPairs: pairs.slice(0, 50),
+    issues: issues.slice(0, 20),
+    elementsSampled: sampled,
+  };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -1644,4 +1933,7 @@ module.exports = {
   extractA11yInBrowser,
   detectDarkmodeInBrowser,
   extractPerfInBrowser,
+  extractShadowsInBrowser,
+  extractIconsInBrowser,
+  extractContrastInBrowser,
 };

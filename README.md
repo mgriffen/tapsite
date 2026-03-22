@@ -35,7 +35,7 @@ Click any image to see the full interactive page:
 
 [![tapsite Product Overview](docs/screenshots/product.png)](https://mgriffen.github.io/tapsite/product.html)
 
-**37 extraction tools** for web design analysis — colors, fonts, performance, accessibility, content, forms, assets, and more. Works with any MCP-compatible AI agent.
+**43 extraction tools** for web design analysis — colors, fonts, performance, accessibility, content, forms, assets, and more. Works with any MCP-compatible AI agent.
 
 | Design System Extraction | Deep Intelligence |
 |:---:|:---:|
@@ -123,15 +123,13 @@ If you need to extract from a site that requires login:
 
 ### Session
 | Tool | Description |
-
 |------|-------------|
 | `tapsite_login` | Automated login (username + password, no MFA) |
 | `tapsite_login_manual` | Open headed browser for manual login + MFA |
 | `tapsite_login_check` | Verify authenticated session state |
-| `tapsite_navigate` | Navigate to a URL, returns indexed interactive elements |
-| `tapsite_inspect` | Full DOM inspection (nav, headings, buttons, forms, tables, links) |
+| `tapsite_inspect` | Navigate to URL and perform full DOM inspection (nav, headings, buttons, forms, tables, links) |
 | `tapsite_screenshot` | Take a screenshot of the current page |
-| `tapsite_act` | Click or fill an indexed element from the last inspect/navigate |
+| `tapsite_interact` | Click or fill an indexed element from the last inspect |
 | `tapsite_scroll` | Scroll the page |
 | `tapsite_run_js` | Execute arbitrary JavaScript and return the result |
 | `tapsite_close` | Close the browser session |
@@ -152,6 +150,7 @@ If you need to extract from a site that requires login:
 | `tapsite_extract_fonts` | Extract font families, sizes, weights |
 | `tapsite_extract_css_vars` | Extract CSS custom properties |
 | `tapsite_extract_spacing` | Extract spacing scale values |
+| `tapsite_extract_shadows` | Extract box-shadow and text-shadow patterns |
 
 ### Visual Assets
 | Tool | Description |
@@ -173,7 +172,7 @@ If you need to extract from a site that requires login:
 |------|-------------|
 | `tapsite_capture_network` | Capture network requests during a page load |
 | `tapsite_extract_api_schema` | Infer API schema from observed network traffic |
-| `tapsite_detect_stack` | Detect frontend framework, libraries, and tech stack |
+| `tapsite_extract_stack` | Detect frontend framework, libraries, and tech stack |
 
 ### Multi-page
 | Tool | Description |
@@ -186,14 +185,24 @@ If you need to extract from a site that requires login:
 |------|-------------|
 | `tapsite_extract_animations` | Extract CSS animations and transitions |
 | `tapsite_extract_a11y` | Accessibility audit (ARIA, roles, contrast issues) |
-| `tapsite_detect_darkmode` | Detect dark mode support and extract dark palette |
+| `tapsite_extract_darkmode` | Detect dark mode support and extract dark palette |
 | `tapsite_extract_perf` | Extract performance metrics (Core Web Vitals, resource sizes) |
+| `tapsite_extract_icons` | Detect icon libraries and extract icon usage |
+| `tapsite_extract_contrast` | Audit WCAG contrast ratios between text and background |
 
 ### Export
 | Tool | Description |
 |------|-------------|
 | `tapsite_export` | Export inspection results as JSON + Markdown + HTML report + CSV tables + screenshots |
 | `tapsite_export_design_report` | Full design system report: `report.html` (visual), `design-tokens.json` (W3C format), `design-tokens.css` (copy-pasteable `:root` vars) |
+
+### Workflows (Presets)
+| Tool | Description |
+|------|-------------|
+| `tapsite_teardown` | Comprehensive competitive design teardown (all extractors) |
+| `tapsite_audit` | Pre-launch quality audit (a11y, contrast, perf, SEO, darkmode) |
+| `tapsite_harvest` | inventory all site assets (images, SVGs, forms, fonts, links) |
+| `tapsite_designsystem` | Extract design tokens as W3C JSON and CSS variables |
 
 ## Security
 

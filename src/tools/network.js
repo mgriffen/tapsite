@@ -199,7 +199,7 @@ module.exports = function registerNetworkTools(server) {
   );
 
   server.tool(
-    'tapsite_detect_stack',
+    'tapsite_extract_stack',
     'Detect tech stack: frameworks, libraries, CMS, analytics, CDNs.',
     {
       url: z.string().optional().describe('URL (omit for current page)'),
@@ -254,7 +254,7 @@ module.exports = function registerNetworkTools(server) {
       const techs = allTechs.map(t => t.name + (t.version ? ` ${t.version}` : '')).join(', ');
       const hosting = (stack.hosting || []).join(', ');
       const summary = `Stack: ${techs || 'none detected'}${hosting ? `\nHosting: ${hosting}` : ''}`;
-      return summarizeResult('stack', stack, summary, { tool: 'tapsite_detect_stack', description: 'Tech stack detected from scripts, globals, CSS, and HTTP headers' });
+      return summarizeResult('stack', stack, summary, { tool: 'tapsite_extract_stack', description: 'Tech stack detected from scripts, globals, CSS, and HTTP headers' });
     }
   );
 

@@ -95,27 +95,10 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'tapsite_navigate',
-    'Navigate to URL. Returns compressed DOM with numbered interactive elements.',
-    {
-      url: z.string().describe('URL to navigate to'),
-    },
-    async ({ url }) => {
-      await browser.ensureBrowser();
-      await navigateIfNeeded(url);
-
-      const result = await indexPage();
-      return {
-        content: [{ type: 'text', text: formatIndexResult(result) }],
-      };
-    }
-  );
-
-  server.tool(
     'tapsite_inspect',
-    'Inspect page DOM with numbered interactive elements. Optional screenshot.',
+    'Navigate to URL and/or inspect page DOM with numbered interactive elements. Optional screenshot.',
     {
-      url: z.string().optional().describe('URL (omit for current page)'),
+      url: z.string().optional().describe('URL to navigate to (omit for current page)'),
       screenshot: z.boolean().default(false).describe('Include screenshot'),
     },
     async ({ url, screenshot }) => {
@@ -201,7 +184,7 @@ module.exports = function registerSessionTools(server) {
   );
 
   server.tool(
-    'tapsite_act',
+    'tapsite_interact',
     'Click, fill, select, check, or hover an indexed element. Returns updated DOM.',
     {
       action: z.enum(['click', 'fill', 'select', 'check', 'hover']).describe('Action type'),
