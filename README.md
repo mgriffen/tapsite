@@ -1,6 +1,6 @@
 # tapsite-mcp
 
-Web intelligence toolkit — an MCP server + CLI built with Node.js and Playwright. Designed for authenticated dashboard inspection, design system extraction, and UI analysis. Reuses browser sessions across tool calls so MFA-protected sites only need one manual login.
+Design intelligence toolkit — an MCP server + CLI for extracting design systems, auditing accessibility, and analyzing any website. Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent. Login once to MFA-protected sites and extract forever — sessions persist across tool calls.
 
 ## Installation
 
@@ -35,16 +35,16 @@ Click any image to see the full interactive page:
 
 [![tapsite Product Overview](docs/screenshots/product.png)](https://mgriffen.github.io/tapsite/product.html)
 
-**37 MCP tools** for authenticated web intelligence extraction — colors, fonts, performance, accessibility, content, forms, assets, and more.
+**37 extraction tools** for web design analysis — colors, fonts, performance, accessibility, content, forms, assets, and more. Works with any MCP-compatible AI agent.
 
 | Design System Extraction | Deep Intelligence |
 |:---:|:---:|
 | [![Showcase I](docs/screenshots/showcase-design.png)](https://mgriffen.github.io/tapsite/showcase-design.html) | [![Showcase II](docs/screenshots/showcase-deep.png)](https://mgriffen.github.io/tapsite/showcase-deep.html) |
 | Live-extracted colors, fonts, perf, breakpoints, and animations from Stripe, Linear, and Vercel | Accessibility audits, content extraction, form analysis, asset inventory, component detection |
 
-[![Real World Intelligence](docs/screenshots/scenarios.png)](https://mgriffen.github.io/tapsite/scenarios.html)
+[![Real World Workflows](docs/screenshots/scenarios.png)](https://mgriffen.github.io/tapsite/scenarios.html)
 
-**Four real-world scenarios** — design system reverse-engineering, competitive intelligence, accessibility auditing, and asset migration prep.
+**Four real-world workflows** — design system extraction, competitive research, accessibility auditing, and asset migration prep.
 
 ## Development setup (from source)
 
