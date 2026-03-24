@@ -3,7 +3,7 @@
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
 
-const server = new McpServer({ name: 'tapsite', version: '4.0.0' });
+const server = new McpServer({ name: 'tapsite', version: '4.0.1' });
 
 require('./tools/session')(server);
 require('./tools/extraction')(server);
