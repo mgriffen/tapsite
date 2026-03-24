@@ -1,6 +1,6 @@
 {
   "name": "tapsite",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "MCP server for web intelligence extraction — design systems, accessibility audits, competitive analysis, and migration prep",
   "main": "src/cli.js",
   "bin": {
