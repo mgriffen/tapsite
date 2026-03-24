@@ -1,12 +1,16 @@
 # tapsite
 
-Design intelligence toolkit — an MCP server + CLI for extracting design systems, auditing accessibility, and analyzing any website. Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent. Login once to MFA-protected sites and extract forever — sessions persist across tool calls.
+The MCP server for web intelligence extraction. 43 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
+
+Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or track accessibility regressions over time — all as structured JSON that agents can reason about.
+
+Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent.
 
 ## Installation
 
 ```bash
 # Quick start (no install required)
-npx tapsite
+npx -y tapsite
 
 # Or install globally
 npm install -g tapsite
@@ -14,20 +18,32 @@ npx playwright install chromium
 npx playwright install-deps chromium
 ```
 
-Add to your Claude config (`~/.claude/mcp.json`):
+Add to your AI agent's MCP config:
 
 ```json
 {
   "mcpServers": {
     "tapsite": {
       "command": "npx",
-      "args": ["tapsite"]
+      "args": ["-y", "tapsite"]
     }
   }
 }
 ```
 
-> **First run:** Playwright will install the Chromium browser automatically if not already present. This is a one-time ~150MB download.
+> **First run:** Playwright will install Chromium automatically if not already present (~150MB one-time download).
+
+Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.mgriffen/tapsite) and [Glama](https://glama.ai/mcp/servers/mgriffen/tapsite).
+
+## What tapsite does
+
+**Extract design systems** — colors, fonts, spacing scales, breakpoints, components, shadows, icons, CSS variables, and contrast ratios from any website. Output as structured JSON or W3C design tokens.
+
+**Audit quality** — accessibility scoring with WCAG contrast analysis, performance timing (Core Web Vitals), tech stack detection, dark mode support, and animation inventory.
+
+**Compare and track** — diff two sites side by side, or track a single site over time with snapshot-based temporal diffs. Regressions and improvements are flagged automatically.
+
+**Work behind login walls** — persistent browser sessions with full MFA support. Log in once manually, then extract across tool calls without re-authenticating. Credentials never enter the chat.
 
 ## Showcase
 
@@ -35,89 +51,12 @@ Click any image to see the full interactive page:
 
 [![tapsite Product Overview](docs/screenshots/product-v2.png)](https://mgriffen.github.io/tapsite/product.html)
 
-**43 extraction tools** for web design analysis — colors, fonts, performance, accessibility, content, forms, assets, and more. Works with any MCP-compatible AI agent.
-
 | Design System Extraction | Deep Intelligence |
 |:---:|:---:|
 | [![Showcase I](docs/screenshots/showcase-design-v2.png)](https://mgriffen.github.io/tapsite/showcase-design.html) | [![Showcase II](docs/screenshots/showcase-deep-v2.png)](https://mgriffen.github.io/tapsite/showcase-deep.html) |
 | Live-extracted colors, fonts, perf, breakpoints, and animations from Stripe, Linear, and Vercel | Accessibility audits, content extraction, form analysis, asset inventory, component detection |
 
 [![Real World Workflows](docs/screenshots/scenarios-v2.png)](https://mgriffen.github.io/tapsite/scenarios.html)
-
-**Four real-world workflows** — design system extraction, competitive research, accessibility auditing, and asset migration prep.
-
-## Development setup (from source)
-
-```bash
-git clone https://github.com/mgriffen/tapsite
-cd tapsite
-npm install
-npx playwright install chromium
-npx playwright install-deps chromium
-```
-
-MCP config pointing to local source:
-
-```json
-{
-  "mcpServers": {
-    "tapsite": {
-      "command": "node",
-      "args": ["/absolute/path/to/tapsite/src/server.js"]
-    }
-  }
-}
-```
-
-Recommended — set transcript cleanup to prevent credentials lingering on disk:
-
-```json
-"cleanupPeriodDays": 1
-```
-
-## Docker
-
-tapsite ships a `Dockerfile` and `docker-compose.yml` for headless-only use — CI pipelines, server deployments, or anywhere you don't want a local Node.js install.
-
-### Quick start
-
-```bash
-# Build the image
-docker build -t tapsite .
-
-# Run (stdio-attached, extraction results saved to ./output)
-docker compose up
-```
-
-Extraction results from all `tapsite_export*` tools are written to `./output` on your host via the volume mount in `docker-compose.yml`.
-
-### Limitations in Docker
-
-**`tapsite_login_manual` is not available in Docker.** It opens a headed (visible) browser window, which requires a display. Standard containers are headless-only.
-
-### Authenticated sessions in Docker
-
-If you need to extract from a site that requires login:
-
-1. **Run tapsite locally** (outside Docker):
-   ```bash
-   # In Claude, call:
-   tapsite_login_manual   # opens headed Chromium, log in + complete MFA manually
-   tapsite_login_check    # confirm session is authenticated
-   ```
-
-2. **Copy your `profiles/` directory into the project root.** The session cookies are stored there.
-
-3. **Mount `profiles/` in docker-compose.yml** (uncomment the line):
-   ```yaml
-   volumes:
-     - ./output:/app/output
-     - ./profiles:/app/profiles   # ← uncomment this
-   ```
-
-4. **Run the container.** It picks up the saved session automatically. No login needed.
-
-> **Security note:** `profiles/` contains live session cookies. Treat it like a password — don't commit it to version control (it's already in `.gitignore`), and restrict access to the volume on shared systems.
 
 ## Tools (43)
 
@@ -127,7 +66,7 @@ If you need to extract from a site that requires login:
 | `tapsite_login` | Automated login (username + password, no MFA) |
 | `tapsite_login_manual` | Open headed browser for manual login + MFA |
 | `tapsite_login_check` | Verify authenticated session state |
-| `tapsite_inspect` | Navigate to URL and perform full DOM inspection (nav, headings, buttons, forms, tables, links) |
+| `tapsite_inspect` | Navigate to URL and inspect the DOM (nav, headings, buttons, forms, tables, links) |
 | `tapsite_screenshot` | Take a screenshot of the current page |
 | `tapsite_interact` | Click or fill an indexed element from the last inspect |
 | `tapsite_scroll` | Scroll the page |
@@ -201,63 +140,18 @@ If you need to extract from a site that requires login:
 |------|-------------|
 | `tapsite_teardown` | Comprehensive competitive design teardown (all extractors) |
 | `tapsite_audit` | Pre-launch quality audit (a11y, contrast, perf, SEO, darkmode) |
-| `tapsite_harvest` | inventory all site assets (images, SVGs, forms, fonts, links) |
+| `tapsite_harvest` | Inventory all site assets (images, SVGs, forms, fonts, links) |
 | `tapsite_designsystem` | Extract design tokens as W3C JSON and CSS variables |
-
-## Security
-
-### Prompt injection defense
-
-When extracting content from untrusted web pages, tapsite applies two layers of protection:
-
-1. **Hidden element filtering** — Extractors skip elements with `display:none`, `visibility:hidden`, `opacity:0`, zero-size, and clip-hidden styling. This prevents invisible text (a common prompt injection vector) from entering extraction results. Applied to content, links, forms, and accessibility extractors.
-
-2. **Output sanitization** — All text returned to the LLM is scanned for prompt injection patterns: instruction overrides, role hijacking, exfiltration attempts, and tool manipulation. Matches are flagged inline as `[INJECTION_DETECTED]` rather than silently dropped, so both the LLM and user can see what was caught.
-
-### Credential safety
-
-**Never pass credentials through the chat.** Use `tapsite_login_manual` to open a headed browser, log in manually (including MFA), then `tapsite_login_check` to confirm. Credentials never touch Anthropic's servers or local transcripts.
-
-## License
-
-MIT
-
-## Project structure
-
-```
-src/
-  server.js        — MCP server entry point
-  browser.js       — shared Chromium context (ensureBrowser, closeBrowser)
-  helpers.js       — shared helpers (navigateIfNeeded, summarizeResult, indexPage)
-  sanitizer.js     — prompt injection detection
-  extractors.js    — browser-context extraction functions (page.evaluate())
-  exporter.js      — file export: JSON, Markdown, HTML, CSV
-  inspector.js     — DOM extraction for inspect/navigate tools
-  cli.js           — standalone CLI (login, inspect, session)
-  config.js        — paths and defaults
-  tools/
-    session.js     — login, navigate, inspect, screenshot, act, scroll, run_js, close
-    extraction.js  — all extract_* and detect_* tools
-    network.js     — capture_network, extract_api_schema, detect_stack
-    multipage.js   — crawl, diff_pages
-    export.js      — export, export_design_report
-profiles/          — browser state / session cookies (gitignored)
-output/            — export results (gitignored)
-```
 
 ## Using tapsite with LangChain / LangGraph
 
 tapsite works with LangChain and LangGraph via the official [`langchain-mcp-adapters`](https://github.com/langchain-ai/langchain-mcp-adapters) package.
-
-### Install
 
 ```bash
 pip install langchain-mcp-adapters langgraph langchain-anthropic
 ```
 
 Requires Node.js installed (tapsite is a Node.js MCP server).
-
-### Quick start
 
 ```python
 import asyncio
@@ -297,11 +191,96 @@ async def main():
 asyncio.run(main())
 ```
 
-### Authenticated sessions
+**Important:** tapsite uses a persistent browser context — session cookies survive across tool calls. For authenticated workflows, use the `MultiServerMCPClient` context manager as shown above to maintain a single MCP session. The default stateless mode creates a fresh connection per tool call, which breaks session persistence.
 
-tapsite uses a persistent browser context — session cookies survive across tool calls. For authenticated workflows (login + extract), use the `MultiServerMCPClient` context manager as shown above to maintain a single MCP session. The default stateless mode creates a fresh connection per tool call, which breaks session persistence.
+## Security
 
-## Output formats
+### Prompt injection defense
 
-- `output/run-{timestamp}/` — `tapsite_export` runs: JSON, Markdown, HTML, screenshots, CSV tables
-- `output/design-report-{timestamp}/` — `tapsite_export_design_report` runs: `report.html`, `design-tokens.json`, `design-tokens.css`
+When extracting content from untrusted web pages, tapsite applies two layers of protection:
+
+1. **Hidden element filtering** — Extractors skip elements with `display:none`, `visibility:hidden`, `opacity:0`, zero-size, and clip-hidden styling. This prevents invisible text (a common prompt injection vector) from entering extraction results.
+
+2. **Output sanitization** — All text returned to the LLM is scanned for prompt injection patterns: instruction overrides, role hijacking, exfiltration attempts, and tool manipulation. Matches are flagged inline as `[INJECTION_DETECTED]` rather than silently dropped.
+
+### Credential safety
+
+**Never pass credentials through the chat.** Use `tapsite_login_manual` to open a headed browser, log in manually (including MFA), then `tapsite_login_check` to confirm. Credentials never touch the AI provider's servers or local transcripts.
+
+## Docker
+
+tapsite ships a `Dockerfile` and `docker-compose.yml` for headless-only use — CI pipelines, server deployments, or anywhere you don't want a local Node.js install.
+
+```bash
+docker build -t tapsite .
+docker compose up
+```
+
+`tapsite_login_manual` is not available in Docker (it requires a display). To use authenticated sessions in Docker, log in locally first, then mount the `profiles/` directory into the container:
+
+```yaml
+volumes:
+  - ./output:/app/output
+  - ./profiles:/app/profiles
+```
+
+> **Security note:** `profiles/` contains live session cookies. Don't commit it to version control (it's already in `.gitignore`).
+
+## Development setup
+
+```bash
+git clone https://github.com/mgriffen/tapsite
+cd tapsite
+npm install
+npx playwright install chromium
+npx playwright install-deps chromium
+```
+
+MCP config pointing to local source:
+
+```json
+{
+  "mcpServers": {
+    "tapsite": {
+      "command": "node",
+      "args": ["/absolute/path/to/tapsite/src/server.js"]
+    }
+  }
+}
+```
+
+### Project structure
+
+```
+src/
+  server.js        — MCP server entry point
+  browser.js       — shared Chromium context (ensureBrowser, closeBrowser)
+  helpers.js       — shared helpers (navigateIfNeeded, summarizeResult, indexPage)
+  sanitizer.js     — prompt injection detection
+  diff.js          — per-extractor diff logic and extractor name/args mapping
+  snapshots.js     — temporal snapshot I/O (saveSnapshot, loadLatestSnapshot)
+  extractors.js    — browser-context extraction functions (page.evaluate())
+  exporter.js      — file export: JSON, Markdown, HTML, CSV
+  inspector.js     — DOM extraction for inspect tools
+  cli.js           — standalone CLI (login, inspect, session)
+  config.js        — paths and defaults
+  tools/
+    session.js     — login, inspect, screenshot, interact, scroll, run_js, close
+    extraction.js  — all extract_* tools
+    network.js     — capture_network, extract_api_schema, extract_stack
+    multipage.js   — crawl, diff_pages
+    export.js      — export, export_design_report
+    workflows.js   — teardown, audit, harvest, designsystem
+profiles/          — browser state / session cookies (gitignored)
+output/            — export results + snapshots (gitignored)
+```
+
+### Output formats
+
+- `output/run-{timestamp}/` — `tapsite_export`: JSON, Markdown, HTML, screenshots, CSV tables
+- `output/design-report-{timestamp}/` — `tapsite_export_design_report`: `report.html`, `design-tokens.json`, `design-tokens.css`
+- `output/snapshots/{domain}/` — `tapsite_diff_pages` temporal snapshots
+
+## License
+
+MIT
