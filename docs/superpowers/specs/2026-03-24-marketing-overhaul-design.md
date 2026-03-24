@@ -44,7 +44,7 @@ Each `docs/` page keeps inline CSS (no external stylesheet) organized into two l
 
 **Theme layer** — Two sets of CSS custom properties:
 
-**Accessibility target:** WCAG 2.1 AA minimum — 4.5:1 contrast ratio for normal text, 3:1 for large text (18px+ bold or 24px+ regular). Applies to both themes.
+**Accessibility target:** WCAG 2.1 AA minimum — 4.5:1 contrast ratio for normal text, 3:1 for large text (18px+ bold or 24px+ regular). Applies to both themes. Ratios below are approximate — verify with a contrast checker at implementation time and adjust hex values if any fall below 4.5:1.
 
 ```css
 /* Light theme (default) */
@@ -53,15 +53,15 @@ Each `docs/` page keeps inline CSS (no external stylesheet) organized into two l
   --bg-secondary: #f8f9fa;
   --bg-card: #ffffff;
   --bg-code: #f1f5f9;
-  --text-primary: #1a1a2a;      /* 15.4:1 on white — passes AAA */
-  --text-secondary: #4a5568;    /* 7.0:1 on white — passes AA */
-  --text-muted: #718096;        /* 4.6:1 on white — passes AA */
+  --text-primary: #1a1a2a;      /* ~17:1 on white — passes AAA */
+  --text-secondary: #4a5568;    /* ~7:1 on white — passes AA */
+  --text-muted: #64748b;        /* ~5:1 on white — passes AA for normal text */
   --border: #e2e8f0;
   --border-hover: #cbd5e1;
-  --accent-primary: #0066cc;    /* 5.5:1 on white — passes AA */
-  --accent-secondary: #00838f;  /* 5.0:1 on white — passes AA */
-  --link-color: #0066cc;
-  --link-hover: #004d99;
+  --accent-primary: #0055b3;    /* ~7:1 on white — passes AA */
+  --accent-secondary: #00727d;  /* ~5:1 on white — passes AA */
+  --link-color: #0055b3;
+  --link-hover: #004080;
   --card-hover-border: #0066cc;
   --card-hover-shadow: rgba(0, 102, 204, 0.1);
 }
@@ -72,9 +72,9 @@ Each `docs/` page keeps inline CSS (no external stylesheet) organized into two l
   --bg-secondary: #0a0e1a;
   --bg-card: #000000;
   --bg-code: #0f1525;
-  --text-primary: #e8edf5;      /* 15.1:1 on #04060c — passes AAA */
-  --text-secondary: #94a3b8;    /* 7.2:1 on #04060c — passes AA (bumped from #7a8faa) */
-  --text-muted: #64748b;        /* 4.5:1 on #04060c — passes AA (bumped from #3d5070) */
+  --text-primary: #e8edf5;      /* ~16:1 on #04060c — passes AAA */
+  --text-secondary: #94a3b8;    /* ~7:1 on #04060c — passes AA (bumped from #7a8faa) */
+  --text-muted: #718096;        /* ~4.7:1 on #04060c — passes AA (bumped from #3d5070) */
   --border: rgba(0, 212, 255, 0.12);
   --border-hover: rgba(0, 212, 255, 0.3);
   --accent-primary: #00d4ff;
@@ -197,9 +197,9 @@ Pitch: "One command. Everything you need."
 
 ```html
 <!-- GitHub stars -->
-<img alt="GitHub stars" src="https://img.shields.io/github/stars/mgriffen/tapsite?style=flat-square&color=0066cc">
+<img alt="GitHub stars" src="https://img.shields.io/github/stars/mgriffen/tapsite?style=flat-square&color=0055b3">
 <!-- npm downloads -->
-<img alt="npm downloads" src="https://img.shields.io/npm/dm/tapsite?style=flat-square&color=00838f">
+<img alt="npm downloads" src="https://img.shields.io/npm/dm/tapsite?style=flat-square&color=00727d">
 ```
 
 npm package name: `tapsite`. If npm downloads badge 404s (package not yet published), omit it and use only the GitHub stars badge.
