@@ -409,7 +409,7 @@ Verify:
 - Light theme default: white/light background, readable text, no rain/scanlines/grain
 - Dark toggle: neon colors return, rain appears, no scanlines/grain
 - New Workflows section visible between features and tool grid
-- Tool grid shows 10 categories, 43 tools total
+- Tool grid shows 9 categories, 43 tools total
 - Compatibility badges visible
 - Footer has GitHub/npm links
 
