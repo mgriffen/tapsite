@@ -205,7 +205,7 @@ require('./tools/extraction')(server);
   # Or install globally
   npm install -g tapsite
   ```
-- Update `~/.claude/.mcp.json` example to use npx
+- Update `~/.claude/mcp.json` example to use npx
 
 **Security assessment:** npm publish exposes the package to supply chain attacks (typosquatting, account compromise). Enable 2FA on npm account. Add `npm audit` to CI.
 

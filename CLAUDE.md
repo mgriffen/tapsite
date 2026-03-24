@@ -15,7 +15,7 @@ npx playwright install-deps chromium
 Then add the MCP server to the global Claude config:
 
 ```bash
-cat > ~/.claude/.mcp.json << 'EOF'
+cat > ~/.claude/mcp.json << 'EOF'
 {
   "mcpServers": {
     "tapsite": {

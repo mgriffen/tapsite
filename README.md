@@ -14,7 +14,7 @@ npx playwright install chromium
 npx playwright install-deps chromium
 ```
 
-Add to your Claude config (`~/.claude/.mcp.json`):
+Add to your Claude config (`~/.claude/mcp.json`):
 
 ```json
 {
