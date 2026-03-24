@@ -44,19 +44,26 @@ Each `docs/` page keeps inline CSS (no external stylesheet) organized into two l
 
 **Theme layer** — Two sets of CSS custom properties:
 
+**Accessibility target:** WCAG 2.1 AA minimum — 4.5:1 contrast ratio for normal text, 3:1 for large text (18px+ bold or 24px+ regular). Applies to both themes.
+
 ```css
 /* Light theme (default) */
 [data-theme="light"], :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
   --bg-card: #ffffff;
-  --text-primary: #1a1a2a;
-  --text-secondary: #4a5568;
-  --text-muted: #718096;
+  --bg-code: #f1f5f9;
+  --text-primary: #1a1a2a;      /* 15.4:1 on white — passes AAA */
+  --text-secondary: #4a5568;    /* 7.0:1 on white — passes AA */
+  --text-muted: #718096;        /* 4.6:1 on white — passes AA */
   --border: #e2e8f0;
-  --accent-primary: #0066cc;
-  --accent-secondary: #00a3bf;
-  /* ... */
+  --border-hover: #cbd5e1;
+  --accent-primary: #0066cc;    /* 5.5:1 on white — passes AA */
+  --accent-secondary: #00838f;  /* 5.0:1 on white — passes AA */
+  --link-color: #0066cc;
+  --link-hover: #004d99;
+  --card-hover-border: #0066cc;
+  --card-hover-shadow: rgba(0, 102, 204, 0.1);
 }
 
 /* Dark/cyberpunk theme (opt-in) */
@@ -64,25 +71,49 @@ Each `docs/` page keeps inline CSS (no external stylesheet) organized into two l
   --bg-primary: #04060c;
   --bg-secondary: #0a0e1a;
   --bg-card: #000000;
-  --text-primary: #e8edf5;
-  --text-secondary: #94a3b8; /* bumped from #7a8faa for AA compliance */
-  --text-muted: #3d5070;
+  --bg-code: #0f1525;
+  --text-primary: #e8edf5;      /* 15.1:1 on #04060c — passes AAA */
+  --text-secondary: #94a3b8;    /* 7.2:1 on #04060c — passes AA (bumped from #7a8faa) */
+  --text-muted: #64748b;        /* 4.5:1 on #04060c — passes AA (bumped from #3d5070) */
   --border: rgba(0, 212, 255, 0.12);
+  --border-hover: rgba(0, 212, 255, 0.3);
   --accent-primary: #00d4ff;
   --accent-secondary: #22ecdb;
-  /* ... */
+  --link-color: #00d4ff;
+  --link-hover: #22ecdb;
+  --card-hover-border: rgba(0, 212, 255, 0.3);
+  --card-hover-shadow: rgba(0, 212, 255, 0.06);
 }
 ```
 
 **Atmospheric effects:** Rain animation is visible only in dark mode (`[data-theme="dark"] .rain-container { display: block }`). Scanlines and grain overlays are **removed permanently** from all pages — they reduce readability without adding information.
 
-**Theme toggle:** Small sun/moon button, top-right corner. Flips `data-theme` on `<html>`, saves to `localStorage`. Respects `prefers-color-scheme` on first visit, defaults to light. Hidden via `<noscript>` when JS is unavailable (page renders light).
+**Theme toggle:** Small sun/moon button, top-right corner. Since pages use inline CSS with no shared JS file, the toggle script is inlined in each `docs/` page. Canonical implementation:
+
+```js
+(function() {
+  const t = document.querySelector('.theme-toggle');
+  const saved = localStorage.getItem('tapsite-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+  if (t) t.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+  if (t) t.addEventListener('click', function() {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('tapsite-theme', next);
+    t.setAttribute('aria-label', next === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+  });
+})();
+```
+
+Hidden via `<noscript>` when JS is unavailable (page renders light).
 
 **Orbitron restriction:** Used only for:
 - The TAPSITE logo text
 - Primary hero headings (one per page)
 
-All other headings (section titles, card titles, category labels) use Exo 2. Both themes.
+All other headings — including `.card-title` on the index page, section titles, and category labels — change from Orbitron to Exo 2 (weight 600). Both themes.
 
 ### 2. Index Page (`docs/index.html`)
 
@@ -92,12 +123,12 @@ All other headings (section titles, card titles, category labels) use Exo 2. Bot
 2. Headline: "Your AI can browse. Can it extract a complete design system?"
 3. Subhead: tapsite gives AI agents 43 specialized tools to pull structured intelligence from any website — even behind login walls.
 4. Install command: `npx -y tapsite` in styled code block, "Get started in 10 seconds" label
-5. Badges row: GitHub stars (shields.io), npm downloads (shields.io), "Works with" logos (Claude, Cursor, Windsurf)
+5. Badges row and compatibility logos (see Section 8 for badge/logo specifications)
 6. TAPSITE logo: Moves below hero content — still present, still animated in dark mode
 
 **Card reorder:** Product → Use Cases → Design Showcase → Deep Showcase
 
-**Footer:** Add GitHub repo link, npm link, LangChain/LangGraph mention.
+**Footer (all `docs/` pages share this treatment):** Add GitHub repo link (`https://github.com/mgriffen/tapsite`), npm link (`https://www.npmjs.com/package/tapsite`), and LangChain/LangGraph compatibility mention. Same footer across index, product, scenarios, and both showcases.
 
 ### 3. Product Page (`docs/product.html`)
 
@@ -144,10 +175,10 @@ Pitch: "One command. Everything you need."
 - `tapsite-scenarios.html`
 
 **Keep and update `tapsite-promo.html`:**
-- Verify all tool category counts match 43 total
-- Add "Works with" badges (Claude, Cursor, Windsurf) + GitHub stars/npm badges
-- Add LangChain mention
-- Add missing tools to category grid (`extract_contrast`, `extract_shadows`, `extract_icons`, workflow tools)
+- Update tool category grid to match the product page's canonical 43-tool breakdown (see Section 3 for exact categories and tool assignments)
+- Add "Works with" badges and compatibility logos (see Section 8)
+- Add LangChain mention to compatibility line
+- Add missing tools: `extract_contrast` (Analysis), `extract_shadows` (Design System), `extract_icons` (Design System), plus `audit`/`designsystem`/`teardown`/`harvest` (Workflows)
 - Keeps its own clean aesthetic (Inter + JetBrains Mono) — does NOT get the dual-theme system
 
 ### 7. Cross-Cutting Concerns
@@ -158,7 +189,45 @@ Pitch: "One command. Everything you need."
 
 **Noscript for toggle:** `<noscript><style>.theme-toggle{display:none}</style></noscript>` on all pages.
 
-**OG meta tags:** Each `docs/` page gets `og:title`, `og:description`, `og:image` for link preview support on social/Slack/Discord.
+**OG meta tags:** Each `docs/` page gets `og:title` and `og:description` for link preview support on social/Slack/Discord. `og:image` is deferred — creating a 1200x630 OG-ready image is a separate task. For now, only text metadata is added.
+
+### 8. Badges, Logos, and Social Proof
+
+**Shields.io badges** (used on index hero and `tapsite-promo.html`):
+
+```html
+<!-- GitHub stars -->
+<img alt="GitHub stars" src="https://img.shields.io/github/stars/mgriffen/tapsite?style=flat-square&color=0066cc">
+<!-- npm downloads -->
+<img alt="npm downloads" src="https://img.shields.io/npm/dm/tapsite?style=flat-square&color=00838f">
+```
+
+npm package name: `tapsite`. If npm downloads badge 404s (package not yet published), omit it and use only the GitHub stars badge.
+
+**"Works with" compatibility logos:** Rendered as simple text badges with styled borders — not external logo images (avoids trademark issues and broken image links). Format:
+
+```html
+<span class="compat-badge">Claude</span>
+<span class="compat-badge">Cursor</span>
+<span class="compat-badge">Windsurf</span>
+<span class="compat-badge">Any MCP Agent</span>
+```
+
+Styled with `--border` and `--text-secondary` colors from the active theme. Small monospace text, pill-shaped with subtle border.
+
+### 9. Implementation Order
+
+Work proceeds in this sequence:
+
+1. **Delete standalone files** (5 files) — clean the slate first
+2. **Build the dual-theme CSS system** — develop on `docs/index.html` as the reference implementation
+3. **Update `docs/index.html`** — hero rewrite, card reorder, footer, badges, theme toggle
+4. **Update `docs/product.html`** — theme system, new Workflows section, tool grid fix, compatibility section
+5. **Update `docs/scenarios.html`** — theme system, noscript fallbacks, mobile layout fix
+6. **Update `docs/showcase-design.html`** — theme system (light-safe data visualizations)
+7. **Update `docs/showcase-deep.html`** — theme system (light-safe data visualizations)
+8. **Update `tapsite-promo.html`** — tool grid fix, badges, LangChain mention
+9. **Cross-cutting pass** — OG meta tags, GitHub link verification, mobile performance media queries
 
 ## Out of Scope
 
@@ -168,3 +237,5 @@ Pitch: "One command. Everything you need."
 - Pricing pages
 - Changes to README.md or non-marketing files
 - External stylesheet extraction (pages keep inline CSS)
+- OG image creation (deferred to a future task)
+- External logo images for compatibility badges (text badges only)
