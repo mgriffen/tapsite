@@ -11,4 +11,5 @@ module.exports = {
   MAX_ELEMENTS: 200,
   MAX_DOM_LENGTH: 8000,
   MAX_COLORS: 50,
+  EVAL_TIMEOUT_MS: 30000,
 };

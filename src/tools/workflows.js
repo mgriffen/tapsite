@@ -25,7 +25,7 @@ const {
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
-const { navigateIfNeeded, requireSafeUrl, summarizeResult } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, summarizeResult, safeEvaluate } = require('../helpers');
 
 module.exports = function registerWorkflowTools(server) {
 
@@ -42,26 +42,26 @@ module.exports = function registerWorkflowTools(server) {
       const results = {};
 
       // Design extraction
-      results.colors = await browser.page.evaluate(extractColorsInBrowser, { limit: 50 });
-      results.fonts = await browser.page.evaluate(extractFontsInBrowser);
-      results.cssVars = await browser.page.evaluate(extractCssVarsInBrowser, { includeAll: false });
-      results.spacing = await browser.page.evaluate(extractSpacingInBrowser, { sampleSize: 200 });
-      results.shadows = await browser.page.evaluate(extractShadowsInBrowser, { sampleSize: 300 });
+      results.colors = await safeEvaluate(browser.page, extractColorsInBrowser, { limit: 50 });
+      results.fonts = await safeEvaluate(browser.page, extractFontsInBrowser);
+      results.cssVars = await safeEvaluate(browser.page, extractCssVarsInBrowser, { includeAll: false });
+      results.spacing = await safeEvaluate(browser.page, extractSpacingInBrowser, { sampleSize: 200 });
+      results.shadows = await safeEvaluate(browser.page, extractShadowsInBrowser, { sampleSize: 300 });
 
       // Components & layout
-      results.components = await browser.page.evaluate(extractComponentsInBrowser, { minOccurrences: 2 });
-      results.breakpoints = await browser.page.evaluate(extractBreakpointsInBrowser);
-      results.animations = await browser.page.evaluate(extractAnimationsInBrowser);
-      results.icons = await browser.page.evaluate(extractIconsInBrowser);
+      results.components = await safeEvaluate(browser.page, extractComponentsInBrowser, { minOccurrences: 2 });
+      results.breakpoints = await safeEvaluate(browser.page, extractBreakpointsInBrowser);
+      results.animations = await safeEvaluate(browser.page, extractAnimationsInBrowser);
+      results.icons = await safeEvaluate(browser.page, extractIconsInBrowser);
 
       // Tech stack
-      results.stack = await browser.page.evaluate(detectStackInBrowser);
+      results.stack = await safeEvaluate(browser.page, detectStackInBrowser);
 
       // Quality
-      results.perf = await browser.page.evaluate(extractPerfInBrowser);
-      results.a11y = await browser.page.evaluate(extractA11yInBrowser, { standard: 'aa' });
-      results.contrast = await browser.page.evaluate(extractContrastInBrowser, { sampleSize: 200, standard: 'aa' });
-      results.darkmode = await browser.page.evaluate(detectDarkmodeInBrowser);
+      results.perf = await safeEvaluate(browser.page, extractPerfInBrowser);
+      results.a11y = await safeEvaluate(browser.page, extractA11yInBrowser, { standard: 'aa' });
+      results.contrast = await safeEvaluate(browser.page, extractContrastInBrowser, { sampleSize: 200, standard: 'aa' });
+      results.darkmode = await safeEvaluate(browser.page, detectDarkmodeInBrowser);
 
       // Build summary
       const colors = (results.colors.colors || []).slice(0, 5).map(c => c.hex).join(', ');
@@ -107,20 +107,20 @@ module.exports = function registerWorkflowTools(server) {
       const results = {};
 
       // Accessibility
-      results.a11y = await browser.page.evaluate(extractA11yInBrowser, { standard });
-      results.contrast = await browser.page.evaluate(extractContrastInBrowser, { sampleSize: 200, standard });
+      results.a11y = await safeEvaluate(browser.page, extractA11yInBrowser, { standard });
+      results.contrast = await safeEvaluate(browser.page, extractContrastInBrowser, { sampleSize: 200, standard });
 
       // Performance
-      results.perf = await browser.page.evaluate(extractPerfInBrowser);
+      results.perf = await safeEvaluate(browser.page, extractPerfInBrowser);
 
       // SEO
-      results.metadata = await browser.page.evaluate(extractMetadataInBrowser);
+      results.metadata = await safeEvaluate(browser.page, extractMetadataInBrowser);
 
       // Dark mode
-      results.darkmode = await browser.page.evaluate(detectDarkmodeInBrowser);
+      results.darkmode = await safeEvaluate(browser.page, detectDarkmodeInBrowser);
 
       // Forms (for label/validation checks)
-      results.forms = await browser.page.evaluate(extractFormsInBrowser);
+      results.forms = await safeEvaluate(browser.page, extractFormsInBrowser);
 
       // Build scorecard
       const checks = [];
@@ -209,32 +209,32 @@ module.exports = function registerWorkflowTools(server) {
           await browser.page.waitForTimeout(1000);
 
           // Content
-          const content = await browser.page.evaluate(extractContentInBrowser, { selector: null, includeImages: false });
+          const content = await safeEvaluate(browser.page, extractContentInBrowser, { selector: null, includeImages: false });
           pageResult.wordCount = (content.content || '').split(/\s+/).filter(Boolean).length;
 
           // Images
-          const images = await browser.page.evaluate(extractImagesInBrowser, { minWidth: 10, filter: '' });
+          const images = await safeEvaluate(browser.page, extractImagesInBrowser, { minWidth: 10, filter: '' });
           pageResult.imageCount = images.total;
           inventory.totalImages += images.total;
 
           // SVGs
-          const svgs = await browser.page.evaluate(extractSvgsInBrowser, { limit: 50 });
+          const svgs = await safeEvaluate(browser.page, extractSvgsInBrowser, { limit: 50 });
           pageResult.svgCount = svgs.total;
           inventory.totalSvgs += svgs.total;
 
           // Forms
-          const forms = await browser.page.evaluate(extractFormsInBrowser);
+          const forms = await safeEvaluate(browser.page, extractFormsInBrowser);
           pageResult.formCount = (forms.forms || []).length;
           inventory.totalForms += (forms.forms || []).length;
 
           // Fonts (first page only)
           if (visited.size === 1) {
-            const fonts = await browser.page.evaluate(extractFontsInBrowser);
+            const fonts = await safeEvaluate(browser.page, extractFontsInBrowser);
             (fonts.families || []).forEach(f => inventory.fonts.add(f.value));
           }
 
           // Links for crawling + inventory
-          const links = await browser.page.evaluate(() =>
+          const links = await safeEvaluate(browser.page, () =>
             [...document.querySelectorAll('a[href]')].map(a => ({ text: a.textContent.trim().slice(0, 80), href: a.href })).filter(l => l.href.startsWith('http'))
           );
           pageResult.linkCount = links.length;
@@ -304,15 +304,15 @@ module.exports = function registerWorkflowTools(server) {
       await navigateIfNeeded(url);
 
       const data = {};
-      data.colors = await browser.page.evaluate(extractColorsInBrowser, { limit: 50 });
-      data.fonts = await browser.page.evaluate(extractFontsInBrowser);
-      data.cssVars = await browser.page.evaluate(extractCssVarsInBrowser, { includeAll: false });
-      data.spacing = await browser.page.evaluate(extractSpacingInBrowser, { sampleSize: 200 });
-      data.shadows = await browser.page.evaluate(extractShadowsInBrowser, { sampleSize: 300 });
-      data.breakpoints = await browser.page.evaluate(extractBreakpointsInBrowser);
-      data.animations = await browser.page.evaluate(extractAnimationsInBrowser);
-      data.icons = await browser.page.evaluate(extractIconsInBrowser);
-      data.components = await browser.page.evaluate(extractComponentsInBrowser, { minOccurrences: 2 });
+      data.colors = await safeEvaluate(browser.page, extractColorsInBrowser, { limit: 50 });
+      data.fonts = await safeEvaluate(browser.page, extractFontsInBrowser);
+      data.cssVars = await safeEvaluate(browser.page, extractCssVarsInBrowser, { includeAll: false });
+      data.spacing = await safeEvaluate(browser.page, extractSpacingInBrowser, { sampleSize: 200 });
+      data.shadows = await safeEvaluate(browser.page, extractShadowsInBrowser, { sampleSize: 300 });
+      data.breakpoints = await safeEvaluate(browser.page, extractBreakpointsInBrowser);
+      data.animations = await safeEvaluate(browser.page, extractAnimationsInBrowser);
+      data.icons = await safeEvaluate(browser.page, extractIconsInBrowser);
+      data.components = await safeEvaluate(browser.page, extractComponentsInBrowser, { minOccurrences: 2 });
 
       // Build W3C design tokens
       const tokens = {};

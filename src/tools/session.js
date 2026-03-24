@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const { sanitizeForLLM } = require('../sanitizer');
 const browser = require('../browser');
-const { navigateIfNeeded, requireSafeUrl, indexPage, resolveElement, formatIndexResult, summarizeResult } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, indexPage, resolveElement, formatIndexResult, summarizeResult, safeEvaluate } = require('../helpers');
 
 module.exports = function registerSessionTools(server) {
 
@@ -31,7 +31,7 @@ module.exports = function registerSessionTools(server) {
 
       const title = await browser.page.title();
       const currentUrl = browser.page.url();
-      const bodyPreview = await browser.page.evaluate(() =>
+      const bodyPreview = await safeEvaluate(browser.page, () =>
         (document.body?.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 500)
       );
 
@@ -81,7 +81,7 @@ module.exports = function registerSessionTools(server) {
 
       const title = await browser.page.title();
       const currentUrl = browser.page.url();
-      const bodyPreview = await browser.page.evaluate(() =>
+      const bodyPreview = await safeEvaluate(browser.page, () =>
         (document.body?.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 1000)
       );
 
@@ -137,7 +137,7 @@ module.exports = function registerSessionTools(server) {
         if (!browser.elementMap.length) {
           await indexPage();
         }
-        await browser.page.evaluate((elements) => {
+        await safeEvaluate(browser.page, (elements) => {
           const container = document.createElement('div');
           container.id = '__tapsite_highlights__';
           container.style.cssText = 'position:absolute;top:0;left:0;z-index:999999;pointer-events:none;';
@@ -168,7 +168,7 @@ module.exports = function registerSessionTools(server) {
       const imageBuffer = await browser.page.screenshot({ fullPage });
 
       if (highlight) {
-        await browser.page.evaluate(() => {
+        await safeEvaluate(browser.page, () => {
           document.getElementById('__tapsite_highlights__')?.remove();
         });
       }
@@ -270,7 +270,7 @@ module.exports = function registerSessionTools(server) {
           top: 'window.scrollTo(0, 0)',
           bottom: 'window.scrollTo(0, document.body.scrollHeight)',
         };
-        await browser.page.evaluate(scrollMap[direction || 'down']);
+        await safeEvaluate(browser.page, scrollMap[direction || 'down']);
       }
 
       await browser.page.waitForTimeout(300);
@@ -293,7 +293,7 @@ module.exports = function registerSessionTools(server) {
     },
     async ({ script }) => {
       await browser.ensureBrowser();
-      const result = await browser.page.evaluate(script);
+      const result = await safeEvaluate(browser.page, script);
       const text = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
       if (text.length > 2000) {
         const preview = text.slice(0, 500) + '\n…(truncated)';

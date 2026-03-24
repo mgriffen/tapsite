@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const path = require('path');
 const fs = require('fs');
-const { summarizeResult, requireSafeUrl } = require('../helpers');
+const { summarizeResult, requireSafeUrl, safeEvaluate } = require('../helpers');
 const {
   extractContentInBrowser,
   extractMetadataInBrowser,
@@ -64,9 +64,9 @@ module.exports = function registerMultipageTools(server) {
 
           for (const type of extract) {
             try {
-              if (type === 'content') pageResult.extractions.content = (await browser.page.evaluate(extractContentInBrowser, { selector: null, includeImages: false })).content;
-              else if (type === 'metadata') pageResult.extractions.metadata = await browser.page.evaluate(extractMetadataInBrowser);
-              else if (type === 'links') pageResult.extractions.links = await browser.page.evaluate(() => {
+              if (type === 'content') pageResult.extractions.content = (await safeEvaluate(browser.page, extractContentInBrowser, { selector: null, includeImages: false })).content;
+              else if (type === 'metadata') pageResult.extractions.metadata = await safeEvaluate(browser.page, extractMetadataInBrowser);
+              else if (type === 'links') pageResult.extractions.links = await safeEvaluate(browser.page, () => {
                 function isHiddenElement(el) {
                   if (!el || el.nodeType !== 1) return false;
                   const cs = getComputedStyle(el);
@@ -85,18 +85,18 @@ module.exports = function registerMultipageTools(server) {
                 }
                 return [...document.querySelectorAll('a[href]')].filter(a => !isHiddenElement(a)).map(a => ({ text: a.textContent.trim().slice(0, 100), href: a.href }));
               });
-              else if (type === 'colors') pageResult.extractions.colors = await browser.page.evaluate(extractColorsInBrowser, { limit: 50 });
-              else if (type === 'fonts') pageResult.extractions.fonts = await browser.page.evaluate(extractFontsInBrowser);
-              else if (type === 'css_vars') pageResult.extractions.css_vars = await browser.page.evaluate(extractCssVarsInBrowser, { includeAll: false });
-              else if (type === 'components') pageResult.extractions.components = await browser.page.evaluate(extractComponentsInBrowser, { minOccurrences: 2 });
-              else if (type === 'forms') pageResult.extractions.forms = await browser.page.evaluate(extractFormsInBrowser);
+              else if (type === 'colors') pageResult.extractions.colors = await safeEvaluate(browser.page, extractColorsInBrowser, { limit: 50 });
+              else if (type === 'fonts') pageResult.extractions.fonts = await safeEvaluate(browser.page, extractFontsInBrowser);
+              else if (type === 'css_vars') pageResult.extractions.css_vars = await safeEvaluate(browser.page, extractCssVarsInBrowser, { includeAll: false });
+              else if (type === 'components') pageResult.extractions.components = await safeEvaluate(browser.page, extractComponentsInBrowser, { minOccurrences: 2 });
+              else if (type === 'forms') pageResult.extractions.forms = await safeEvaluate(browser.page, extractFormsInBrowser);
             } catch (e) {
               pageResult.extractions[type] = { error: e.message };
             }
           }
 
           if (depth < maxDepth) {
-            const links = await browser.page.evaluate(() =>
+            const links = await safeEvaluate(browser.page, () =>
               [...document.querySelectorAll('a[href]')].map(a => a.href).filter(h => h.startsWith('http'))
             );
             for (const link of links) {
@@ -159,7 +159,7 @@ module.exports = function registerMultipageTools(server) {
         if (viewport) await browser.page.setViewportSize(viewport);
         try { await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 }); } catch {}
         await browser.page.waitForTimeout(1000);
-        return browser.page.evaluate(() => {
+        return safeEvaluate(browser.page, () => {
           const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map(h => ({
             level: h.tagName.toLowerCase(),
             text: h.textContent.trim().slice(0, 200),

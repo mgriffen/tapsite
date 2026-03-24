@@ -22,7 +22,7 @@ vi.mock('../src/browser.js', () => ({
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const config = require('../src/config.js');
-const { summarizeResult, requireSafeUrl } = require('../src/helpers.js');
+const { summarizeResult, requireSafeUrl, safeEvaluate } = require('../src/helpers.js');
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -56,6 +56,19 @@ afterEach(() => {
 });
 
 // ── JSON output (always) ───────────────────────────────────────────────────
+
+describe('safeEvaluate', () => {
+  it('returns result when evaluate completes in time', async () => {
+    const mockPage = { evaluate: async (fn, arg) => fn(arg) };
+    const result = await safeEvaluate(mockPage, (x) => x * 2, 5);
+    expect(result).toBe(10);
+  });
+
+  it('throws on timeout', async () => {
+    const mockPage = { evaluate: () => new Promise(() => {}) };
+    await expect(safeEvaluate(mockPage, () => {}, null, 50)).rejects.toThrow('timed out');
+  });
+});
 
 describe('requireSafeUrl', () => {
   it('allows normal HTTP URLs', () => {

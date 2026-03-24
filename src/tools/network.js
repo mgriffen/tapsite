@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const { detectStackInBrowser } = require('../extractors');
 const browser = require('../browser');
-const { navigateIfNeeded, requireSafeUrl, summarizeResult } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, summarizeResult, safeEvaluate } = require('../helpers');
 
 const STATIC_RESOURCE_TYPES = new Set(['image', 'stylesheet', 'font', 'media']);
 const SENSITIVE_HEADERS = new Set(['authorization', 'cookie', 'set-cookie', 'x-auth-token', 'x-api-key', 'x-csrf-token', 'x-xsrf-token']);
@@ -228,7 +228,7 @@ module.exports = function registerNetworkTools(server) {
         }
       }
 
-      const stack = await browser.page.evaluate(detectStackInBrowser);
+      const stack = await safeEvaluate(browser.page, detectStackInBrowser);
 
       if (serverHeaders) {
         stack.serverHeaders = serverHeaders;

@@ -25,7 +25,7 @@ const {
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
-const { navigateIfNeeded, requireSafeUrl, summarizeResult } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, summarizeResult, safeEvaluate } = require('../helpers');
 
 function formatLayoutTree(node, indent = '') {
   if (!node) return '';
@@ -68,7 +68,7 @@ module.exports = function registerExtractionTools(server) {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
 
-      const tableData = await browser.page.evaluate(
+      const tableData = await safeEvaluate(browser.page, 
         ({ minColumns, limit }) => {
           const rows = [...document.querySelectorAll('tr')];
           const results = [];
@@ -110,7 +110,7 @@ module.exports = function registerExtractionTools(server) {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
 
-      let links = await browser.page.evaluate(() => {
+      let links = await safeEvaluate(browser.page, () => {
         function isHiddenElement(el) {
           if (!el || el.nodeType !== 1) return false;
           const cs = getComputedStyle(el);
@@ -161,7 +161,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, limit }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractColorsInBrowser, { limit });
+      const result = await safeEvaluate(browser.page, extractColorsInBrowser, { limit });
       const colors = result.colors || [];
       const top5 = colors.slice(0, 5).map(c => `${c.hex} (${c.count}x)`).join(', ');
       const summary = `Colors: ${colors.length} unique\nTop: ${top5 || 'none'}`;
@@ -178,7 +178,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractFontsInBrowser);
+      const result = await safeEvaluate(browser.page, extractFontsInBrowser);
       const families = (result.families || []).map(f => `"${f.value}" (${f.count}x)`).join(', ');
       const sizes = (result.sizes || []).slice(0, 5).map(s => s.value).join(', ');
       const summary = `Fonts: ${(result.families || []).length} families, ${(result.sizes || []).length} sizes, ${(result.weights || []).length} weights\nFamilies: ${families || 'none'}\nSizes: ${sizes || 'none'}`;
@@ -196,7 +196,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, includeAll }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractCssVarsInBrowser, { includeAll });
+      const result = await safeEvaluate(browser.page, extractCssVarsInBrowser, { includeAll });
       const vars = result.variables || [];
       const catStr = Object.entries(result.summary || {}).map(([k, v]) => `${k} (${v})`).join(', ');
       const samples = vars.slice(0, 4).map(v => `${v.name}: ${v.value}`).join(', ');
@@ -215,7 +215,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, sampleSize }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractSpacingInBrowser, { sampleSize });
+      const result = await safeEvaluate(browser.page, extractSpacingInBrowser, { sampleSize });
       const spacing = result.spacing || [];
       const scale = spacing.slice(0, 10).map(s => s.value).join(', ');
       const top5 = spacing.slice(0, 5).map(s => `${s.value} (${s.count}x)`).join(', ');
@@ -235,7 +235,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, minWidth, filter }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || '' });
+      const result = await safeEvaluate(browser.page, extractImagesInBrowser, { minWidth, filter: filter || '' });
       const imgs = result.images || [];
       const byType = {};
       imgs.forEach(i => { byType[i.source || 'unknown'] = (byType[i.source || 'unknown'] || 0) + 1; });
@@ -260,7 +260,7 @@ module.exports = function registerExtractionTools(server) {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
 
-      const { images } = await browser.page.evaluate(extractImagesInBrowser, { minWidth, filter: filter || '' });
+      const { images } = await safeEvaluate(browser.page, extractImagesInBrowser, { minWidth, filter: filter || '' });
 
       let toDownload = images;
       if (formats && formats.length > 0) {
@@ -327,7 +327,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, limit, download }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractSvgsInBrowser, { limit });
+      const result = await safeEvaluate(browser.page, extractSvgsInBrowser, { limit });
 
       if (download) {
         const svgDir = path.join(config.OUTPUT_DIR, 'assets', 'svgs');
@@ -379,7 +379,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, download }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractFaviconInBrowser);
+      const result = await safeEvaluate(browser.page, extractFaviconInBrowser);
 
       if (result.manifestUrl) {
         try {
@@ -456,7 +456,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, maxDepth }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractLayoutInBrowser, { maxDepth });
+      const result = await safeEvaluate(browser.page, extractLayoutInBrowser, { maxDepth });
       const text = formatLayoutTree(result.layout);
       return { content: [{ type: 'text', text }] };
     }
@@ -472,7 +472,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, minOccurrences }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractComponentsInBrowser, { minOccurrences });
+      const result = await safeEvaluate(browser.page, extractComponentsInBrowser, { minOccurrences });
       const comps = result.components || [];
       const top5 = comps.slice(0, 5).map(c => `${c.tag}${c.classes ? '.' + c.classes.split(' ')[0] : ''} (${c.count}x)`).join('\n  ');
       const summary = `Components: ${comps.length} patterns detected\n  ${top5 || 'none'}`;
@@ -489,7 +489,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractBreakpointsInBrowser);
+      const result = await safeEvaluate(browser.page, extractBreakpointsInBrowser);
       const bps = result.breakpoints || [];
       const vals = bps.map(b => b.value || b.query || '').join(', ');
       const fw = (result.detectedFrameworks || []).length ? ` | Framework: ${result.detectedFrameworks.join(', ')}` : '';
@@ -507,7 +507,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url, 1000);
-      const result = await browser.page.evaluate(extractMetadataInBrowser);
+      const result = await safeEvaluate(browser.page, extractMetadataInBrowser);
       const og = result.openGraph ? Object.keys(result.openGraph).length : 0;
       const tw = result.twitterCard ? Object.keys(result.twitterCard).length : 0;
       const ld = Array.isArray(result.jsonLd) ? result.jsonLd.length : 0;
@@ -527,7 +527,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, selector, includeImages }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url, 1000);
-      const result = await browser.page.evaluate(extractContentInBrowser, { selector, includeImages });
+      const result = await safeEvaluate(browser.page, extractContentInBrowser, { selector, includeImages });
       return { content: [{ type: 'text', text: result.content }] };
     }
   );
@@ -541,7 +541,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url, 1000);
-      const result = await browser.page.evaluate(extractFormsInBrowser);
+      const result = await safeEvaluate(browser.page, extractFormsInBrowser);
       const forms = result.forms || [];
       const totalFields = forms.reduce((sum, f) => sum + (f.fields || []).length, 0);
       const formLines = forms.slice(0, 5).map(f => {
@@ -562,7 +562,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractAnimationsInBrowser);
+      const result = await safeEvaluate(browser.page, extractAnimationsInBrowser);
       const kf = (result.keyframes || []).length;
       const tr = (result.transitions || []).length;
       const libs = [...(result.jsLibraries || []), ...(result.cssLibraries || [])].join(', ');
@@ -582,7 +582,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, standard }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractA11yInBrowser, { standard });
+      const result = await safeEvaluate(browser.page, extractA11yInBrowser, { standard });
       const issues = result.issues || [];
       const bySev = {};
       issues.forEach(i => { bySev[i.severity || 'info'] = (bySev[i.severity || 'info'] || 0) + 1; });
@@ -604,12 +604,12 @@ module.exports = function registerExtractionTools(server) {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
 
-      const result = await browser.page.evaluate(detectDarkmodeInBrowser);
+      const result = await safeEvaluate(browser.page, detectDarkmodeInBrowser);
 
       if (activateDark) {
         await browser.page.emulateMedia({ colorScheme: 'dark' });
         await browser.page.waitForTimeout(500);
-        const darkPalette = await browser.page.evaluate(() => {
+        const darkPalette = await safeEvaluate(browser.page, () => {
           const counts = {};
           for (const el of document.querySelectorAll('body *')) {
             if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
@@ -643,7 +643,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url, 2000);
-      const result = await browser.page.evaluate(extractPerfInBrowser);
+      const result = await safeEvaluate(browser.page, extractPerfInBrowser);
       const t = result.timing || {};
       const dom = result.dom || {};
       const res = result.resources || {};
@@ -664,7 +664,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, sampleSize }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractShadowsInBrowser, { sampleSize });
+      const result = await safeEvaluate(browser.page, extractShadowsInBrowser, { sampleSize });
       const bs = result.boxShadows || [];
       const ts = result.textShadows || [];
       const byElev = {};
@@ -685,7 +685,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractIconsInBrowser);
+      const result = await safeEvaluate(browser.page, extractIconsInBrowser);
       const libs = (result.libraries || []).join(', ');
       const top5 = (result.icons || []).slice(0, 5).map(i => `${i.className} (${i.count}x)`).join(', ');
       const summary = `Icons: ${result.totalUniqueIcons || 0} unique, ${result.totalIconElements || 0} elements | Libraries: ${libs || 'none'}${result.pseudoContentIcons ? ` | Pseudo-content: ${result.pseudoContentIcons}` : ''}\nTop: ${top5 || 'none'}`;
@@ -704,7 +704,7 @@ module.exports = function registerExtractionTools(server) {
     async ({ url, sampleSize, standard }) => {
       await browser.ensureBrowser();
       await navigateIfNeeded(url);
-      const result = await browser.page.evaluate(extractContrastInBrowser, { sampleSize, standard });
+      const result = await safeEvaluate(browser.page, extractContrastInBrowser, { sampleSize, standard });
       const worst = (result.worstPairs || []).slice(0, 3).map(p => `${p.foreground}/${p.background} = ${p.ratio}:1`).join(', ');
       const summary = `Contrast (WCAG ${standard.toUpperCase()}): ${result.passing || 0} passing, ${result.failing || 0} failing out of ${result.totalPairs || 0} pairs\nWorst: ${worst || 'all passing'}`;
       return summarizeResult('contrast', result, summary, { tool: 'tapsite_extract_contrast', description: 'WCAG contrast ratio audit for text/background color pairs' });

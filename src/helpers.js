@@ -117,4 +117,20 @@ function formatIndexResult(result) {
   return sanitizeForLLM(text);
 }
 
-module.exports = { navigateIfNeeded, requireSafeUrl, summarizeResult, indexPage, resolveElement, formatIndexResult };
+async function safeEvaluate(page, fn, arg, timeoutMs) {
+  const timeout = timeoutMs || config.EVAL_TIMEOUT_MS;
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`page.evaluate() timed out after ${timeout}ms`)), timeout);
+  });
+  try {
+    return await Promise.race([
+      page.evaluate(fn, arg),
+      timeoutPromise,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+module.exports = { navigateIfNeeded, requireSafeUrl, summarizeResult, indexPage, resolveElement, formatIndexResult, safeEvaluate };

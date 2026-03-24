@@ -13,7 +13,7 @@ const { inspectPageV2 } = require('../inspector');
 const { createRunDir, screenshotPath, exportJSON, exportMarkdown, exportHTML, exportCSV } = require('../exporter');
 const config = require('../config');
 const browser = require('../browser');
-const { navigateIfNeeded, requireSafeUrl } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, safeEvaluate } = require('../helpers');
 
 const PKG_VERSION = require('../../package.json').version;
 
@@ -81,12 +81,12 @@ module.exports = function registerExportTools(server) {
       await navigateIfNeeded(url);
 
       const data = {};
-      if (include.includes('colors'))      data.colors      = await browser.page.evaluate(extractColorsInBrowser, { limit: 50 });
-      if (include.includes('fonts'))       data.fonts       = await browser.page.evaluate(extractFontsInBrowser);
-      if (include.includes('css_vars'))    data.cssVars     = await browser.page.evaluate(extractCssVarsInBrowser, { includeAll: false });
-      if (include.includes('spacing'))     data.spacing     = await browser.page.evaluate(extractSpacingInBrowser, { sampleSize: 200 });
-      if (include.includes('components')) data.components  = await browser.page.evaluate(extractComponentsInBrowser, { minOccurrences: 2 });
-      if (include.includes('breakpoints')) data.breakpoints = await browser.page.evaluate(extractBreakpointsInBrowser);
+      if (include.includes('colors'))      data.colors      = await safeEvaluate(browser.page, extractColorsInBrowser, { limit: 50 });
+      if (include.includes('fonts'))       data.fonts       = await safeEvaluate(browser.page, extractFontsInBrowser);
+      if (include.includes('css_vars'))    data.cssVars     = await safeEvaluate(browser.page, extractCssVarsInBrowser, { includeAll: false });
+      if (include.includes('spacing'))     data.spacing     = await safeEvaluate(browser.page, extractSpacingInBrowser, { sampleSize: 200 });
+      if (include.includes('components')) data.components  = await safeEvaluate(browser.page, extractComponentsInBrowser, { minOccurrences: 2 });
+      if (include.includes('breakpoints')) data.breakpoints = await safeEvaluate(browser.page, extractBreakpointsInBrowser);
 
       // Build design-tokens.json (W3C Design Tokens format)
       const tokens = {};
