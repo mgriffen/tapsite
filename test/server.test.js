@@ -72,4 +72,16 @@ describe('MCP Server Integration', () => {
     });
     expect(result.content[0].text).toBeDefined();
   });
+
+  it('tapsite_diff_pages accepts url1 required, url2 and extractors optional', async () => {
+    const result = await client.listTools();
+    const diff = result.tools.find(t => t.name === 'tapsite_diff_pages');
+    expect(diff).toBeDefined();
+    const schema = diff.inputSchema;
+    expect(schema.properties.url1).toBeDefined();
+    expect(schema.properties.url2).toBeDefined();
+    expect(schema.properties.extractors).toBeDefined();
+    expect(schema.required).toContain('url1');
+    expect(schema.required).not.toContain('url2');
+  });
 });
