@@ -19,16 +19,27 @@ function sanitizeObject(obj) {
 }
 
 function requireSafeUrl(urlStr) {
+  let parsed;
   try {
-    const parsed = new URL(urlStr);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new Error(`Blocked URL scheme "${parsed.protocol}" — only http: and https: are allowed`);
-    }
-    return parsed;
-  } catch (e) {
-    if (e.message.startsWith('Blocked URL')) throw e;
+    parsed = new URL(urlStr);
+  } catch {
     throw new Error(`Invalid URL: ${urlStr}`);
   }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`Blocked URL scheme "${parsed.protocol}" — only http: and https: are allowed`);
+  }
+  const hostname = parsed.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1' || hostname === '0.0.0.0') {
+    throw new Error(`Blocked private/loopback address "${hostname}"`);
+  }
+  const ipv4 = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || a === 0) {
+      throw new Error(`Blocked private/internal IP "${hostname}"`);
+    }
+  }
+  return parsed;
 }
 
 async function navigateIfNeeded(url, waitMs = 1500) {

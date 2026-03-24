@@ -22,7 +22,7 @@ vi.mock('../src/browser.js', () => ({
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const config = require('../src/config.js');
-const { summarizeResult } = require('../src/helpers.js');
+const { summarizeResult, requireSafeUrl } = require('../src/helpers.js');
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ function mdFromJsonPath(jsonPath) {
 
 // ── test state ─────────────────────────────────────────────────────────────
 
-const tmpDir = path.join(os.tmpdir(), 'cbrowser-test-helpers');
+const tmpDir = path.join(os.tmpdir(), 'tapsite-test-helpers');
 const originalOutputDir = config.OUTPUT_DIR;
 
 beforeEach(() => {
@@ -56,6 +56,58 @@ afterEach(() => {
 });
 
 // ── JSON output (always) ───────────────────────────────────────────────────
+
+describe('requireSafeUrl', () => {
+  it('allows normal HTTP URLs', () => {
+    expect(() => requireSafeUrl('https://example.com')).not.toThrow();
+  });
+
+  it('blocks file:// scheme', () => {
+    expect(() => requireSafeUrl('file:///etc/passwd')).toThrow('Blocked');
+  });
+
+  it('blocks javascript: scheme', () => {
+    expect(() => requireSafeUrl('javascript:alert(1)')).toThrow();
+  });
+
+  it('blocks localhost', () => {
+    expect(() => requireSafeUrl('http://127.0.0.1')).toThrow('Blocked');
+    expect(() => requireSafeUrl('http://localhost')).toThrow('Blocked');
+  });
+
+  it('blocks private 10.x.x.x range', () => {
+    expect(() => requireSafeUrl('http://10.0.0.1')).toThrow('Blocked');
+  });
+
+  it('blocks private 172.16-31.x.x range', () => {
+    expect(() => requireSafeUrl('http://172.16.0.1')).toThrow('Blocked');
+    expect(() => requireSafeUrl('http://172.31.255.255')).toThrow('Blocked');
+  });
+
+  it('allows 172.15.x.x (not private)', () => {
+    expect(() => requireSafeUrl('http://172.15.0.1')).not.toThrow();
+  });
+
+  it('blocks private 192.168.x.x range', () => {
+    expect(() => requireSafeUrl('http://192.168.1.1')).toThrow('Blocked');
+  });
+
+  it('blocks link-local 169.254.x.x (AWS metadata)', () => {
+    expect(() => requireSafeUrl('http://169.254.169.254')).toThrow('Blocked');
+  });
+
+  it('blocks IPv6 loopback', () => {
+    expect(() => requireSafeUrl('http://[::1]')).toThrow('Blocked');
+  });
+
+  it('blocks 0.0.0.0', () => {
+    expect(() => requireSafeUrl('http://0.0.0.0')).toThrow('Blocked');
+  });
+
+  it('allows normal public IPs', () => {
+    expect(() => requireSafeUrl('http://8.8.8.8')).not.toThrow();
+  });
+});
 
 describe('summarizeResult', () => {
   describe('JSON output (always written)', () => {
@@ -94,10 +146,10 @@ describe('summarizeResult', () => {
     });
 
     it('uses meta.tool override when provided', () => {
-      const result = summarizeResult('internal', {}, 'ok', { tool: 'cbrowser_extract_colors' });
+      const result = summarizeResult('internal', {}, 'ok', { tool: 'tapsite_extract_colors' });
       const jsonPath = pathFromResult(result);
       const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      expect(data._meta.tool).toBe('cbrowser_extract_colors');
+      expect(data._meta.tool).toBe('tapsite_extract_colors');
     });
   });
 
@@ -143,9 +195,9 @@ describe('summarizeResult', () => {
 
     it('Markdown includes the tool name as an H1 heading', () => {
       process.env.TAPSITE_REPORT = '1';
-      const result = summarizeResult('cbrowser_extract_colors', { palette: [] }, 'Found 10 colors.');
+      const result = summarizeResult('tapsite_extract_colors', { palette: [] }, 'Found 10 colors.');
       const md = fs.readFileSync(mdFromJsonPath(pathFromResult(result)), 'utf-8');
-      expect(md).toContain('# cbrowser_extract_colors');
+      expect(md).toContain('# tapsite_extract_colors');
     });
 
     it('Markdown includes _meta URL, timestamp, and version', () => {
