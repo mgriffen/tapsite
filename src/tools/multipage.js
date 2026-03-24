@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const path = require('path');
 const fs = require('fs');
-const { summarizeResult, requireSafeUrl, safeEvaluate } = require('../helpers');
+const { summarizeResult, requireSafeUrl, navigateIfNeeded, safeEvaluate } = require('../helpers');
 const {
   extractContentInBrowser,
   extractMetadataInBrowser,
@@ -143,87 +143,191 @@ module.exports = function registerMultipageTools(server) {
 
   server.tool(
     'tapsite_diff_pages',
-    'Compare two URLs: structure, content, colors, images, metadata.',
+    'Compare two URLs (cross-site) or the same URL over time (temporal). Runs real extractors — colors, fonts, spacing, a11y, perf, metadata, components, breakpoints — and produces a structured diff with regressions/improvements highlighted. Omit url2 for temporal mode (compares against last saved snapshot).',
     {
-      url1: z.string().describe('First URL'),
-      url2: z.string().describe('Second URL'),
-      viewport1: z.object({ width: z.number(), height: z.number() }).optional().describe('Viewport for url1'),
-      viewport2: z.object({ width: z.number(), height: z.number() }).optional().describe('Viewport for url2'),
+      url1: z.string().describe('First URL / baseline (or sole URL for temporal mode)'),
+      url2: z.string().optional().describe('Second URL to compare against url1 (omit for temporal diff)'),
+      extractors: z.array(z.string()).optional().describe('Which extractors to run (default: all core). Options: colors, fonts, spacing, components, breakpoints, a11y, perf, metadata, contrast'),
     },
-    async ({ url1, url2, viewport1, viewport2 }) => {
+    async ({ url1, url2, extractors: extractorNames }) => {
+      const { EXTRACTOR_MAP, DEFAULT_EXTRACTORS, diffExtractorResult } = require('../diff');
+      const { saveSnapshot, loadLatestSnapshot } = require('../snapshots');
+
       await browser.ensureBrowser();
       requireSafeUrl(url1);
-      requireSafeUrl(url2);
+      if (url2) requireSafeUrl(url2);
 
-      const capturePage = async (url, viewport) => {
-        if (viewport) await browser.page.setViewportSize(viewport);
-        try { await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 }); } catch {}
-        await browser.page.waitForTimeout(1000);
-        return safeEvaluate(browser.page, () => {
-          const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map(h => ({
-            level: h.tagName.toLowerCase(),
-            text: h.textContent.trim().slice(0, 200),
-          }));
-          const wordCount = (document.body.innerText || '').split(/\s+/).filter(Boolean).length;
-          const title = document.title;
-          const description = document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
-          const linkCount = document.querySelectorAll('a[href]').length;
-          const imageCount = document.querySelectorAll('img').length;
-          const formCount = document.querySelectorAll('form').length;
-          const colorCounts = {};
-          [...document.querySelectorAll('*')].slice(0, 500).forEach(el => {
-            const s = window.getComputedStyle(el);
-            [s.color, s.backgroundColor].forEach(c => {
-              if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') {
-                colorCounts[c] = (colorCounts[c] || 0) + 1;
-              }
-            });
-          });
-          const topColors = Object.entries(colorCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([c]) => c);
-          return { title, description, headings, wordCount, linkCount, imageCount, formCount, topColors };
-        });
-      };
+      const names = (extractorNames || DEFAULT_EXTRACTORS).filter(n => EXTRACTOR_MAP[n]);
+      const mode = url2 ? 'cross-site' : 'temporal';
 
-      const data1 = await capturePage(url1, viewport1);
-      const data2 = await capturePage(url2, viewport2);
+      // Extract url1 (baseline / "before" in cross-site mode)
+      await navigateIfNeeded(url1);
+      const beforeData = {};
+      const beforeTimestamp = new Date().toISOString();
+      for (const name of names) {
+        try {
+          const { fn, args } = EXTRACTOR_MAP[name];
+          beforeData[name] = await safeEvaluate(browser.page, fn, args);
+        } catch (e) {
+          beforeData[name] = { _error: e.message };
+        }
+      }
 
-      if (viewport1 || viewport2) await browser.page.setViewportSize(config.VIEWPORT);
+      // Get "after" data
+      const afterData = {};
 
-      const headingTexts1 = new Set(data1.headings.map(h => h.text));
-      const headingTexts2 = new Set(data2.headings.map(h => h.text));
+      if (mode === 'cross-site') {
+        // Navigate to url2 — force navigation even if same domain
+        try { await browser.page.goto(url2, { waitUntil: 'networkidle', timeout: 30000 }); } catch (err) {
+          console.error(`[tapsite] Navigation error for ${url2}: ${err.message}`);
+        }
+        await browser.page.waitForTimeout(1500);
+
+        for (const name of names) {
+          try {
+            const { fn, args } = EXTRACTOR_MAP[name];
+            afterData[name] = await safeEvaluate(browser.page, fn, args);
+          } catch (e) {
+            afterData[name] = { _error: e.message };
+          }
+        }
+      } else {
+        // Temporal — current extraction is "after", snapshots are "before"
+        // Move url1 extraction from beforeData to afterData
+        let hasAnySnapshot = false;
+        let snapshotTimestamp = null;
+        for (const name of names) {
+          afterData[name] = beforeData[name];
+          delete beforeData[name];
+          const snap = loadLatestSnapshot(url1, name);
+          if (snap) {
+            beforeData[name] = snap.data;
+            if (!snapshotTimestamp) snapshotTimestamp = snap.timestamp;
+            hasAnySnapshot = true;
+          }
+        }
+
+        // Save current as new snapshots
+        for (const name of names) {
+          if (!afterData[name]?._error) {
+            saveSnapshot(url1, name, afterData[name]);
+          }
+        }
+
+        if (!hasAnySnapshot) {
+          return {
+            content: [{
+              type: 'text',
+              text: `Baseline captured for ${url1}\n\nExtractors: ${names.join(', ')}\nSnapshots saved to output/snapshots/. Run this tool again later to see changes.`,
+            }],
+          };
+        }
+      }
+
+      // Compute diffs
+      const changes = {};
+      const regressions = [];
+      const improvements = [];
+      const errors = [];
+      let totalChanges = 0;
+
+      for (const name of names) {
+        if (afterData[name]?._error) {
+          changes[name] = { error: afterData[name]._error };
+          errors.push(`${name}: ${afterData[name]._error}`);
+          continue;
+        }
+        if (beforeData[name]?._error) {
+          changes[name] = { error: `before: ${beforeData[name]._error}` };
+          errors.push(`${name} (before): ${beforeData[name]._error}`);
+          continue;
+        }
+        if (!beforeData[name]) {
+          changes[name] = { note: 'no previous data' };
+          continue;
+        }
+
+        const diff = diffExtractorResult(name, beforeData[name], afterData[name]);
+        changes[name] = diff;
+        totalChanges += (diff.added?.length || 0) + (diff.removed?.length || 0);
+
+        // Detect regressions/improvements
+        if (name === 'a11y' && diff.deltas?.score) {
+          if (diff.deltas.score < 0) regressions.push(`a11y score ${(beforeData[name].score ?? '?')} → ${(afterData[name].score ?? '?')} (${diff.deltas.score})`);
+          if (diff.deltas.score > 0) improvements.push(`a11y score ${(beforeData[name].score ?? '?')} → ${(afterData[name].score ?? '?')} (+${diff.deltas.score})`);
+        }
+        if (name === 'perf' && diff.deltas?.loadMs !== null) {
+          if (diff.deltas.loadMs > 500) regressions.push(`Load time +${diff.deltas.loadMs}ms`);
+          if (diff.deltas.loadMs < -500) improvements.push(`Load time ${diff.deltas.loadMs}ms`);
+        }
+        if (name === 'contrast' && diff.deltas?.failing) {
+          if (diff.deltas.failing > 0) regressions.push(`Contrast: +${diff.deltas.failing} failing pairs`);
+          if (diff.deltas.failing < 0) improvements.push(`Contrast: ${diff.deltas.failing} failing pairs`);
+        }
+      }
+
+      const afterTimestamp = new Date().toISOString();
 
       const result = {
-        url1: { url: url1, viewport: viewport1 || config.VIEWPORT, ...data1 },
-        url2: { url: url2, viewport: viewport2 || config.VIEWPORT, ...data2 },
-        diff: {
-          title: data1.title !== data2.title ? { url1: data1.title, url2: data2.title } : 'same',
-          description: data1.description !== data2.description ? { url1: data1.description, url2: data2.description } : 'same',
-          wordCount: { url1: data1.wordCount, url2: data2.wordCount, delta: data2.wordCount - data1.wordCount },
-          linkCount: { url1: data1.linkCount, url2: data2.linkCount, delta: data2.linkCount - data1.linkCount },
-          imageCount: { url1: data1.imageCount, url2: data2.imageCount, delta: data2.imageCount - data1.imageCount },
-          formCount: { url1: data1.formCount, url2: data2.formCount, delta: data2.formCount - data1.formCount },
-          headings: {
-            onlyIn1: data1.headings.filter(h => !headingTexts2.has(h.text)),
-            onlyIn2: data2.headings.filter(h => !headingTexts1.has(h.text)),
-            shared: data1.headings.filter(h => headingTexts2.has(h.text)).length,
-          },
-          colors: {
-            onlyIn1: data1.topColors.filter(c => !data2.topColors.includes(c)),
-            onlyIn2: data2.topColors.filter(c => !data1.topColors.includes(c)),
-            shared: data1.topColors.filter(c => data2.topColors.includes(c)),
-          },
-        },
+        mode,
+        urls: { before: mode === 'cross-site' ? url1 : url1, after: mode === 'cross-site' ? url2 : url1 },
+        timestamps: { before: mode === 'temporal' ? (snapshotTimestamp || beforeTimestamp) : beforeTimestamp, after: afterTimestamp },
+        extractors: names,
+        changes,
+        summary: { totalChanges, regressions, improvements, errors },
       };
 
-      const d = result.diff;
-      const lines = [];
-      lines.push(`Title: ${d.title === 'same' ? 'same' : 'DIFFERENT'}`);
-      lines.push(`Words: ${d.wordCount.url1} vs ${d.wordCount.url2} (${d.wordCount.delta >= 0 ? '+' : ''}${d.wordCount.delta})`);
-      lines.push(`Links: ${d.linkCount.url1} vs ${d.linkCount.url2} | Images: ${d.imageCount.url1} vs ${d.imageCount.url2}`);
-      lines.push(`Headings: ${d.headings.shared} shared, ${d.headings.onlyIn1.length} only in url1, ${d.headings.onlyIn2.length} only in url2`);
-      lines.push(`Colors: ${d.colors.shared.length} shared, ${d.colors.onlyIn1.length} only in url1, ${d.colors.onlyIn2.length} only in url2`);
-      const summary = `Diff: ${url1} vs ${url2}\n${lines.join('\n')}`;
-      return summarizeResult('diff', result, summary, { tool: 'tapsite_diff_pages', description: 'Structural and content comparison between two URLs' });
+      // Build summary text
+      const timeSince = beforeTimestamp
+        ? (() => {
+            const ms = new Date(afterTimestamp) - new Date(beforeTimestamp);
+            const hours = Math.round(ms / 3600000);
+            if (hours < 24) return `${hours}h since last snapshot`;
+            return `${Math.round(hours / 24)}d since last snapshot`;
+          })()
+        : '';
+
+      const lines = [`DIFF: ${url1} (${mode}${timeSince ? ', ' + timeSince : ''})`];
+
+      if (regressions.length) {
+        lines.push('', 'REGRESSIONS:');
+        regressions.forEach(r => lines.push(`  ${r}`));
+      }
+      if (improvements.length) {
+        lines.push('', 'IMPROVEMENTS:');
+        improvements.forEach(i => lines.push(`  ${i}`));
+      }
+      if (errors.length) {
+        lines.push('', 'ERRORS:');
+        errors.forEach(e => lines.push(`  ${e}`));
+      }
+
+      lines.push('', 'CHANGES:');
+      for (const name of names) {
+        const c = changes[name];
+        if (c.error) {
+          lines.push(`  ${name}: ERROR — ${c.error}`);
+        } else if (c.note) {
+          lines.push(`  ${name}: ${c.note}`);
+        } else {
+          const parts = [];
+          if (c.added?.length) parts.push(`+${c.added.length} added`);
+          if (c.removed?.length) parts.push(`-${c.removed.length} removed`);
+          if (c.unchanged) parts.push(`${c.unchanged} unchanged`);
+          if (c.deltas) {
+            for (const [k, v] of Object.entries(c.deltas)) {
+              if (v === 'same' || v === null) continue;
+              if (typeof v === 'number') parts.push(`${k}: ${v >= 0 ? '+' : ''}${v}`);
+            }
+          }
+          lines.push(`  ${name}: ${parts.join(', ') || 'no change'}`);
+        }
+      }
+
+      return summarizeResult('diff', result, lines.join('\n'), {
+        tool: 'tapsite_diff_pages',
+        description: `${mode} diff: ${names.length} extractors compared`,
+      });
     }
   );
 
