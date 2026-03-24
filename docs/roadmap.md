@@ -11,7 +11,7 @@
 
 tapsite is not a browser automation tool. Playwright MCP, Puppeteer MCP, BrowserMCP, and every other MCP browser server give an AI the ability to *drive* a browser — click, type, navigate. That's table stakes. Microsoft ships Playwright MCP for free and it works fine for that.
 
-tapsite's actual value proposition is **web intelligence extraction** — the ability to look at a web page and produce structured, actionable intelligence about its design system, accessibility posture, technology stack, API surface, content structure, and visual assets. The 37 tools include browser automation as a means to an end, but the differentiator is what happens *after* navigation: the extractors.
+tapsite's actual value proposition is **web intelligence extraction** — the ability to look at a web page and produce structured, actionable intelligence about its design system, accessibility posture, technology stack, API surface, content structure, and visual assets. The 43 tools include browser automation as a means to an end, but the differentiator is what happens *after* navigation: the extractors.
 
 This distinction matters because it determines positioning, competition, and where to invest development effort. tapsite competes with Playwright MCP on browser automation (and will lose — Microsoft has infinite resources). It has **no meaningful competition** on structured web intelligence extraction via MCP. That's the moat.
 

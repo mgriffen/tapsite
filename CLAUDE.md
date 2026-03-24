@@ -43,7 +43,7 @@ This prevents credentials from lingering on disk in session transcripts.
 
 ## Project structure
 
-- `src/mcp-server.js` — MCP server entry point (all 37 tool definitions)
+- `src/mcp-server.js` — MCP server entry point (all 43 tool definitions)
 - `src/extractors.js` — browser-context extraction functions (run inside `page.evaluate()`; no Node.js APIs)
 - `src/exporter.js` — file export helpers: JSON, Markdown, HTML visual report, CSV tables
 - `src/inspector.js` — legacy DOM extraction used by `tapsite_inspect` (nav, headings, buttons, forms, tables, links)

@@ -119,7 +119,7 @@ If you need to extract from a site that requires login:
 
 > **Security note:** `profiles/` contains live session cookies. Treat it like a password — don't commit it to version control (it's already in `.gitignore`), and restrict access to the volume on shared systems.
 
-## Tools (37)
+## Tools (43)
 
 ### Session
 | Tool | Description |

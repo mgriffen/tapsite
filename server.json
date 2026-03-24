@@ -6,12 +6,12 @@
     "url": "https://github.com/mgriffen/tapsite",
     "source": "github"
   },
-  "version": "3.1.1",
+  "version": "4.0.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "tapsite",
-      "version": "3.1.1",
+      "version": "4.0.0",
       "transport": {
         "type": "stdio"
       }
