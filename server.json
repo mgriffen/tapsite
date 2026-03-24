@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mgriffen/tapsite",
+  "description": "MCP server for web inspection, design system extraction, and accessibility audits",
+  "repository": {
+    "url": "https://github.com/mgriffen/tapsite",
+    "source": "github"
+  },
+  "version": "3.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "tapsite",
+      "version": "3.1.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
