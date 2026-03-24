@@ -25,7 +25,7 @@ Docker solves installation friction, which matters. But tapsite's installation i
 
 The actual adoption bottleneck is **discoverability**: nobody knows tapsite exists. Dockerizing an unknown tool doesn't make it known. And Docker introduces a real problem: `tapsite_login_manual` (headed browser for MFA) breaks in standard containers. The VNC workaround is fragile and adds complexity that undermines the "zero-dependency" promise.
 
-**Better sequencing:** Publish to npm first (`npx tapsite-mcp`). This is simpler, reaches the same audience, and doesn't break headed mode. Docker comes later, positioned for CI/server use cases where headless-only is acceptable.
+**Better sequencing:** Publish to npm first (`npx tapsite`). This is simpler, reaches the same audience, and doesn't break headed mode. Docker comes later, positioned for CI/server use cases where headless-only is acceptable.
 
 #### Browser Extension — Right idea, wrong time
 
@@ -108,7 +108,7 @@ Major clients: Claude Desktop, Claude Code, Cursor, VS Code (via Copilot/Continu
 - Fix version mismatch: `McpServer` constructor version → `3.0.0`
 - Fix license: `package.json` license → `MIT` (matching README and LICENSE file)
 - Add `"start": "node src/mcp-server.js"` script to package.json
-- Add `"bin": { "tapsite-mcp": "src/mcp-server.js" }` for future npx support
+- Add `"bin": { "tapsite": "src/mcp-server.js" }` for future npx support
 - Ensure `src/mcp-server.js` has a proper shebang (`#!/usr/bin/env node`)
 - Extract the navigation boilerplate into a helper:
   ```js
@@ -192,7 +192,7 @@ require('./tools/extraction')(server);
 **Model:** Sonnet
 
 - Finalize `package.json`: name, description, keywords, author, repository, files field
-- Check npm for name availability (`tapsite` or `tapsite-mcp`)
+- Check npm for name availability (`tapsite`)
 - Add `"files"` field to package.json to control what gets published (exclude docs/, test/, .github/)
 - Add `.npmignore` as backup
 - Test with `npm pack` and inspect the tarball
@@ -200,10 +200,10 @@ require('./tools/extraction')(server);
 - Update README installation instructions:
   ```bash
   # Quick start
-  npx tapsite-mcp
+  npx tapsite
 
   # Or install globally
-  npm install -g tapsite-mcp
+  npm install -g tapsite
   ```
 - Update `~/.claude/.mcp.json` example to use npx
 
@@ -211,7 +211,7 @@ require('./tools/extraction')(server);
 
 **Output quality:** The npm listing (package.json description, keywords, README) is itself a product surface. Write it for discoverability.
 
-**Done when:** `npx tapsite-mcp` starts the MCP server. Package appears on npmjs.com.
+**Done when:** `npx tapsite` starts the MCP server. Package appears on npmjs.com.
 
 #### 1B: MCP Directory Listings
 **Scope:** Submit to MCP directories. Single session (mostly non-code).
@@ -228,7 +228,7 @@ For each, prepare:
 - One-paragraph description emphasizing extraction intelligence (not browser automation)
 - Category: "Web Intelligence" or "Browser & Web"
 - Icon/logo if required
-- Installation command (`npx tapsite-mcp`)
+- Installation command (`npx tapsite`)
 
 **Done when:** Listed in at least 3 directories with correct installation instructions.
 

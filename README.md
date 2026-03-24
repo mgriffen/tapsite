@@ -1,4 +1,4 @@
-# tapsite-mcp
+# tapsite
 
 Design intelligence toolkit — an MCP server + CLI for extracting design systems, auditing accessibility, and analyzing any website. Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent. Login once to MFA-protected sites and extract forever — sessions persist across tool calls.
 
@@ -6,10 +6,10 @@ Design intelligence toolkit — an MCP server + CLI for extracting design system
 
 ```bash
 # Quick start (no install required)
-npx tapsite-mcp
+npx tapsite
 
 # Or install globally
-npm install -g tapsite-mcp
+npm install -g tapsite
 npx playwright install chromium
 npx playwright install-deps chromium
 ```
@@ -21,7 +21,7 @@ Add to your Claude config (`~/.claude/.mcp.json`):
   "mcpServers": {
     "tapsite": {
       "command": "npx",
-      "args": ["tapsite-mcp"]
+      "args": ["tapsite"]
     }
   }
 }
@@ -83,7 +83,7 @@ tapsite ships a `Dockerfile` and `docker-compose.yml` for headless-only use — 
 
 ```bash
 # Build the image
-docker build -t tapsite-mcp .
+docker build -t tapsite .
 
 # Run (stdio-attached, extraction results saved to ./output)
 docker compose up

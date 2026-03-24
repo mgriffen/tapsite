@@ -3,7 +3,7 @@ profiles/
 output/
 *.Zone.Identifier
 *:Zone.Identifier
-claude_cbrowser_intent.md
+claude_tapsite_intent.md
 .claude/*
 !.claude/commands/
 .mcp.json

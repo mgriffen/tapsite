@@ -5,7 +5,7 @@ import os from 'os';
 import config from '../src/config.js';
 import { createRunDir, screenshotPath, exportJSON, exportMarkdown, exportHTML, exportCSV } from '../src/exporter.js';
 
-const tmpDir = path.join(os.tmpdir(), 'cbrowser-test-export');
+const tmpDir = path.join(os.tmpdir(), 'tapsite-test-export');
 const originalOutputDir = config.OUTPUT_DIR;
 
 // Fixture data matching inspector v2 output shape

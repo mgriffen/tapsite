@@ -1,7 +1,7 @@
 services:
   tapsite:
     build: .
-    image: tapsite-mcp
+    image: tapsite
     # MCP servers use stdio — attach to allow piping tool calls
     stdin_open: true
     tty: true

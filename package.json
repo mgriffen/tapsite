@@ -4,8 +4,8 @@
   "description": "MCP server for web intelligence extraction — design systems, accessibility audits, competitive analysis, and migration prep",
   "main": "src/cli.js",
   "bin": {
-    "tapsite": "src/cli.js",
-    "tapsite-mcp": "src/server.js"
+    "tapsite": "src/server.js",
+    "tapsite-cli": "src/cli.js"
   },
   "files": [
     "src",
