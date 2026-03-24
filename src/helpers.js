@@ -46,8 +46,13 @@ async function navigateIfNeeded(url, waitMs = 1500) {
   if (!url) return;
   requireSafeUrl(url);
   try {
-    await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-  } catch {}
+    const response = await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+    if (response && response.status() >= 400) {
+      console.error(`[tapsite] Navigation warning: ${url} returned HTTP ${response.status()}`);
+    }
+  } catch (err) {
+    console.error(`[tapsite] Navigation error for ${url}: ${err.message}`);
+  }
   await browser.page.waitForTimeout(waitMs);
 }
 
