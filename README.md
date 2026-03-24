@@ -178,7 +178,7 @@ If you need to extract from a site that requires login:
 | Tool | Description |
 |------|-------------|
 | `tapsite_crawl` | Crawl multiple pages from a start URL |
-| `tapsite_diff_pages` | Compare two pages and report differences |
+| `tapsite_diff_pages` | Compare two URLs (cross-site) or track changes over time (temporal) using real extractors |
 
 ### Advanced
 | Tool | Description |
@@ -244,6 +244,62 @@ src/
 profiles/          — browser state / session cookies (gitignored)
 output/            — export results (gitignored)
 ```
+
+## Using tapsite with LangChain / LangGraph
+
+tapsite works with LangChain and LangGraph via the official [`langchain-mcp-adapters`](https://github.com/langchain-ai/langchain-mcp-adapters) package.
+
+### Install
+
+```bash
+pip install langchain-mcp-adapters langgraph langchain-anthropic
+```
+
+Requires Node.js installed (tapsite is a Node.js MCP server).
+
+### Quick start
+
+```python
+import asyncio
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.graph import StateGraph, MessagesState, START
+from langgraph.prebuilt import ToolNode, tools_condition
+from langchain_anthropic import ChatAnthropic
+
+model = ChatAnthropic(model="claude-sonnet-4-20250514")
+
+async def main():
+    async with MultiServerMCPClient({
+        "tapsite": {
+            "transport": "stdio",
+            "command": "npx",
+            "args": ["-y", "tapsite"],
+        }
+    }) as client:
+        tools = await client.get_tools()
+
+        def call_model(state: MessagesState):
+            return {"messages": model.bind_tools(tools).invoke(state["messages"])}
+
+        graph = StateGraph(MessagesState)
+        graph.add_node("agent", call_model)
+        graph.add_node("tools", ToolNode(tools))
+        graph.add_edge(START, "agent")
+        graph.add_conditional_edges("agent", tools_condition)
+        graph.add_edge("tools", "agent")
+        app = graph.compile()
+
+        result = await app.ainvoke({
+            "messages": [("user", "Extract the design system from https://example.com")]
+        })
+        print(result["messages"][-1].content)
+
+asyncio.run(main())
+```
+
+### Authenticated sessions
+
+tapsite uses a persistent browser context — session cookies survive across tool calls. For authenticated workflows (login + extract), use the `MultiServerMCPClient` context manager as shown above to maintain a single MCP session. The default stateless mode creates a fresh connection per tool call, which breaks session persistence.
 
 ## Output formats
 
