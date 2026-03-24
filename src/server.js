@@ -18,3 +18,12 @@ async function main() {
 }
 
 main().catch(console.error);
+
+async function shutdown() {
+  const { closeBrowser } = require('./browser');
+  await closeBrowser();
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
