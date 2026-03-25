@@ -27,7 +27,9 @@
 
     :root, [data-theme="light"] {
       --bg-primary: #ffffff;
-      --bg-secondary: #f8f9fa;
+      --bg-secondary: #f5f7fa;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --card-shadow-hover: 0 10px 30px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
       --bg-card: #ffffff;
       --bg-code: #f1f5f9;
       --text-primary: #1a1a2a;
@@ -76,6 +78,8 @@
       --neon-orange: #ff8a3d;
       --neon-red: #ff3b5c;
       --neon-yellow: #ffe156;
+      --card-shadow: none;
+      --card-shadow-hover: 0 0 30px rgba(0, 212, 255, 0.06);
     }
 
     html { scroll-behavior: smooth; }
@@ -161,7 +165,7 @@
     .hero-glow.g2 { background: var(--neon-cyan); bottom: -200px; left: -100px; opacity: 0.06; }
 
     .hero-eyebrow {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
       letter-spacing: 0.4em; text-transform: uppercase; color: var(--accent-secondary);
       border: 1px solid var(--border); padding: 0.5rem 1.5rem;
       margin-bottom: 2.5rem;
@@ -211,7 +215,7 @@
 
     .scroll-hint {
       position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
-      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
       letter-spacing: 0.3em; color: var(--text-muted);
       animation: bob 2s ease-in-out infinite;
     }
@@ -225,7 +229,7 @@
     /* ── SECTION CHROME ── */
     .section { padding: 6rem 0; position: relative; }
     .section-label {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
       letter-spacing: 0.4em; text-transform: uppercase; color: var(--neon-pink);
       display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
     }
@@ -253,7 +257,7 @@
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
     .section-desc {
-      color: var(--text-secondary); font-size: 1.05rem; max-width: 560px; margin-bottom: 3.5rem;
+      color: var(--text-secondary); font-size: 1.2rem; max-width: 560px; margin-bottom: 3.5rem;
     }
 
     /* ── NEON DIVIDER ── */
@@ -270,6 +274,7 @@
     /* ── CARD BASE ── */
     .card {
       background: var(--bg-card); border: 1px solid var(--border);
+      box-shadow: var(--card-shadow);
       position: relative; overflow: hidden; z-index: 100; isolation: isolate;
     }
     .card::before {
@@ -306,18 +311,18 @@
       line-height: 1;
     }
     .gauge-max {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
       color: var(--text-muted); font-weight: 400;
     }
     .a11y-site {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
-      font-size: 0.9rem; letter-spacing: 0.12em; margin-bottom: 0.8rem;
+      font-size: 1rem; letter-spacing: 0.12em; margin-bottom: 0.8rem;
       color: var(--text-secondary);
     }
     [data-theme="dark"] .a11y-site.site-light { color: #e2e8f0; }
     [data-theme="dark"] .a11y-site.site-purple { color: #a393fe; }
     .a11y-issues {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
       color: var(--text-secondary); line-height: 1.8;
     }
     .a11y-issues .err { color: var(--neon-red); }
@@ -329,13 +334,13 @@
       margin-top: 1rem;
     }
     .landmark {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
       padding: 0.25rem 0.6rem; border: 1px solid rgba(57,255,142,0.2);
       color: var(--neon-green); background: rgba(57,255,142,0.04);
     }
 
     .a11y-issue-detail {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
       color: var(--text-muted); margin-top: 0.8rem;
       padding: 0.6rem 0.8rem; background: var(--bg-secondary);
       border-left: 2px solid;
@@ -354,22 +359,22 @@
     }
     .content-card-title {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
-      font-size: 0.85rem; letter-spacing: 0.1em;
+      font-size: 0.95rem; letter-spacing: 0.1em;
     }
     .content-card-badge {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
       padding: 0.2rem 0.6rem; background: rgba(0,212,255,0.06);
       border: 1px solid var(--border); color: var(--neon-blue);
     }
 
     .markdown-preview {
-      font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7;
+      font-size: 1rem; color: var(--text-secondary); line-height: 1.7;
       padding: 1rem; background: var(--bg-secondary); border-left: 2px solid var(--neon-cyan);
       max-height: 320px; overflow-y: auto;
     }
     .markdown-preview h1 {
       font-family: 'Exo 2', sans-serif; font-weight: 500;
-      font-size: 1.1rem; color: var(--text-primary); margin-bottom: 0.5rem;
+      font-size: 1.25rem; color: var(--text-primary); margin-bottom: 0.5rem;
     }
     .markdown-preview p { margin-bottom: 0.6rem; }
     .markdown-preview .md-link { color: var(--neon-cyan); }
@@ -379,14 +384,14 @@
     }
     .link-item {
       display: flex; align-items: baseline; gap: 0.6rem;
-      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.95rem;
       padding: 0.5rem 0.8rem; background: var(--bg-secondary);
       transition: background 0.2s;
     }
     .link-item:hover { background: rgba(0,212,255,0.04); }
     .link-text { color: var(--text-primary); flex: 1; }
     .link-type {
-      font-size: 0.7rem; padding: 0.15rem 0.4rem;
+      font-size: 0.85rem; padding: 0.15rem 0.4rem;
       border: 1px solid;
     }
     .link-type.int { border-color: rgba(0,212,255,0.2); color: var(--neon-blue); }
@@ -394,7 +399,7 @@
 
     .link-summary {
       display: flex; gap: 2rem; margin-bottom: 1rem;
-      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.95rem;
     }
     .link-summary-val { color: var(--neon-cyan); font-weight: 500; }
 
@@ -407,10 +412,10 @@
     }
     .form-card-title {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
-      font-size: 0.9rem; letter-spacing: 0.1em; color: var(--neon-orange);
+      font-size: 1rem; letter-spacing: 0.1em; color: var(--neon-orange);
     }
     .csrf-badge {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
       padding: 0.25rem 0.7rem; background: rgba(255,59,92,0.08);
       border: 1px solid rgba(255,59,92,0.25); color: var(--neon-red);
     }
@@ -418,11 +423,11 @@
 
     .form-table {
       width: 100%; border-collapse: collapse;
-      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.95rem;
     }
     .form-table th {
       text-align: left; padding: 0.7rem 1.5rem;
-      font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;
+      font-size: 0.85rem; letter-spacing: 0.2em; text-transform: uppercase;
       color: var(--text-muted); border-bottom: 1px solid var(--border);
       font-weight: 400;
     }
@@ -434,13 +439,13 @@
     .form-table tr:hover td { background: var(--bg-secondary); }
     .form-method {
       display: inline-block; padding: 0.15rem 0.5rem;
-      font-size: 0.75rem; border: 1px solid;
+      font-size: 0.85rem; border: 1px solid;
     }
     .form-method.get { border-color: rgba(57,255,142,0.3); color: var(--neon-green); }
     .form-method.post { border-color: rgba(255,138,61,0.3); color: var(--neon-orange); }
     .form-action { color: var(--neon-blue); }
     .form-fields-count { color: var(--text-primary); }
-    .form-csrf { color: var(--neon-red); font-size: 0.75rem; }
+    .form-csrf { color: var(--neon-red); font-size: 0.85rem; }
 
     /* ── ASSET INVENTORY ── */
     .asset-grid {
@@ -449,7 +454,7 @@
     .asset-card { padding: 1.5rem; }
     .asset-site {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
-      font-size: 0.85rem; letter-spacing: 0.12em; margin-bottom: 1.2rem;
+      font-size: 0.95rem; letter-spacing: 0.12em; margin-bottom: 1.2rem;
       padding-bottom: 0.8rem; border-bottom: 1px solid var(--border);
       color: var(--text-secondary);
     }
@@ -458,11 +463,11 @@
     .asset-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 0.5rem 0;
-      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.95rem;
     }
     .asset-label { color: var(--text-secondary); }
     .asset-val { color: var(--text-primary); font-weight: 500; }
-    .asset-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .asset-sub { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.2rem; }
 
     /* SVG classification bar */
     .svg-class-bar {
@@ -486,7 +491,7 @@
     }
     .fav-sq-label {
       position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
-      font-family: 'Share Tech Mono', monospace; font-size: 0.55rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
       color: var(--text-muted); white-space: nowrap; opacity: 0;
       transition: opacity 0.2s;
     }
@@ -499,7 +504,7 @@
     }
     .comp-bar-label {
       width: 240px; font-family: 'Share Tech Mono', monospace;
-      font-size: 0.85rem; color: var(--neon-cyan); text-align: right; flex-shrink: 0;
+      font-size: 0.95rem; color: var(--neon-cyan); text-align: right; flex-shrink: 0;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .comp-bar-track {
@@ -519,7 +524,7 @@
       box-shadow: 0 0 10px currentColor;
     }
     .comp-bar-count {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
       color: var(--text-primary); margin-left: 0.5rem; flex-shrink: 0; width: 50px;
     }
 
@@ -530,13 +535,13 @@
     .spacing-card { padding: 1.5rem; }
     .spacing-site {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
-      font-size: 0.85rem; letter-spacing: 0.12em; margin-bottom: 0.3rem;
+      font-size: 0.95rem; letter-spacing: 0.12em; margin-bottom: 0.3rem;
       color: var(--text-secondary);
     }
     [data-theme="dark"] .spacing-site.site-purple { color: #a393fe; }
     [data-theme="dark"] .spacing-site.site-indigo { color: #8c93e6; }
     .spacing-meta {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
       color: var(--text-muted); margin-bottom: 1.2rem;
     }
 
@@ -548,7 +553,7 @@
     }
     .ruler-val {
       width: 50px; text-align: right;
-      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.95rem;
       color: var(--neon-cyan);
     }
     .ruler-bar-track {
@@ -562,7 +567,7 @@
       transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .ruler-count {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
       color: var(--text-primary); margin-left: 0.6rem; width: 40px; flex-shrink: 0;
     }
     /* Visual spacer block */
@@ -585,19 +590,19 @@
     }
     .footer-tagline {
       font-family: 'Exo 2', sans-serif; font-weight: 200;
-      font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 2rem;
+      font-size: 1.35rem; color: var(--text-secondary); margin-bottom: 2rem;
     }
     .footer-tagline em { color: var(--accent-secondary); font-weight: 400; font-style: italic; }
     [data-theme="dark"] .footer-tagline em { color: var(--neon-cyan); }
     .logo { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 1.5rem; letter-spacing: 0.12em; color: var(--accent-primary); }
     [data-theme="dark"] .logo { background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .footer-stack {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
       color: var(--text-muted); letter-spacing: 0.15em; margin-top: 0.8rem;
     }
-    .footer-line { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; }
+    .footer-line { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; }
     .footer-links { margin-top: 1rem; }
-    .footer-links a { color: var(--link-color); text-decoration: none; font-size: 0.8rem; }
+    .footer-links a { color: var(--link-color); text-decoration: none; font-size: 0.9rem; }
     .footer-links a:hover { color: var(--link-hover); }
 
     /* ── RESPONSIVE ── */
@@ -606,7 +611,7 @@
       .content-split { grid-template-columns: 1fr; }
       .asset-grid { grid-template-columns: 1fr; }
       .spacing-compare { grid-template-columns: 1fr; }
-      .comp-bar-label { width: 140px; font-size: 0.75rem; }
+      .comp-bar-label { width: 140px; font-size: 0.85rem; }
       .content { padding: 0 1rem; }
     }
   </style>
@@ -878,7 +883,7 @@
         </div>
         <div class="asset-row">
           <span class="asset-label">SVGs</span>
-          <span class="asset-val">20 <span style="color: var(--text-muted); font-size: 0.8rem;">(inline)</span></span>
+          <span class="asset-val">20 <span style="color: var(--text-muted); font-size: 0.9rem;">(inline)</span></span>
         </div>
         <div class="svg-class-bar">
           <div class="svg-class-seg" style="flex: 10; background: var(--neon-blue);" title="Icons"></div>
@@ -911,7 +916,7 @@
         </div>
         <div class="asset-row">
           <span class="asset-label">SVGs</span>
-          <span class="asset-val">20 <span style="color: var(--text-muted); font-size: 0.8rem;">(inline)</span></span>
+          <span class="asset-val">20 <span style="color: var(--text-muted); font-size: 0.9rem;">(inline)</span></span>
         </div>
         <div class="svg-class-bar">
           <div class="svg-class-seg" style="flex: 20; background: var(--neon-blue);" title="Icons"></div>
@@ -979,10 +984,10 @@
 
     <div class="card" style="padding: 2rem;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-        <div style="font-family: 'Exo 2', sans-serif; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.12em; color: #a393fe;">
+        <div style="font-family: 'Exo 2', sans-serif; font-weight: 600; font-size: 1rem; letter-spacing: 0.12em; color: #a393fe;">
           STRIPE.COM &mdash; 40 PATTERNS
         </div>
-        <div style="font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-muted);">
+        <div style="font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; color: var(--text-muted);">
           top 6 by instance count
         </div>
       </div>
