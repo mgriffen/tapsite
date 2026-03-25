@@ -1984,6 +1984,202 @@ function extractWebComponentsInBrowser() {
   };
 }
 
+function extractThirdPartyInBrowser() {
+  const vendorMap = {
+    'googletagmanager.com': { vendor: 'Google Tag Manager', category: 'analytics' },
+    'google-analytics.com': { vendor: 'Google Analytics', category: 'analytics' },
+    'analytics.google.com': { vendor: 'Google Analytics', category: 'analytics' },
+    'segment.com': { vendor: 'Segment', category: 'analytics' },
+    'cdn.segment.com': { vendor: 'Segment', category: 'analytics' },
+    'mixpanel.com': { vendor: 'Mixpanel', category: 'analytics' },
+    'cdn.mxpnl.com': { vendor: 'Mixpanel', category: 'analytics' },
+    'amplitude.com': { vendor: 'Amplitude', category: 'analytics' },
+    'cdn.amplitude.com': { vendor: 'Amplitude', category: 'analytics' },
+    'hotjar.com': { vendor: 'Hotjar', category: 'analytics' },
+    'static.hotjar.com': { vendor: 'Hotjar', category: 'analytics' },
+    'clarity.ms': { vendor: 'Microsoft Clarity', category: 'analytics' },
+    'plausible.io': { vendor: 'Plausible', category: 'analytics' },
+    'app.posthog.com': { vendor: 'PostHog', category: 'analytics' },
+    'sentry-cdn.com': { vendor: 'Sentry', category: 'error-monitoring' },
+    'browser.sentry-cdn.com': { vendor: 'Sentry', category: 'error-monitoring' },
+    'sentry.io': { vendor: 'Sentry', category: 'error-monitoring' },
+    'bugsnag.com': { vendor: 'Bugsnag', category: 'error-monitoring' },
+    'd2wy8f7a9ursnm.cloudfront.net': { vendor: 'Bugsnag', category: 'error-monitoring' },
+    'rollbar.com': { vendor: 'Rollbar', category: 'error-monitoring' },
+    'www.datadoghq-browser-agent.com': { vendor: 'Datadog RUM', category: 'error-monitoring' },
+    'optimizely.com': { vendor: 'Optimizely', category: 'ab-testing' },
+    'cdn.optimizely.com': { vendor: 'Optimizely', category: 'ab-testing' },
+    'app.launchdarkly.com': { vendor: 'LaunchDarkly', category: 'ab-testing' },
+    'statsig.com': { vendor: 'Statsig', category: 'ab-testing' },
+    'cdn.cookielaw.org': { vendor: 'OneTrust', category: 'consent' },
+    'osano.com': { vendor: 'Osano', category: 'consent' },
+    'consent.cookiebot.com': { vendor: 'Cookiebot', category: 'consent' },
+    'js.stripe.com': { vendor: 'Stripe', category: 'payments' },
+    'www.paypal.com': { vendor: 'PayPal', category: 'payments' },
+    'pay.google.com': { vendor: 'Google Pay', category: 'payments' },
+    'connect.facebook.net': { vendor: 'Meta Pixel', category: 'advertising' },
+    'www.googleadservices.com': { vendor: 'Google Ads', category: 'advertising' },
+    'pagead2.googlesyndication.com': { vendor: 'Google Ads', category: 'advertising' },
+    'doubleclick.net': { vendor: 'DoubleClick', category: 'advertising' },
+    'platform.twitter.com': { vendor: 'Twitter/X', category: 'social' },
+    'platform.linkedin.com': { vendor: 'LinkedIn', category: 'social' },
+    'cdn.jsdelivr.net': { vendor: 'jsDelivr', category: 'cdn' },
+    'cdnjs.cloudflare.com': { vendor: 'cdnjs', category: 'cdn' },
+    'unpkg.com': { vendor: 'unpkg', category: 'cdn' },
+    'ajax.googleapis.com': { vendor: 'Google CDN', category: 'cdn' },
+    'widget.intercom.io': { vendor: 'Intercom', category: 'chat' },
+    'js.intercomcdn.com': { vendor: 'Intercom', category: 'chat' },
+    'js.driftt.com': { vendor: 'Drift', category: 'chat' },
+    'embed.tawk.to': { vendor: 'Tawk.to', category: 'chat' },
+    'static.zdassets.com': { vendor: 'Zendesk', category: 'chat' },
+    'fonts.googleapis.com': { vendor: 'Google Fonts', category: 'fonts' },
+    'fonts.gstatic.com': { vendor: 'Google Fonts', category: 'fonts' },
+    'use.typekit.net': { vendor: 'Adobe Fonts', category: 'fonts' },
+  };
+
+  const firstPartyHost = location.hostname;
+  const seen = new Map();
+
+  const addResource = (urlStr) => {
+    try {
+      const u = new URL(urlStr, location.origin);
+      if (u.hostname === firstPartyHost || u.protocol === 'file:') return;
+      const hostname = u.hostname;
+      if (!seen.has(hostname)) {
+        let match = vendorMap[hostname];
+        if (!match) {
+          for (const [pattern, info] of Object.entries(vendorMap)) {
+            if (hostname.endsWith('.' + pattern) || hostname === pattern) {
+              match = info;
+              break;
+            }
+          }
+        }
+        if (!match) {
+          const category = hostname.includes('cdn') ? 'cdn'
+            : hostname.includes('analytics') ? 'analytics'
+            : hostname.includes('track') ? 'analytics'
+            : hostname.includes('ad') ? 'advertising'
+            : hostname.includes('pay') ? 'payments'
+            : 'unknown';
+          match = { vendor: hostname, category };
+        }
+        seen.set(hostname, { ...match, hostname, resourceCount: 0, scriptSrcs: [] });
+      }
+      const entry = seen.get(hostname);
+      entry.resourceCount++;
+      if (urlStr.endsWith('.js') || u.pathname.endsWith('.js')) {
+        entry.scriptSrcs.push(urlStr);
+      }
+    } catch {}
+  };
+
+  document.querySelectorAll('script[src]').forEach(el => addResource(el.src));
+  document.querySelectorAll('link[href]').forEach(el => addResource(el.href));
+  document.querySelectorAll('img[src]').forEach(el => addResource(el.src));
+  document.querySelectorAll('iframe[src]').forEach(el => addResource(el.src));
+
+  try {
+    performance.getEntriesByType('resource').forEach(entry => addResource(entry.name));
+  } catch {}
+
+  const globals = [];
+  if (window.ga || window.gtag || window.dataLayer) globals.push('Google Analytics/GTM');
+  if (window.fbq) globals.push('Meta Pixel');
+  if (window.Intercom) globals.push('Intercom');
+  if (window.Sentry) globals.push('Sentry');
+  if (window.Stripe) globals.push('Stripe');
+  if (window.mixpanel) globals.push('Mixpanel');
+  if (window.amplitude) globals.push('Amplitude');
+  if (window.hj) globals.push('Hotjar');
+
+  const vendors = [...seen.values()];
+  const byCategory = {};
+  for (const v of vendors) {
+    byCategory[v.category] = (byCategory[v.category] || 0) + 1;
+  }
+
+  return {
+    vendors,
+    byCategory,
+    totalThirdParty: vendors.length,
+    confirmedGlobals: globals,
+    firstPartyHost,
+  };
+}
+
+function extractStorageInBrowser() {
+  const cookieClassification = {
+    '_ga': 'analytics', '_gid': 'analytics', '_gat': 'analytics',
+    '__utma': 'analytics', '__utmb': 'analytics', '__utmc': 'analytics', '__utmz': 'analytics',
+    '_fbp': 'advertising', '_fbc': 'advertising',
+    '_hjid': 'analytics', '_hjSession': 'analytics',
+    '__stripe_mid': 'payments', '__stripe_sid': 'payments',
+    '_clck': 'analytics', '_clsk': 'analytics',
+  };
+
+  const sessionPatterns = ['session', 'token', 'csrf', 'auth', 'sid', 'jwt', 'login'];
+
+  const cookies = document.cookie.split(';').filter(c => c.trim()).map(c => {
+    const [key, ...rest] = c.trim().split('=');
+    const name = key.trim();
+    const value = rest.join('=').trim();
+    let classification = cookieClassification[name] || 'unknown';
+    if (classification === 'unknown' && sessionPatterns.some(p => name.toLowerCase().includes(p))) {
+      classification = 'session';
+    }
+    return { name, valueLength: value.length, valuePreview: value.slice(0, 50), classification };
+  });
+
+  const cookiesByClass = {};
+  for (const c of cookies) {
+    cookiesByClass[c.classification] = (cookiesByClass[c.classification] || 0) + 1;
+  }
+
+  const enumerateStorage = (storage) => {
+    const items = [];
+    let totalSize = 0;
+    try {
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        const value = storage.getItem(key);
+        const len = value ? value.length : 0;
+        totalSize += key.length + len;
+        let inferredType = 'string';
+        if (value) {
+          try {
+            const parsed = JSON.parse(value);
+            inferredType = Array.isArray(parsed) ? 'json-array' : typeof parsed === 'object' ? 'json-object' : 'string';
+          } catch {}
+        }
+        items.push({ key, valueLength: len, valuePreview: (value || '').slice(0, 100), inferredType });
+      }
+    } catch {}
+    const totalSizeEstimate = totalSize < 1024 ? totalSize + ' B' : (totalSize / 1024).toFixed(1) + ' KB';
+    return { items, total: items.length, totalSizeEstimate };
+  };
+
+  const local = enumerateStorage(localStorage);
+  const session = enumerateStorage(sessionStorage);
+
+  let indexedDBInfo = { databases: [], supported: false };
+  try {
+    if (window.indexedDB) {
+      indexedDBInfo.supported = true;
+      if (typeof indexedDB.databases === 'function') {
+        indexedDBInfo.databases = '__async__';
+      }
+    }
+  } catch {}
+
+  return {
+    cookies: { items: cookies, total: cookies.length, classified: cookiesByClass },
+    localStorage: local,
+    sessionStorage: session,
+    indexedDB: indexedDBInfo,
+  };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -2007,4 +2203,6 @@ module.exports = {
   extractIconsInBrowser,
   extractContrastInBrowser,
   extractWebComponentsInBrowser,
+  extractThirdPartyInBrowser,
+  extractStorageInBrowser,
 };

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Third-Party Scripts Fixture</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter">
+<link rel="stylesheet" href="https://use.typekit.net/abc123.css">
+<script src="https://www.googletagmanager.com/gtag/js?id=G-TEST"></script>
+<script src="https://cdn.segment.com/analytics.js/v1/abc/analytics.min.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
+<script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js"></script>
+<script src="https://connect.facebook.net/en_US/fbevents.js"></script>
+<script src="https://widget.intercom.io/widget/abc123"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js"></script>
+<script src="https://cdn.optimizely.com/js/123456.js"></script>
+</head>
+<body>
+<h1>Third-Party Test Page</h1>
+<script>
+window.dataLayer = window.dataLayer || [];
+window.Stripe = function() {};
+window.Intercom = function() {};
+window.fbq = function() {};
+</script>
+</body>
+</html>

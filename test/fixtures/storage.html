@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Storage Fixture</title></head>
+<body>
+<h1>Storage Test Page</h1>
+<script>
+document.cookie = '_ga=GA1.2.123456789.1234567890; path=/';
+document.cookie = '_gid=GA1.2.987654321.1234567890; path=/';
+document.cookie = '_fbp=fb.1.1234567890.123456789; path=/';
+document.cookie = 'session_id=abc123def456; path=/';
+document.cookie = 'csrf_token=xyz789; path=/';
+
+localStorage.setItem('user_prefs', JSON.stringify({ theme: 'dark', lang: 'en' }));
+localStorage.setItem('cart_items', JSON.stringify([{ id: 1, name: 'Widget' }]));
+localStorage.setItem('auth_token', 'eyJhbGciOiJIUzI1NiJ9.test');
+
+sessionStorage.setItem('form_draft', 'Hello world draft text');
+sessionStorage.setItem('tab_id', '12345');
+</script>
+</body>
+</html>

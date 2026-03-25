@@ -23,6 +23,8 @@ const {
   extractIconsInBrowser,
   extractContrastInBrowser,
   extractWebComponentsInBrowser,
+  extractThirdPartyInBrowser,
+  extractStorageInBrowser,
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
@@ -725,6 +727,38 @@ module.exports = function registerExtractionTools(server, allowTool = () => true
         const shadowCount = data.components.filter(c => c.hasShadowRoot).length;
         const summary = `Web Components: ${data.totalCustomElements} custom elements (${data.totalInstances} total instances) | Libraries: ${libs} | Shadow roots: ${shadowCount}`;
         return summarizeResult('web-components', data, summary, { tool: 'tapsite_extract_web_components', description: 'Inventory custom elements and shadow DOM' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_third_party')) {
+    server.tool(
+      'tapsite_extract_third_party',
+      'Classify all cross-origin scripts and resources by vendor and category (analytics, payments, chat, etc.).',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractThirdPartyInBrowser);
+        const cats = Object.entries(data.byCategory).map(([k, v]) => `${k}: ${v}`).join(', ');
+        const summary = `Third-Party: ${data.totalThirdParty} vendors | ${cats || 'none detected'} | Globals: ${data.confirmedGlobals.length ? data.confirmedGlobals.join(', ') : 'none'}`;
+        return summarizeResult('third-party', data, summary, { tool: 'tapsite_extract_third_party', description: 'Classify cross-origin scripts and resources by vendor' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_storage')) {
+    server.tool(
+      'tapsite_extract_storage',
+      'Audit client-side storage: cookies (with classification), localStorage, sessionStorage, IndexedDB.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractStorageInBrowser);
+        const cookieClasses = Object.entries(data.cookies.classified).map(([k, v]) => `${k}: ${v}`).join(', ');
+        const summary = `Storage: ${data.cookies.total} cookies (${cookieClasses || 'none classified'}) | localStorage: ${data.localStorage.total} items (${data.localStorage.totalSizeEstimate}) | sessionStorage: ${data.sessionStorage.total} items (${data.sessionStorage.totalSizeEstimate})`;
+        return summarizeResult('storage', data, summary, { tool: 'tapsite_extract_storage', description: 'Audit client-side storage: cookies, localStorage, sessionStorage, IndexedDB' });
       }
     );
   }

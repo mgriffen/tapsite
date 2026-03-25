@@ -11,6 +11,8 @@ import {
   extractA11yInBrowser,
   extractCssVarsInBrowser,
   extractWebComponentsInBrowser,
+  extractThirdPartyInBrowser,
+  extractStorageInBrowser,
 } from '../src/extractors.js';
 import { inspectPage, inspectPageV2 } from '../src/inspector.js';
 
@@ -396,5 +398,102 @@ describe('extractWebComponentsInBrowser', () => {
   it('returns empty libraries array when none detected', async () => {
     const result = await page.evaluate(extractWebComponentsInBrowser);
     expect(result.libraries).toEqual([]);
+  });
+});
+
+describe('extractThirdPartyInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('third-party.html'));
+  });
+
+  it('detects third-party vendors from script/link elements', async () => {
+    const result = await page.evaluate(extractThirdPartyInBrowser);
+    expect(result.totalThirdParty).toBeGreaterThan(0);
+    const vendors = result.vendors.map(v => v.vendor);
+    expect(vendors).toContain('Google Tag Manager');
+    expect(vendors).toContain('Stripe');
+    expect(vendors).toContain('Sentry');
+  });
+
+  it('classifies vendors into categories', async () => {
+    const result = await page.evaluate(extractThirdPartyInBrowser);
+    expect(result.byCategory.analytics).toBeGreaterThanOrEqual(1);
+    expect(result.byCategory.payments).toBeGreaterThanOrEqual(1);
+  });
+
+  it('detects confirmed globals', async () => {
+    const result = await page.evaluate(extractThirdPartyInBrowser);
+    expect(result.confirmedGlobals).toContain('Google Analytics/GTM');
+    expect(result.confirmedGlobals).toContain('Stripe');
+    expect(result.confirmedGlobals).toContain('Meta Pixel');
+    expect(result.confirmedGlobals).toContain('Intercom');
+  });
+
+  it('detects font vendors', async () => {
+    const result = await page.evaluate(extractThirdPartyInBrowser);
+    const vendors = result.vendors.map(v => v.vendor);
+    expect(vendors).toContain('Google Fonts');
+    expect(vendors).toContain('Adobe Fonts');
+  });
+});
+
+describe('extractStorageInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('storage.html'));
+    await page.evaluate(() => {
+      const fakeCookie = '_ga=GA1.2.123456789.1234567890; _gid=GA1.2.987654321.1234567890; _fbp=fb.1.1234567890.123456789; session_id=abc123def456; csrf_token=xyz789';
+      Object.defineProperty(document, 'cookie', { get: () => fakeCookie, configurable: true });
+    });
+  });
+
+  it('detects cookies with correct count', async () => {
+    const result = await page.evaluate(extractStorageInBrowser);
+    expect(result.cookies.total).toBe(5);
+  });
+
+  it('classifies _ga as analytics', async () => {
+    const result = await page.evaluate(extractStorageInBrowser);
+    const ga = result.cookies.items.find(c => c.name === '_ga');
+    expect(ga).toBeDefined();
+    expect(ga.classification).toBe('analytics');
+  });
+
+  it('classifies _fbp as advertising', async () => {
+    const result = await page.evaluate(extractStorageInBrowser);
+    const fbp = result.cookies.items.find(c => c.name === '_fbp');
+    expect(fbp).toBeDefined();
+    expect(fbp.classification).toBe('advertising');
+  });
+
+  it('classifies session-related cookies', async () => {
+    const result = await page.evaluate(extractStorageInBrowser);
+    const session = result.cookies.items.find(c => c.name === 'session_id');
+    expect(session).toBeDefined();
+    expect(session.classification).toBe('session');
+    const csrf = result.cookies.items.find(c => c.name === 'csrf_token');
+    expect(csrf.classification).toBe('session');
+  });
+
+  it('enumerates localStorage items', async () => {
+    const result = await page.evaluate(extractStorageInBrowser);
+    expect(result.localStorage.total).toBe(3);
+    const prefs = result.localStorage.items.find(i => i.key === 'user_prefs');
+    expect(prefs).toBeDefined();
+    expect(prefs.inferredType).toBe('json-object');
+    const cart = result.localStorage.items.find(i => i.key === 'cart_items');
+    expect(cart.inferredType).toBe('json-array');
+  });
+
+  it('enumerates sessionStorage items', async () => {
+    const result = await page.evaluate(extractStorageInBrowser);
+    expect(result.sessionStorage.total).toBe(2);
+    const draft = result.sessionStorage.items.find(i => i.key === 'form_draft');
+    expect(draft).toBeDefined();
+    expect(draft.inferredType).toBe('string');
+  });
+
+  it('reports indexedDB support', async () => {
+    const result = await page.evaluate(extractStorageInBrowser);
+    expect(result.indexedDB.supported).toBe(true);
   });
 });
