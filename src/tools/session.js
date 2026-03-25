@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const { sanitizeForLLM } = require('../sanitizer');
 const browser = require('../browser');
-const { navigateIfNeeded, requireSafeUrl, indexPage, resolveElement, formatIndexResult, summarizeResult, safeEvaluate } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, indexPage, resolveElement, formatIndexResult, summarizeResult, safeEvaluate, safeNavigate } = require('../helpers');
 
 module.exports = function registerSessionTools(server) {
 
@@ -13,8 +13,7 @@ module.exports = function registerSessionTools(server) {
     },
     async ({ url }) => {
       await browser.ensureBrowser(false);
-      requireSafeUrl(url);
-      await browser.page.goto(url);
+      await safeNavigate(browser.page, url, { waitMs: 0 });
 
       const title = await browser.page.title();
       return {

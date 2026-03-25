@@ -156,4 +156,18 @@ async function safeEvaluate(page, fn, arg, timeoutMs) {
   }
 }
 
-module.exports = { navigateIfNeeded, requireSafeUrl, summarizeResult, indexPage, resolveElement, formatIndexResult, safeEvaluate };
+async function safeNavigate(page, url, opts = {}) {
+  requireSafeUrl(url);
+  const { waitUntil = 'networkidle', timeout = 30000, waitMs = 1000 } = opts;
+  try {
+    await page.goto(url, { waitUntil, timeout });
+  } catch {
+    // Fallback: try domcontentloaded
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+    } catch {}
+  }
+  if (waitMs > 0) await page.waitForTimeout(waitMs);
+}
+
+module.exports = { navigateIfNeeded, requireSafeUrl, summarizeResult, indexPage, resolveElement, formatIndexResult, safeEvaluate, safeNavigate };

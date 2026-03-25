@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const path = require('path');
 const fs = require('fs');
-const { summarizeResult, requireSafeUrl, navigateIfNeeded, safeEvaluate } = require('../helpers');
+const { summarizeResult, requireSafeUrl, navigateIfNeeded, safeEvaluate, safeNavigate } = require('../helpers');
 const {
   extractContentInBrowser,
   extractMetadataInBrowser,
@@ -91,11 +91,10 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
             };
           }
 
-          try { await poolPage.goto(pageUrl, { waitUntil: 'networkidle', timeout: 30000 }); } catch (navErr) {
+          try { await safeNavigate(poolPage, pageUrl, { waitMs: 1000 }); } catch (navErr) {
             pageResult.error = `Navigation failed: ${navErr.message}`;
             return { pageResult, links: [] };
           }
-          await poolPage.waitForTimeout(1000);
 
           for (const type of extract) {
             try {
@@ -291,10 +290,9 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
 
       if (mode === 'cross-site') {
         // Navigate to url2 — force navigation even if same domain
-        try { await browser.page.goto(url2, { waitUntil: 'networkidle', timeout: 30000 }); } catch (err) {
+        try { await safeNavigate(browser.page, url2, { waitMs: 1500 }); } catch (err) {
           console.error(`[tapsite] Navigation error for ${url2}: ${err.message}`);
         }
-        await browser.page.waitForTimeout(1500);
 
         for (const name of names) {
           try {

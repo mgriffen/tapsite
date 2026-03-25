@@ -13,7 +13,7 @@ const { inspectPageV2 } = require('../inspector');
 const { createRunDir, screenshotPath, exportJSON, exportMarkdown, exportHTML, exportCSV } = require('../exporter');
 const config = require('../config');
 const browser = require('../browser');
-const { navigateIfNeeded, requireSafeUrl, safeEvaluate } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, safeEvaluate, safeNavigate } = require('../helpers');
 
 const PKG_VERSION = require('../../package.json').version;
 
@@ -37,10 +37,7 @@ module.exports = function registerExportTools(server, allowTool = () => true) {
 
       for (const [i, url] of urls.entries()) {
         requireSafeUrl(url);
-        try {
-          await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-        } catch {}
-        await browser.page.waitForTimeout(1500);
+        await safeNavigate(browser.page, url, { waitMs: 1500 });
 
         const data = await inspectPageV2(browser.page);
         if (format.includes('screenshots')) {

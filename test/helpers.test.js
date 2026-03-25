@@ -22,7 +22,7 @@ vi.mock('../src/browser.js', () => ({
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const config = require('../src/config.js');
-const { summarizeResult, requireSafeUrl, safeEvaluate } = require('../src/helpers.js');
+const { summarizeResult, requireSafeUrl, safeEvaluate, safeNavigate } = require('../src/helpers.js');
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -119,6 +119,47 @@ describe('requireSafeUrl', () => {
 
   it('allows normal public IPs', () => {
     expect(() => requireSafeUrl('http://8.8.8.8')).not.toThrow();
+  });
+});
+
+describe('safeNavigate', () => {
+  it('calls page.goto with the URL', async () => {
+    const mockPage = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForTimeout: vi.fn().mockResolvedValue(undefined),
+    };
+    await safeNavigate(mockPage, 'https://example.com');
+    expect(mockPage.goto).toHaveBeenCalledWith('https://example.com', { waitUntil: 'networkidle', timeout: 30000 });
+  });
+
+  it('rejects unsafe URLs via requireSafeUrl', async () => {
+    const mockPage = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForTimeout: vi.fn().mockResolvedValue(undefined),
+    };
+    await expect(safeNavigate(mockPage, 'http://127.0.0.1/admin')).rejects.toThrow('Blocked');
+    expect(mockPage.goto).not.toHaveBeenCalled();
+  });
+
+  it('falls back to domcontentloaded when networkidle fails', async () => {
+    const mockPage = {
+      goto: vi.fn()
+        .mockRejectedValueOnce(new Error('networkidle timeout'))
+        .mockResolvedValueOnce(undefined),
+      waitForTimeout: vi.fn().mockResolvedValue(undefined),
+    };
+    await safeNavigate(mockPage, 'https://example.com');
+    expect(mockPage.goto).toHaveBeenCalledTimes(2);
+    expect(mockPage.goto).toHaveBeenLastCalledWith('https://example.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  });
+
+  it('respects custom waitMs option', async () => {
+    const mockPage = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForTimeout: vi.fn().mockResolvedValue(undefined),
+    };
+    await safeNavigate(mockPage, 'https://example.com', { waitMs: 2000 });
+    expect(mockPage.waitForTimeout).toHaveBeenCalledWith(2000);
   });
 });
 
