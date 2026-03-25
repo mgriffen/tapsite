@@ -60,15 +60,33 @@ function xpathExtract(schema) {
   };
 }
 
+const MAX_REGEX_PATTERN_LENGTH = 500;
+const REGEX_EXEC_TIMEOUT_MS = 5000;
+
 function regexExtract(schema, source) {
   const { patterns } = schema;
   const result = {};
   for (const [key, pattern] of Object.entries(patterns)) {
-    const re = new RegExp(pattern, 'g');
+    if (pattern.length > MAX_REGEX_PATTERN_LENGTH) {
+      result[key] = { error: `Pattern exceeds max length (${MAX_REGEX_PATTERN_LENGTH} chars)` };
+      continue;
+    }
+    let re;
+    try {
+      re = new RegExp(pattern, 'g');
+    } catch (e) {
+      result[key] = { error: `Invalid regex: ${e.message}` };
+      continue;
+    }
     const matches = [];
     let match;
+    const start = Date.now();
     while ((match = re.exec(source)) !== null) {
       matches.push(match[0]);
+      if (Date.now() - start > REGEX_EXEC_TIMEOUT_MS) {
+        matches.push('...(truncated, regex timeout)');
+        break;
+      }
     }
     result[key] = matches;
   }

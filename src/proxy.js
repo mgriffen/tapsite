@@ -29,10 +29,15 @@ class ProxyManager {
       if (proxy.failures >= MAX_CONSECUTIVE_FAILURES && now >= proxy.disabledUntil) {
         proxy.failures = 0;
       }
+      this._lastUsed = proxy;
       return proxy;
     }
 
     return null;
+  }
+
+  get lastUsed() {
+    return this._lastUsed || null;
   }
 
   recordFailure(proxyUrl) {

@@ -205,9 +205,8 @@ async function safeNavigate(page, url, opts = {}) {
       }
 
       // Record proxy failure if one was used
-      if (tier >= 2 && proxyManager.hasProxies) {
-        const usedProxy = proxyManager._proxies[((proxyManager._index - 1) + proxyManager._proxies.length) % proxyManager._proxies.length];
-        if (usedProxy) proxyManager.recordFailure(usedProxy.url);
+      if (tier >= 2 && proxyManager.lastUsed) {
+        proxyManager.recordFailure(proxyManager.lastUsed.url);
       }
 
       // Blocked — escalate
