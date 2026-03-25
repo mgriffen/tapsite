@@ -1,0 +1,620 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;500;700;900&display=swap');
+
+  .tap-root {
+    --ink: #e8e6e1;
+    --ink-dim: #9a9790;
+    --ink-faint: #5c5955;
+    --surface: #111110;
+    --surface-raised: #1a1918;
+    --surface-hover: #222120;
+    --accent: #00c8ff;
+    --accent-glow: rgba(0, 200, 255, 0.15);
+    --accent-hot: #ff6b35;
+    --accent-green: #34d399;
+    --accent-purple: #a78bfa;
+    --radius: 10px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Outfit', sans-serif;
+
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--surface);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .tap-root *, .tap-root *::before, .tap-root *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ── Hero ── */
+  .tap-hero {
+    position: relative;
+    padding: 3.5rem 2rem 3rem;
+    text-align: center;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .tap-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, var(--accent-glow), transparent),
+      radial-gradient(ellipse 40% 40% at 80% 100%, rgba(255, 107, 53, 0.06), transparent);
+    pointer-events: none;
+  }
+
+  .tap-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid rgba(0, 200, 255, 0.2);
+    padding: 5px 14px;
+    border-radius: 100px;
+    margin-bottom: 1.4rem;
+  }
+
+  .tap-hero-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .tap-hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.4rem;
+  }
+
+  .tap-hero h1 .tap-gradient {
+    background: linear-gradient(135deg, var(--accent) 0%, #60a5fa 50%, var(--accent-purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .tap-hero-sub {
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: var(--ink-dim);
+    max-width: 520px;
+    margin: 0.8rem auto 0;
+    line-height: 1.5;
+  }
+
+  .tap-hero-sub strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ── Stats Row ── */
+  .tap-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-wrap: wrap;
+  }
+
+  .tap-stat {
+    text-align: center;
+  }
+
+  .tap-stat-num {
+    font-family: var(--mono);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .tap-stat-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    margin-top: 4px;
+  }
+
+  /* ── Comparison Block ── */
+  .tap-compare {
+    padding: 2.5rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .tap-compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .tap-compare-card {
+    padding: 1.4rem;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .tap-compare-card.--them {
+    background: var(--surface-raised);
+    opacity: 0.7;
+  }
+
+  .tap-compare-card.--us {
+    background: linear-gradient(135deg, rgba(0, 200, 255, 0.05), rgba(167, 139, 250, 0.04));
+    border-color: rgba(0, 200, 255, 0.15);
+  }
+
+  .tap-compare-card h3 {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.9rem;
+  }
+
+  .tap-compare-card.--them h3 { color: var(--ink-faint); }
+  .tap-compare-card.--us h3 { color: var(--accent); }
+
+  .tap-compare-card ul {
+    list-style: none;
+    font-size: 0.85rem;
+    line-height: 2;
+  }
+
+  .tap-compare-card.--them ul li::before {
+    content: '→';
+    margin-right: 8px;
+    color: var(--ink-faint);
+  }
+
+  .tap-compare-card.--us ul li::before {
+    content: '✦';
+    margin-right: 8px;
+    color: var(--accent);
+  }
+
+  .tap-compare-card.--them ul li { color: var(--ink-dim); }
+  .tap-compare-card.--us ul li { color: var(--ink); }
+
+  /* ── Tool Categories ── */
+  .tap-tools {
+    padding: 2.5rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .tap-section-title {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .tap-tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.7rem;
+    max-width: 660px;
+    margin: 0 auto;
+  }
+
+  .tap-tool-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.75rem 1rem;
+    background: var(--surface-raised);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 8px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .tap-tool-chip:hover {
+    border-color: rgba(0, 200, 255, 0.15);
+    background: var(--surface-hover);
+  }
+
+  .tap-tool-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .tap-tool-chip .tap-tool-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  .tap-tool-chip .tap-tool-count {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--ink-faint);
+  }
+
+  .--icon-session { background: rgba(0, 200, 255, 0.12); }
+  .--icon-extract { background: rgba(52, 211, 153, 0.12); }
+  .--icon-design { background: rgba(167, 139, 250, 0.12); }
+  .--icon-visual { background: rgba(251, 191, 36, 0.12); }
+  .--icon-layout { background: rgba(244, 114, 182, 0.12); }
+  .--icon-network { background: rgba(255, 107, 53, 0.12); }
+  .--icon-multi { background: rgba(96, 165, 250, 0.12); }
+  .--icon-audit { background: rgba(248, 113, 113, 0.12); }
+  .--icon-workflow { background: rgba(45, 212, 191, 0.12); }
+  .--icon-custom { background: rgba(236, 72, 153, 0.12); }
+  .--icon-quality { background: rgba(248, 113, 113, 0.12); }
+  .--icon-tech { background: rgba(139, 92, 246, 0.12); }
+  .--icon-netapi { background: rgba(255, 107, 53, 0.12); }
+  .--icon-export { background: rgba(251, 191, 36, 0.12); }
+
+  /* ── Workflows ── */
+  .tap-workflows {
+    padding: 2.5rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .tap-wf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .tap-wf-card {
+    padding: 1.1rem 1.2rem;
+    background: var(--surface-raised);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: var(--radius);
+    transition: border-color 0.2s;
+  }
+
+  .tap-wf-card:hover {
+    border-color: rgba(0, 200, 255, 0.12);
+  }
+
+  .tap-wf-cmd {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .tap-wf-desc {
+    font-size: 0.78rem;
+    color: var(--ink-dim);
+    line-height: 1.45;
+  }
+
+  /* ── Install Block ── */
+  .tap-install {
+    padding: 2.5rem 2rem;
+    text-align: center;
+  }
+
+  .tap-install-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+
+  .tap-install-sub {
+    font-size: 0.85rem;
+    color: var(--ink-dim);
+    margin-bottom: 1.4rem;
+  }
+
+  .tap-code-block {
+    display: inline-block;
+    text-align: left;
+    background: var(--surface-raised);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.6rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.9;
+    color: var(--ink-dim);
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .tap-code-block .tap-hl {
+    color: var(--accent);
+  }
+
+  .tap-code-block .tap-comment {
+    color: var(--ink-faint);
+  }
+
+  /* ── Security Callout ── */
+  .tap-security {
+    max-width: 640px;
+    margin: 0 auto 2rem;
+    padding: 1.2rem 1.4rem;
+    background: rgba(52, 211, 153, 0.04);
+    border: 1px solid rgba(52, 211, 153, 0.12);
+    border-radius: var(--radius);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .tap-security-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .tap-security-text {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--ink-dim);
+  }
+
+  .tap-security-text strong {
+    color: var(--accent-green);
+    font-weight: 600;
+  }
+
+  /* ── Footer Links ── */
+  .tap-footer {
+    text-align: center;
+    padding: 0 2rem 2.5rem;
+  }
+
+  .tap-footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .tap-footer-links a {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ink-dim);
+    text-decoration: none;
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 100px;
+    transition: all 0.2s;
+  }
+
+  .tap-footer-links a:hover {
+    color: var(--accent);
+    border-color: rgba(0, 200, 255, 0.25);
+    background: var(--accent-glow);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 520px) {
+    .tap-compare-grid,
+    .tap-wf-grid {
+      grid-template-columns: 1fr;
+    }
+    .tap-stats {
+      gap: 1.2rem;
+    }
+  }
+</style>
+
+<div class="tap-root">
+
+  <!-- Hero -->
+  <div class="tap-hero">
+    <div class="tap-hero-badge">MCP Server &middot; 55 Tools</div>
+    <h1><span class="tap-gradient">tapsite</span></h1>
+    <p class="tap-hero-sub">
+      The MCP server for <strong>web intelligence extraction</strong>.
+      Give your AI agent the ability to <em>understand</em> websites &mdash; not just drive a browser.
+    </p>
+  </div>
+
+  <!-- Stats -->
+  <div class="tap-stats">
+    <div class="tap-stat">
+      <div class="tap-stat-num">55</div>
+      <div class="tap-stat-label">Tools</div>
+    </div>
+    <div class="tap-stat">
+      <div class="tap-stat-num">11</div>
+      <div class="tap-stat-label">Categories</div>
+    </div>
+    <div class="tap-stat">
+      <div class="tap-stat-num">4</div>
+      <div class="tap-stat-label">Workflows</div>
+    </div>
+    <div class="tap-stat">
+      <div class="tap-stat-num">&infin;</div>
+      <div class="tap-stat-label">Export Formats</div>
+    </div>
+  </div>
+
+  <!-- Comparison -->
+  <div class="tap-compare">
+    <div class="tap-section-title">What makes tapsite different</div>
+    <div class="tap-compare-grid">
+      <div class="tap-compare-card --them">
+        <h3>Other browser MCPs</h3>
+        <ul>
+          <li>Click buttons</li>
+          <li>Fill forms</li>
+          <li>Take screenshots</li>
+          <li>Read raw HTML</li>
+        </ul>
+      </div>
+      <div class="tap-compare-card --us">
+        <h3>tapsite</h3>
+        <ul>
+          <li>Extract full design systems</li>
+          <li>Audit WCAG accessibility</li>
+          <li>Diff sites over time</li>
+          <li>Detect tech stacks &amp; APIs</li>
+          <li>Custom CSS / XPath / regex extraction</li>
+          <li>Anti-bot resilience &amp; proxy rotation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool Categories -->
+  <div class="tap-tools">
+    <div class="tap-section-title">Tool Categories</div>
+    <div class="tap-tool-grid">
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-session">&#x1f510;</div>
+        <div><div class="tap-tool-name">Session</div><div class="tap-tool-count">8 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-extract">&#x1f4c4;</div>
+        <div><div class="tap-tool-name">Content Extraction</div><div class="tap-tool-count">6 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-custom">&#x1f9e9;</div>
+        <div><div class="tap-tool-name">Custom Extraction</div><div class="tap-tool-count">2 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-design">&#x1f3a8;</div>
+        <div><div class="tap-tool-name">Design Tokens</div><div class="tap-tool-count">5 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-visual">&#x1f5bc;&#xfe0f;</div>
+        <div><div class="tap-tool-name">Visual Assets</div><div class="tap-tool-count">4 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-layout">&#x1f4d0;</div>
+        <div><div class="tap-tool-name">Layout Intelligence</div><div class="tap-tool-count">3 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-quality">&#x2705;</div>
+        <div><div class="tap-tool-name">Quality &amp; Compliance</div><div class="tap-tool-count">7 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-tech">&#x1f9ec;</div>
+        <div><div class="tap-tool-name">Technology Detection</div><div class="tap-tool-count">10 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-netapi">&#x1f310;</div>
+        <div><div class="tap-tool-name">Network &amp; API</div><div class="tap-tool-count">2 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-multi">&#x1f517;</div>
+        <div><div class="tap-tool-name">Multi-page</div><div class="tap-tool-count">2 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-export">&#x1f4e6;</div>
+        <div><div class="tap-tool-name">Export</div><div class="tap-tool-count">2 tools</div></div>
+      </div>
+      <div class="tap-tool-chip">
+        <div class="tap-tool-icon --icon-workflow">&#x26a1;</div>
+        <div><div class="tap-tool-name">Workflows</div><div class="tap-tool-count">4 presets</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Engine -->
+  <div style="max-width: 640px; margin: 0 auto; padding: 0 2rem 1rem;">
+    <div class="tap-security" style="background: rgba(0, 200, 255, 0.04); border-color: rgba(0, 200, 255, 0.12);">
+      <div class="tap-security-icon">&#x2699;&#xfe0f;</div>
+      <div class="tap-security-text">
+        <strong style="color: var(--accent);">Resilient extraction engine.</strong>
+        Parallel browser pooling for concurrent page extraction. Persistent disk caching &mdash; crawls resume where they left off. 3-tier anti-bot escalation with automatic proxy rotation for protected sites.
+      </div>
+    </div>
+  </div>
+
+  <!-- Workflows -->
+  <div class="tap-workflows">
+    <div class="tap-section-title">One-call workflows</div>
+    <div class="tap-wf-grid">
+      <div class="tap-wf-card">
+        <div class="tap-wf-cmd">tapsite_teardown</div>
+        <div class="tap-wf-desc">Full competitive analysis &mdash; every extractor in a single call</div>
+      </div>
+      <div class="tap-wf-card">
+        <div class="tap-wf-cmd">tapsite_audit</div>
+        <div class="tap-wf-desc">Pre-launch QA: accessibility, contrast, performance, SEO, dark mode</div>
+      </div>
+      <div class="tap-wf-card">
+        <div class="tap-wf-cmd">tapsite_harvest</div>
+        <div class="tap-wf-desc">Asset inventory: images, SVGs, fonts, forms, links</div>
+      </div>
+      <div class="tap-wf-card">
+        <div class="tap-wf-cmd">tapsite_designsystem</div>
+        <div class="tap-wf-desc">W3C design tokens JSON + CSS custom properties export</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Install -->
+  <div class="tap-install">
+    <div class="tap-install-title">Get started in seconds</div>
+    <div class="tap-install-sub">Add to your MCP config &mdash; works with Claude, Cursor, Windsurf, and any MCP client.</div>
+
+    <div class="tap-code-block">
+      <span class="tap-comment">// Add to your MCP config</span><br>
+      {<br>
+      &nbsp;&nbsp;<span class="tap-hl">"mcpServers"</span>: {<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="tap-hl">"tapsite"</span>: {<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"command": "npx",<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"args": ["-y", "tapsite"]<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+      &nbsp;&nbsp;}<br>
+      }
+    </div>
+
+    <!-- Security -->
+    <div class="tap-security" style="margin-top: 1.5rem;">
+      <div class="tap-security-icon">🛡️</div>
+      <div class="tap-security-text">
+        <strong>Built with security in mind.</strong>
+        Prompt injection defense, HTTPS enforced, private IPs blocked, auth headers redacted, credential-free MFA login flow. Credentials never enter the chat.
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="tap-footer">
+    <div class="tap-footer-links">
+      <a href="https://mgriffen.github.io/tapsite/">Docs</a>
+      <a href="https://github.com/mgriffen/tapsite">GitHub</a>
+      <a href="https://www.npmjs.com/package/tapsite">npm</a>
+    </div>
+  </div>
+
+</div>
