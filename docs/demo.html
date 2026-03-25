@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>tapsite — TCGplayer Extraction Demo</title>
+  <title>tapsite — MTGPlayer Price Tracking Demo</title>
   <link rel="icon" type="image/x-icon" href="assets/favicon.ico"/>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png"/>
-  <meta property="og:title" content="tapsite — TCGplayer Extraction Demo">
-  <meta property="og:description" content="Authenticated login, card search, image download, and full design system extraction from TCGplayer — a real tapsite workflow.">
+  <meta property="og:title" content="tapsite — MTGPlayer Price Tracking Demo">
+  <meta property="og:description" content="Track card prices, download art, and extract a full design system from a card marketplace — a real tapsite workflow.">
   <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1259,10 +1259,31 @@
   <section class="demo-section" style="padding-top:140px;">
     <div class="container">
       <span class="section-label reveal">Live Demo</span>
-      <h2 class="section-title reveal">Extracting TCGplayer in 5 steps</h2>
+      <h2 class="section-title reveal">Track your deck prices in 5 steps</h2>
       <p class="section-subtitle reveal">
-        Authenticated login, stealth browsing, card search, image download, and full design system extraction &mdash; from a real session.
+        One prompt. Your AI agent logs in, searches cards, pulls prices and images, and extracts the entire site design system &mdash; all from a single authenticated session.
       </p>
+
+      <!-- Opening scenario -->
+      <div class="reveal" style="max-width:680px;margin:0 auto 64px;">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-title">Claude Code</span>
+          </div>
+          <div class="terminal-body" style="padding:20px 24px;">
+            <div class="claude-line"><span class="claude-user">you:</span> I need to track prices for my Modern Burn deck on</div>
+            <div class="claude-line" style="margin-left:40px;">mtgplayer.com. Pull card images and current prices for:</div>
+            <div class="claude-line" style="margin-left:40px;">4x Goblin Guide, 4x Monastery Swiftspear,</div>
+            <div class="claude-line" style="margin-left:40px;">4x Eidolon of the Great Revel</div>
+            <div class="claude-line">&nbsp;</div>
+            <div class="claude-line"><span class="claude-agent">claude:</span> I'll log into MTGPlayer, search for each card,</div>
+            <div class="claude-line" style="margin-left:52px;">and extract pricing and images. Let me start&hellip;</div>
+          </div>
+        </div>
+      </div>
 
       <div class="workflow">
 
@@ -1289,28 +1310,26 @@
                   <span class="pane-bar-title">Claude Code</span>
                 </div>
                 <div class="claude-pane">
-                  <div class="claude-line"><span class="claude-user">you:</span> log into tcgplayer for me</div>
-                  <div class="claude-line">&nbsp;</div>
                   <div class="claude-line"><span class="claude-agent">claude:</span> Opening headed browser&hellip;</div>
                   <div class="claude-line" style="margin-left:12px;"><span class="claude-tool-badge">tapsite_login_manual</span></div>
-                  <div class="claude-line" style="margin-left:12px;"><span class="output">url: tcgplayer.com/login</span></div>
+                  <div class="claude-line" style="margin-left:12px;"><span class="output">url: mtgplayer.com/login</span></div>
                   <div class="claude-line">&nbsp;</div>
                   <div class="claude-line"><span class="claude-agent">claude:</span> Session verified <span class="claude-status-badge ok">&#x2713; authenticated</span></div>
                   <div class="claude-line" style="margin-left:12px;"><span class="output">Welcome back,</span> <span class="value">collector@mtg.gg</span></div>
                 </div>
               </div>
 
-              <!-- Right: TCGplayer login page mockup -->
+              <!-- Right: MTGPlayer login page mockup -->
               <div class="split-right">
                 <div class="pane-bar" style="background:#ffffff; border-color:#e8e8ec;">
                   <span class="terminal-dot"></span>
                   <span class="terminal-dot"></span>
                   <span class="terminal-dot"></span>
-                  <span class="pane-bar-title" style="color:#767676;">tcgplayer.com/login</span>
+                  <span class="pane-bar-title" style="color:#767676;">mtgplayer.com/login</span>
                 </div>
                 <div class="tcg-login-mock">
                   <div class="tcg-topbar">
-                    <span class="tcg-logo-text">TCG<span>player</span></span>
+                    <span class="tcg-logo-text">MTG<span>player</span></span>
                   </div>
                   <div class="tcg-login-card">
                     <div class="tcg-login-title">Sign In</div>
@@ -1350,7 +1369,7 @@
                 <span class="terminal-dot"></span>
                 <span class="terminal-dot"></span>
                 <div class="search-url-bar">
-                  <span class="url-domain">tcgplayer.com</span>/search/magic/product?q=<span id="url-query"></span>
+                  <span class="url-domain">mtgplayer.com</span>/search/magic/product?q=<span id="url-query"></span>
                 </div>
               </div>
               <div class="search-body">
@@ -1363,41 +1382,41 @@
                 </div>
 
                 <div class="search-results-header" id="results-header">
-                  <strong>20 results</strong> for "black lotus" in Magic: The Gathering
+                  <strong>12 results</strong> for "goblin guide" in Magic: The Gathering
                 </div>
 
                 <div class="search-results-grid" id="results-grid">
                   <div class="search-result-card">
-                    <div class="search-result-img">
-                      <img src="assets/black-lotus.jpg" alt="Black Lotus">
+                    <div class="search-result-img placeholder" style="background:linear-gradient(135deg,#c0392b,#e74c3c);display:flex;align-items:center;justify-content:center;">
+                      <span style="font-size:32px;">&#x1f525;</span>
                     </div>
-                    <div class="search-result-name">Black Lotus</div>
-                    <div class="search-result-set">Beta Edition</div>
-                    <div class="search-result-price">from $18,950</div>
+                    <div class="search-result-name">Goblin Guide</div>
+                    <div class="search-result-set">Zendikar</div>
+                    <div class="search-result-price">from $8.49</div>
                   </div>
                   <div class="search-result-card">
-                    <div class="search-result-img">
-                      <img src="assets/black-lotus.jpg" alt="Black Lotus" style="filter:hue-rotate(15deg) brightness(1.1);">
+                    <div class="search-result-img placeholder" style="background:linear-gradient(135deg,#d35400,#e67e22);display:flex;align-items:center;justify-content:center;">
+                      <span style="font-size:32px;">&#x2694;&#xFE0F;</span>
                     </div>
-                    <div class="search-result-name">Black Lotus</div>
-                    <div class="search-result-set">Unlimited Edition</div>
-                    <div class="search-result-price">from $12,500</div>
+                    <div class="search-result-name">Monastery Swiftspear</div>
+                    <div class="search-result-set">Khans of Tarkir</div>
+                    <div class="search-result-price">from $2.15</div>
                   </div>
                   <div class="search-result-card">
-                    <div class="search-result-img">
-                      <img src="assets/black-lotus.jpg" alt="Black Lotus" style="filter:sepia(0.3) brightness(0.95);">
+                    <div class="search-result-img placeholder" style="background:linear-gradient(135deg,#8e44ad,#c0392b);display:flex;align-items:center;justify-content:center;">
+                      <span style="font-size:32px;">&#x1f4a5;</span>
                     </div>
-                    <div class="search-result-name">Black Lotus</div>
-                    <div class="search-result-set">Alpha Edition</div>
-                    <div class="search-result-price">from $45,000</div>
+                    <div class="search-result-name">Eidolon of the Great Revel</div>
+                    <div class="search-result-set">Journey into Nyx</div>
+                    <div class="search-result-price">from $5.75</div>
                   </div>
                   <div class="search-result-card">
-                    <div class="search-result-img">
-                      <img src="assets/black-lotus.jpg" alt="Black Lotus" style="filter:brightness(1.2) contrast(0.9);">
+                    <div class="search-result-img placeholder" style="background:linear-gradient(135deg,#c0392b,#922b21);display:flex;align-items:center;justify-content:center;">
+                      <span style="font-size:32px;">&#x26a1;</span>
                     </div>
-                    <div class="search-result-name">Black Lotus</div>
-                    <div class="search-result-set">Collector's Edition</div>
-                    <div class="search-result-price">from $2,800</div>
+                    <div class="search-result-name">Lightning Bolt</div>
+                    <div class="search-result-set">Magic 2011</div>
+                    <div class="search-result-price">from $1.89</div>
                   </div>
                 </div>
               </div>
@@ -1416,58 +1435,73 @@
               <span class="step-tool">tapsite_extract_images + tapsite_download_images</span>
             </div>
             <p class="step-desc">
-              Extract all images from the page, then download the card art using the authenticated session's cookies.
+              Extract card images and pricing data from each product page using the authenticated session's cookies.
             </p>
 
             <div class="scan-container">
               <div>
-                <div class="card-frame">
-                  <img src="assets/black-lotus.jpg" alt="Black Lotus - Beta Edition" loading="lazy">
+                <div class="card-frame" style="display:flex;align-items:center;justify-content:center;min-height:240px;background:linear-gradient(135deg,#c0392b,#e74c3c);">
+                  <span style="font-size:80px;">&#x1f525;</span>
                 </div>
                 <div class="card-label">
-                  Black Lotus &mdash; Beta &bull; <strong>$18,950+</strong>
+                  Goblin Guide &mdash; Zendikar &bull; <strong>$8.49+</strong>
                 </div>
               </div>
 
               <div class="extracted-panels">
                 <div class="data-panel">
-                  <div class="data-panel-label">Downloaded Assets</div>
+                  <div class="data-panel-label">Downloaded Assets (4 cards)</div>
                   <div class="download-files">
                     <div class="download-file">
                       <span class="check">&#x2713;</span>
-                      <span class="filename">8687_in_1000x1000.jpg</span>
-                      <span class="filesize">126.4 KB</span>
+                      <span class="filename">goblin-guide_400x560.jpg</span>
+                      <span class="filesize">84.2 KB</span>
                     </div>
                     <div class="download-file">
                       <span class="check">&#x2713;</span>
-                      <span class="filename">8687_in_200x200.jpg</span>
-                      <span class="filesize">6.5 KB</span>
+                      <span class="filename">monastery-swiftspear_400x560.jpg</span>
+                      <span class="filesize">71.8 KB</span>
+                    </div>
+                    <div class="download-file">
+                      <span class="check">&#x2713;</span>
+                      <span class="filename">eidolon-great-revel_400x560.jpg</span>
+                      <span class="filesize">92.1 KB</span>
+                    </div>
+                    <div class="download-file">
+                      <span class="check">&#x2713;</span>
+                      <span class="filename">lightning-bolt_400x560.jpg</span>
+                      <span class="filesize">63.5 KB</span>
                     </div>
                   </div>
                 </div>
 
                 <div class="data-panel">
-                  <div class="data-panel-label">Extracted Pricing</div>
+                  <div class="data-panel-label">Deck Price Summary</div>
                   <div class="price-rows">
                     <div class="price-row">
-                      <span class="price-condition">Heavily Played</span>
-                      <span class="price-seller">AncestralMTG</span>
-                      <span class="price-value">$18,950</span>
+                      <span class="price-condition">4x Goblin Guide</span>
+                      <span class="price-seller">Near Mint</span>
+                      <span class="price-value">$33.96</span>
                     </div>
                     <div class="price-row">
-                      <span class="price-condition">Moderately Played</span>
-                      <span class="price-seller">TOAMagic</span>
-                      <span class="price-value">$28,000</span>
+                      <span class="price-condition">4x Monastery Swiftspear</span>
+                      <span class="price-seller">Near Mint</span>
+                      <span class="price-value">$8.60</span>
                     </div>
                     <div class="price-row">
-                      <span class="price-condition">Near Mint</span>
-                      <span class="price-seller">LastSavePoint</span>
-                      <span class="price-value">$30,953</span>
+                      <span class="price-condition">4x Eidolon of the Great Revel</span>
+                      <span class="price-seller">Near Mint</span>
+                      <span class="price-value">$23.00</span>
                     </div>
                     <div class="price-row">
-                      <span class="price-condition">Near Mint (BGS 7.5)</span>
-                      <span class="price-seller">AncestralMTG</span>
-                      <span class="price-value">$37,500</span>
+                      <span class="price-condition">4x Lightning Bolt</span>
+                      <span class="price-seller">Near Mint</span>
+                      <span class="price-value">$7.56</span>
+                    </div>
+                    <div class="price-row" style="border-top:1px solid var(--border-hover);margin-top:4px;padding-top:8px;">
+                      <span class="price-condition" style="color:var(--text-primary);font-weight:600;">Deck Total (16 cards)</span>
+                      <span class="price-seller"></span>
+                      <span class="price-value" style="font-size:14px;">$73.12</span>
                     </div>
                   </div>
                 </div>
@@ -1475,11 +1509,11 @@
                 <div class="data-panel">
                   <div class="data-panel-label">Card Metadata</div>
                   <div class="terminal-body" style="padding: 4px 0 0;">
-                    <div class="terminal-line" style="opacity:1"><span class="key">rarity</span><span class="output">:</span> <span class="value">R</span></div>
-                    <div class="terminal-line" style="opacity:1"><span class="key">type</span><span class="output">:</span> <span class="value">Mono Artifact</span></div>
-                    <div class="terminal-line" style="opacity:1"><span class="key">artist</span><span class="output">:</span> <span class="value">Christopher Rush</span></div>
-                    <div class="terminal-line" style="opacity:1"><span class="key">set</span><span class="output">:</span> <span class="value">Beta Edition (LEB)</span></div>
-                    <div class="terminal-line" style="opacity:1"><span class="key">lastSale</span><span class="output">:</span> <span class="warn">$25,000.00</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">name</span><span class="output">:</span> <span class="value">Goblin Guide</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">type</span><span class="output">:</span> <span class="value">Creature — Goblin Scout</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">mana</span><span class="output">:</span> <span class="value">{R}</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">set</span><span class="output">:</span> <span class="value">Zendikar (ZEN)</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">trend</span><span class="output">:</span> <span class="success">&#x25B2; +$1.20 (30d)</span></div>
                   </div>
                 </div>
               </div>
@@ -1615,8 +1649,8 @@
       <!-- ── BOTTOM CTA ── -->
       <div class="demo-cta reveal">
         <p class="demo-cta-text">
-          <strong>5 steps. 7 tools. 1 authenticated session. Complete site intelligence.</strong><br>
-          Design tokens, component patterns, pricing data, card images, tech stack &mdash; all structured JSON.
+          <strong>One prompt. One session. Complete site intelligence.</strong><br>
+          Card prices, deck totals, images, design tokens, tech stack &mdash; your agent handles everything.
         </p>
         <div class="demo-cta-links">
           <a href="https://www.npmjs.com/package/tapsite" class="btn-primary btn-install">
@@ -1646,7 +1680,7 @@
       els.forEach(function(el) { observer.observe(el); });
 
       // Search typing animation
-      var searchText = 'black lotus';
+      var searchText = 'goblin guide';
       var typed = document.getElementById('search-typed');
       var urlQuery = document.getElementById('url-query');
       var cursor = document.getElementById('search-cursor');
