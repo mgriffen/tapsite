@@ -4,6 +4,11 @@ const { sanitizeForLLM } = require('./sanitizer');
 const { inspectPageV2 } = require('./inspector');
 const config = require('./config');
 const browser = require('./browser');
+const { isBlocked, AntiBot, STEALTH_INIT_SCRIPT } = require('./anti-bot');
+const { ProxyManager } = require('./proxy');
+
+const antiBot = new AntiBot();
+const proxyManager = new ProxyManager(config.PROXY_LIST);
 
 const PKG_VERSION = require('../package.json').version;
 
@@ -43,23 +48,11 @@ function requireSafeUrl(urlStr) {
 }
 
 async function navigateIfNeeded(url, waitMs = 1500) {
-  if (!url) return;
   requireSafeUrl(url);
-  try {
-    const response = await browser.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    if (response && response.status() >= 400) {
-      console.error(`[tapsite] Navigation warning: ${url} returned HTTP ${response.status()}`);
-    }
-  } catch (err) {
-    console.error(`[tapsite] Navigation error for ${url}: ${err.message}`);
-    throw err;
-  }
-  try {
-    await browser.page.waitForLoadState('networkidle', { timeout: 15000 });
-  } catch {
-    // networkidle is best-effort — page is still usable after domcontentloaded
-  }
-  await browser.page.waitForTimeout(waitMs);
+  if (!browser.page) throw new Error('Browser not initialized');
+  const current = browser.page.url();
+  if (current === url) return;
+  await safeNavigate(browser.page, url, { waitMs });
 }
 
 function summarizeResult(name, data, summary, meta = {}) {
@@ -159,15 +152,43 @@ async function safeEvaluate(page, fn, arg, timeoutMs) {
 async function safeNavigate(page, url, opts = {}) {
   requireSafeUrl(url);
   const { waitUntil = 'networkidle', timeout = 30000, waitMs = 1000 } = opts;
-  try {
-    await page.goto(url, { waitUntil, timeout });
-  } catch {
-    // Fallback: try domcontentloaded
+  const domain = new URL(url).hostname;
+  const startTier = antiBot.getTier(domain);
+
+  for (let tier = startTier; tier <= config.ANTI_BOT_MAX_TIER; tier++) {
+    // Apply tier 2+ enhancements
+    if (tier >= 2) {
+      await page.addInitScript(STEALTH_INIT_SCRIPT).catch(() => {});
+    }
+
+    let response;
     try {
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
-    } catch {}
+      response = await page.goto(url, { waitUntil, timeout });
+    } catch {
+      try {
+        response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+      } catch {}
+    }
+
+    const statusCode = response ? response.status() : 0;
+    const blocked = await isBlocked(page, statusCode);
+
+    if (!blocked) {
+      antiBot.recordSuccess(domain);
+      if (waitMs > 0) await page.waitForTimeout(waitMs);
+      return response;
+    }
+
+    // Blocked — escalate
+    antiBot.escalate(domain);
+    if (tier < config.ANTI_BOT_MAX_TIER) {
+      await page.waitForTimeout(config.ANTI_BOT_RETRY_DELAY);
+    }
   }
+
+  // All tiers exhausted
   if (waitMs > 0) await page.waitForTimeout(waitMs);
+  return null;
 }
 
 module.exports = { navigateIfNeeded, requireSafeUrl, summarizeResult, indexPage, resolveElement, formatIndexResult, safeEvaluate, safeNavigate };

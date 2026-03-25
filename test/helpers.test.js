@@ -123,43 +123,49 @@ describe('requireSafeUrl', () => {
 });
 
 describe('safeNavigate', () => {
-  it('calls page.goto with the URL', async () => {
-    const mockPage = {
-      goto: vi.fn().mockResolvedValue(undefined),
+  /** Helper to build a mock page with evaluate returning non-blocked content. */
+  function makeMockPage(gotoImpl) {
+    return {
+      goto: gotoImpl || vi.fn().mockResolvedValue({ status: () => 200 }),
       waitForTimeout: vi.fn().mockResolvedValue(undefined),
+      addInitScript: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockResolvedValue({ bodyText: 'Welcome to our website' }),
     };
+  }
+
+  it('calls page.goto with the URL', async () => {
+    const mockPage = makeMockPage();
     await safeNavigate(mockPage, 'https://example.com');
     expect(mockPage.goto).toHaveBeenCalledWith('https://example.com', { waitUntil: 'networkidle', timeout: 30000 });
   });
 
   it('rejects unsafe URLs via requireSafeUrl', async () => {
-    const mockPage = {
-      goto: vi.fn().mockResolvedValue(undefined),
-      waitForTimeout: vi.fn().mockResolvedValue(undefined),
-    };
+    const mockPage = makeMockPage();
     await expect(safeNavigate(mockPage, 'http://127.0.0.1/admin')).rejects.toThrow('Blocked');
     expect(mockPage.goto).not.toHaveBeenCalled();
   });
 
   it('falls back to domcontentloaded when networkidle fails', async () => {
-    const mockPage = {
-      goto: vi.fn()
+    const mockPage = makeMockPage(
+      vi.fn()
         .mockRejectedValueOnce(new Error('networkidle timeout'))
-        .mockResolvedValueOnce(undefined),
-      waitForTimeout: vi.fn().mockResolvedValue(undefined),
-    };
+        .mockResolvedValueOnce({ status: () => 200 }),
+    );
     await safeNavigate(mockPage, 'https://example.com');
     expect(mockPage.goto).toHaveBeenCalledTimes(2);
     expect(mockPage.goto).toHaveBeenLastCalledWith('https://example.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
   });
 
   it('respects custom waitMs option', async () => {
-    const mockPage = {
-      goto: vi.fn().mockResolvedValue(undefined),
-      waitForTimeout: vi.fn().mockResolvedValue(undefined),
-    };
+    const mockPage = makeMockPage();
     await safeNavigate(mockPage, 'https://example.com', { waitMs: 2000 });
     expect(mockPage.waitForTimeout).toHaveBeenCalledWith(2000);
+  });
+
+  it('returns null when all anti-bot tiers are exhausted', async () => {
+    const mockPage = makeMockPage(vi.fn().mockResolvedValue({ status: () => 403 }));
+    const result = await safeNavigate(mockPage, 'https://example.com');
+    expect(result).toBeNull();
   });
 });
 
