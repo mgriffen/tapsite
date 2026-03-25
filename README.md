@@ -1,10 +1,16 @@
 # tapsite
 
+[![GitHub stars](https://img.shields.io/github/stars/mgriffen/tapsite?style=flat-square&color=0055b3)](https://github.com/mgriffen/tapsite)
+[![npm downloads](https://img.shields.io/npm/dm/tapsite?style=flat-square&color=00727d)](https://www.npmjs.com/package/tapsite)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+
 The MCP server for web intelligence extraction. 43 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
 
 Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or track accessibility regressions over time — all as structured JSON that agents can reason about.
 
-Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent.
+Works with Claude, Cursor, Windsurf, LangChain/LangGraph, and any MCP-compatible AI agent.
+
+**[View the full docs site →](https://mgriffen.github.io/tapsite/)**
 
 ## Installation
 
