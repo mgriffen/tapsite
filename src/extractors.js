@@ -2328,6 +2328,105 @@ function extractSecurityInBrowser() {
   };
 }
 
+function extractAiMlInBrowser() {
+  const libraries = [];
+
+  if (window.tf) {
+    const entry = { name: 'TensorFlow.js', detected: true };
+    if (window.tf.version) entry.version = typeof window.tf.version === 'string' ? window.tf.version : window.tf.version.tfjs || window.tf.version['tfjs-core'] || 'unknown';
+    if (typeof window.tf.getBackend === 'function') {
+      try { entry.backend = window.tf.getBackend(); } catch {}
+    }
+    libraries.push(entry);
+  }
+
+  if (window.ort) libraries.push({ name: 'ONNX Runtime Web', detected: true });
+  if (window.HuggingFace || window.transformers || document.querySelector('script[src*="transformers"]')) libraries.push({ name: 'Transformers.js', detected: true });
+  if (window.mediapipe || document.querySelector('script[src*="mediapipe"]')) libraries.push({ name: 'MediaPipe', detected: true });
+  if (window.ml5) libraries.push({ name: 'ml5.js', detected: true });
+  if (window.brain) libraries.push({ name: 'Brain.js', detected: true });
+  if (window.cv) libraries.push({ name: 'OpenCV.js', detected: true });
+
+  const capabilities = {
+    webgpu: 'gpu' in navigator,
+    sharedArrayBuffer: typeof SharedArrayBuffer !== 'undefined',
+    webWorkers: typeof Worker !== 'undefined',
+    webnn: 'ml' in navigator,
+    offscreenCanvas: typeof OffscreenCanvas !== 'undefined',
+    wasmSimd: typeof WebAssembly !== 'undefined',
+  };
+
+  const scriptSrcs = [...document.querySelectorAll('script[src]')].map(s => s.src);
+  const mlScripts = scriptSrcs.filter(s =>
+    /tensorflow|tfjs|onnx|transformers|mediapipe|ml5|brain\.js|opencv/i.test(s)
+  );
+
+  return {
+    libraries,
+    totalDetected: libraries.length,
+    capabilities,
+    mlRelatedScripts: mlScripts,
+  };
+}
+
+function extractCanvasInBrowser() {
+  const canvases = [...document.querySelectorAll('canvas')].map(c => {
+    const ctx2d = (() => { try { return !!c.getContext('2d'); } catch { return false; } })();
+    const ctxWebgl = (() => { try { return !!c.getContext('webgl'); } catch { return false; } })();
+    const ctxWebgl2 = (() => { try { return !!c.getContext('webgl2'); } catch { return false; } })();
+    return {
+      id: c.id || null,
+      width: c.width,
+      height: c.height,
+      cssWidth: c.offsetWidth,
+      cssHeight: c.offsetHeight,
+      contexts: {
+        '2d': ctx2d,
+        webgl: ctxWebgl,
+        webgl2: ctxWebgl2,
+      },
+    };
+  });
+
+  const frameworks = [];
+  if (window.THREE) frameworks.push({ name: 'Three.js', version: window.THREE.REVISION || null });
+  if (window.BABYLON) frameworks.push({ name: 'Babylon.js', version: window.BABYLON.Engine?.Version || null });
+  if (window.PIXI) frameworks.push({ name: 'PixiJS', version: window.PIXI.VERSION || null });
+  if (window.p5) frameworks.push({ name: 'p5.js', version: window.p5.prototype?._version || null });
+  if (window.Konva) frameworks.push({ name: 'Konva', version: window.Konva.version || null });
+  if (window.fabric) frameworks.push({ name: 'Fabric.js', version: window.fabric.version || null });
+  if (window.Phaser) frameworks.push({ name: 'Phaser', version: window.Phaser.VERSION || null });
+  if (document.querySelector('a-scene')) frameworks.push({ name: 'A-Frame', version: null });
+  if (window.pc) frameworks.push({ name: 'PlayCanvas', version: window.pc.version || null });
+  if (window.createjs) frameworks.push({ name: 'CreateJS', version: null });
+
+  let gpuInfo = null;
+  try {
+    const testCanvas = document.createElement('canvas');
+    const gl = testCanvas.getContext('webgl') || testCanvas.getContext('webgl2');
+    if (gl) {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      if (ext) {
+        gpuInfo = {
+          vendor: gl.getParameter(ext.UNMASKED_VENDOR_WEBGL),
+          renderer: gl.getParameter(ext.UNMASKED_RENDERER_WEBGL),
+        };
+      }
+      gpuInfo = gpuInfo || {};
+      gpuInfo.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      gpuInfo.maxViewportDims = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+    }
+  } catch {}
+
+  return {
+    canvases,
+    totalCanvases: canvases.length,
+    frameworks,
+    gpuInfo,
+    webgpuSupported: 'gpu' in navigator,
+  };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -2355,4 +2454,6 @@ module.exports = {
   extractStorageInBrowser,
   extractPwaInBrowser,
   extractSecurityInBrowser,
+  extractAiMlInBrowser,
+  extractCanvasInBrowser,
 };

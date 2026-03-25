@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Canvas/WebGL Fixture</title></head>
+<body>
+<h1>Canvas Test Page</h1>
+<canvas id="game" width="800" height="600"></canvas>
+<canvas id="hud" width="200" height="100"></canvas>
+<canvas id="gl" width="640" height="480"></canvas>
+<script>
+document.getElementById('game').getContext('2d');
+document.getElementById('gl').getContext('webgl');
+window.THREE = { REVISION: '152' };
+window.PIXI = { VERSION: '7.2.0' };
+</script>
+</body>
+</html>

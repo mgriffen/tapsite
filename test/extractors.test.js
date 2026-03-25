@@ -15,6 +15,8 @@ import {
   extractStorageInBrowser,
   extractPwaInBrowser,
   extractSecurityInBrowser,
+  extractAiMlInBrowser,
+  extractCanvasInBrowser,
 } from '../src/extractors.js';
 import { inspectPage, inspectPageV2 } from '../src/inspector.js';
 
@@ -588,5 +590,83 @@ describe('extractSecurityInBrowser', () => {
     expect(result.findings.length).toBeGreaterThan(0);
     const sriIssue = result.findings.find(f => f.issue.includes('SRI'));
     expect(sriIssue).toBeDefined();
+  });
+});
+
+describe('extractAiMlInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('ai-ml.html'));
+  });
+
+  it('detects TensorFlow.js with version and backend', async () => {
+    const result = await page.evaluate(extractAiMlInBrowser);
+    const tf = result.libraries.find(l => l.name === 'TensorFlow.js');
+    expect(tf).toBeDefined();
+    expect(tf.version).toBe('4.10.0');
+    expect(tf.backend).toBe('webgl');
+  });
+
+  it('detects ONNX Runtime', async () => {
+    const result = await page.evaluate(extractAiMlInBrowser);
+    const ort = result.libraries.find(l => l.name === 'ONNX Runtime Web');
+    expect(ort).toBeDefined();
+  });
+
+  it('detects MediaPipe', async () => {
+    const result = await page.evaluate(extractAiMlInBrowser);
+    const mp = result.libraries.find(l => l.name === 'MediaPipe');
+    expect(mp).toBeDefined();
+  });
+
+  it('reports total detected count', async () => {
+    const result = await page.evaluate(extractAiMlInBrowser);
+    expect(result.totalDetected).toBe(3);
+  });
+
+  it('reports browser capabilities', async () => {
+    const result = await page.evaluate(extractAiMlInBrowser);
+    expect(typeof result.capabilities.webWorkers).toBe('boolean');
+    expect(typeof result.capabilities.sharedArrayBuffer).toBe('boolean');
+    expect(typeof result.capabilities.wasmSimd).toBe('boolean');
+  });
+});
+
+describe('extractCanvasInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('canvas-webgl.html'));
+  });
+
+  it('detects canvas elements with dimensions', async () => {
+    const result = await page.evaluate(extractCanvasInBrowser);
+    expect(result.totalCanvases).toBe(3);
+    const game = result.canvases.find(c => c.id === 'game');
+    expect(game).toBeDefined();
+    expect(game.width).toBe(800);
+    expect(game.height).toBe(600);
+  });
+
+  it('detects Three.js framework', async () => {
+    const result = await page.evaluate(extractCanvasInBrowser);
+    const three = result.frameworks.find(f => f.name === 'Three.js');
+    expect(three).toBeDefined();
+    expect(three.version).toBe('152');
+  });
+
+  it('detects PixiJS framework', async () => {
+    const result = await page.evaluate(extractCanvasInBrowser);
+    const pixi = result.frameworks.find(f => f.name === 'PixiJS');
+    expect(pixi).toBeDefined();
+    expect(pixi.version).toBe('7.2.0');
+  });
+
+  it('reports GPU info', async () => {
+    const result = await page.evaluate(extractCanvasInBrowser);
+    expect(result.gpuInfo).toBeDefined();
+    expect(typeof result.gpuInfo.maxTextureSize).toBe('number');
+  });
+
+  it('reports WebGPU support status', async () => {
+    const result = await page.evaluate(extractCanvasInBrowser);
+    expect(typeof result.webgpuSupported).toBe('boolean');
   });
 });

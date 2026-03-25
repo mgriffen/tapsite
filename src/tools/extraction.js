@@ -27,6 +27,8 @@ const {
   extractStorageInBrowser,
   extractPwaInBrowser,
   extractSecurityInBrowser,
+  extractAiMlInBrowser,
+  extractCanvasInBrowser,
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
@@ -827,6 +829,40 @@ module.exports = function registerExtractionTools(server, allowTool = () => true
         }
         const summary = `Security: ${data.grade} (${data.score}/100) | ${data.findings.length} findings | CSP: ${data.metaCsp ? 'yes' : 'no'} | SRI: ${data.sriAudit.withSri}/${data.sriAudit.total} scripts`;
         return summarizeResult('security', data, summary, { tool: 'tapsite_extract_security', description: 'Security audit: CSP, SRI, mixed content, headers, scoring' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_aiml')) {
+    server.tool(
+      'tapsite_extract_aiml',
+      'Detect client-side AI/ML libraries (TensorFlow.js, ONNX, MediaPipe, etc.) and browser ML capabilities.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractAiMlInBrowser);
+        const libs = data.libraries.map(l => l.version ? `${l.name} v${l.version}` : l.name).join(', ');
+        const caps = Object.entries(data.capabilities).filter(([, v]) => v).map(([k]) => k);
+        const summary = `AI/ML: ${data.totalDetected} libraries detected (${libs || 'none'}) | Capabilities: ${caps.length ? caps.join(', ') : 'none'}`;
+        return summarizeResult('aiml', data, summary, { tool: 'tapsite_extract_aiml', description: 'Detect client-side AI/ML libraries and capabilities' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_canvas')) {
+    server.tool(
+      'tapsite_extract_canvas',
+      'Inventory canvas elements, detect 2D/3D frameworks (Three.js, PixiJS, Phaser, etc.), and report GPU info.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractCanvasInBrowser);
+        const fws = data.frameworks.map(f => f.version ? `${f.name} v${f.version}` : f.name).join(', ');
+        const gpu = data.gpuInfo?.renderer ? ` | GPU: ${data.gpuInfo.renderer}` : '';
+        const summary = `Canvas: ${data.totalCanvases} elements | Frameworks: ${fws || 'none'}${gpu} | WebGPU: ${data.webgpuSupported ? 'yes' : 'no'}`;
+        return summarizeResult('canvas', data, summary, { tool: 'tapsite_extract_canvas', description: 'Inventory canvas elements, 2D/3D frameworks, GPU info' });
       }
     );
   }
