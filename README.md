@@ -4,9 +4,11 @@
 [![npm downloads](https://img.shields.io/npm/dm/tapsite?style=flat-square&color=00727d)](https://www.npmjs.com/package/tapsite)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-The MCP server for web intelligence extraction. 52 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
+The MCP server for web intelligence extraction. 55 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
 
 Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or track accessibility regressions over time — all as structured JSON that agents can reason about.
+
+**55 Tools · 11 Categories · 4 Workflows · Multi-Format Export**
 
 Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent. LangChain/LangGraph integration coming soon.
 
@@ -47,9 +49,9 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 
 **Audit quality** — accessibility scoring with WCAG contrast analysis, performance timing (Core Web Vitals), tech stack detection, dark mode support, and animation inventory.
 
-**Compare and track** — diff two sites side by side, or track a single site over time with snapshot-based temporal diffs. Regressions and improvements are flagged automatically.
+**Compare and track** — diff two sites side by side, or track a single site over time with snapshot-based temporal diffs. Regressions and improvements are flagged automatically. Disk caching means crawls resume where they left off, and results are reused across sessions.
 
-**Work behind login walls** — persistent browser sessions with full MFA support. Log in once manually, then extract across tool calls without re-authenticating. Credentials never enter the chat.
+**Work behind login walls** — persistent browser sessions with full MFA support. A 3-tier anti-bot escalation system handles protected sites automatically — from stealth scripts to proxy rotation. Log in once manually, then extract across tool calls without re-authenticating. Credentials never enter the chat.
 
 ## Showcase
 
@@ -57,7 +59,7 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 
 [![TCGplayer Extraction Demo](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/demo-v3.png)](https://mgriffen.github.io/tapsite/demo.html)
 
-## Tools (52)
+## Tools (55)
 
 ### Session (8)
 | Tool | Description |
@@ -71,7 +73,7 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 | `tapsite_run_js` | Execute arbitrary JavaScript and return the result |
 | `tapsite_close` | Close the browser session |
 
-### Content Extraction (5)
+### Content Extraction (6)
 | Tool | Description |
 |------|-------------|
 | `tapsite_extract_table` | Extract a specific table as structured data |
@@ -79,6 +81,13 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 | `tapsite_extract_metadata` | Extract page metadata (title, description, OG tags, etc.) |
 | `tapsite_extract_content` | Extract main readable content (article body, headings, paragraphs) |
 | `tapsite_extract_forms` | Extract all forms with fields, labels, and actions |
+| `tapsite_extract_markdown` | Extract page content as clean Markdown (raw, fit, or citations mode) with optional chunking |
+
+### Custom Extraction (2)
+| Tool | Description |
+|------|-------------|
+| `tapsite_extract_custom` | Extract structured data using custom schemas (CSS selectors, XPath, or regex) |
+| `tapsite_extract_schema_suggest` | Analyze page DOM and auto-suggest extraction schemas |
 
 ### Design Tokens (5)
 | Tool | Description |
@@ -104,31 +113,23 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 | `tapsite_extract_components` | Detect repeated UI components and patterns |
 | `tapsite_extract_breakpoints` | Extract responsive breakpoints from CSS media queries |
 
-### Network Intelligence (3)
+### Quality & Compliance (7)
 | Tool | Description |
 |------|-------------|
-| `tapsite_capture_network` | Capture network requests during a page load |
-| `tapsite_extract_api_schema` | Infer API schema from observed network traffic |
-| `tapsite_extract_stack` | Detect frontend framework, libraries, and tech stack |
-
-### Multi-page (2)
-| Tool | Description |
-|------|-------------|
-| `tapsite_crawl` | Crawl multiple pages from a start URL |
-| `tapsite_diff_pages` | Compare two URLs (cross-site) or track changes over time (temporal) using real extractors |
-
-### Advanced (16)
-| Tool | Description |
-|------|-------------|
-| `tapsite_extract_animations` | Extract CSS animations and transitions |
 | `tapsite_extract_a11y` | Accessibility audit (ARIA, roles, contrast issues) |
-| `tapsite_extract_darkmode` | Detect dark mode support and extract dark palette |
-| `tapsite_extract_perf` | Extract performance metrics (Core Web Vitals, resource sizes) |
-| `tapsite_extract_icons` | Detect icon libraries and extract icon usage |
 | `tapsite_extract_contrast` | Audit WCAG contrast ratios between text and background |
+| `tapsite_extract_perf` | Extract performance metrics (Core Web Vitals, resource sizes) |
 | `tapsite_extract_security` | Audit security headers (CSP, HSTS, SRI, permissions policy) |
+| `tapsite_extract_darkmode` | Detect dark mode support and extract dark palette |
 | `tapsite_extract_pwa` | Detect PWA support (manifest, service worker, installability) |
 | `tapsite_extract_i18n` | Extract internationalization signals (lang, hreflang, translations) |
+
+### Technology Detection (10)
+| Tool | Description |
+|------|-------------|
+| `tapsite_extract_stack` | Detect frontend framework, libraries, and tech stack |
+| `tapsite_extract_animations` | Extract CSS animations and transitions |
+| `tapsite_extract_icons` | Detect icon libraries and extract icon usage |
 | `tapsite_extract_graphql` | Detect GraphQL endpoints and introspect schemas |
 | `tapsite_extract_aiml` | Detect AI/ML integrations (models, embeddings, inference endpoints) |
 | `tapsite_extract_canvas` | Extract canvas and WebGL usage patterns |
@@ -137,11 +138,27 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 | `tapsite_extract_third_party` | Inventory third-party scripts, trackers, and services |
 | `tapsite_extract_storage` | Audit client-side storage (cookies, localStorage, sessionStorage, IndexedDB) |
 
+### Network & API (2)
+| Tool | Description |
+|------|-------------|
+| `tapsite_capture_network` | Capture network requests during a page load |
+| `tapsite_extract_api_schema` | Infer API schema from observed network traffic |
+
+### Multi-page (2)
+| Tool | Description |
+|------|-------------|
+| `tapsite_crawl` | Crawl multiple pages from a start URL |
+| `tapsite_diff_pages` | Compare two URLs (cross-site) or track changes over time (temporal) using real extractors |
+
 ### Export (2)
 | Tool | Description |
 |------|-------------|
 | `tapsite_export` | Export inspection results as JSON + Markdown + HTML report + CSV tables + screenshots |
 | `tapsite_export_design_report` | Full design system report: `report.html` (visual), `design-tokens.json` (W3C format), `design-tokens.css` (copy-pasteable `:root` vars) |
+
+### Engine
+
+Parallel browser pooling for concurrent multi-page extraction. Persistent disk caching with TTL — crawl results are reused across sessions and interrupted crawls resume automatically. A 3-tier anti-bot escalation system detects blocks and retries with progressively stealthier strategies, from stealth scripts to isolated browser contexts with proxy rotation.
 
 ### Workflows (4)
 | Tool | Description |
@@ -217,10 +234,19 @@ MCP config pointing to local source:
 src/
   server.js        — MCP server entry point
   browser.js       — shared Chromium context (ensureBrowser, closeBrowser)
-  helpers.js       — shared helpers (navigateIfNeeded, summarizeResult, indexPage)
+  helpers.js       — shared helpers (safeNavigate, summarizeResult, indexPage)
   sanitizer.js     — prompt injection detection
   diff.js          — per-extractor diff logic and extractor name/args mapping
   snapshots.js     — temporal snapshot I/O (saveSnapshot, loadLatestSnapshot)
+  browser-pool.js  — parallel browser context pooling
+  cache.js         — persistent disk caching with TTL
+  markdown.js      — HTML-to-Markdown converter (raw/fit/citations)
+  chunker.js       — LLM-friendly text chunking (fixed/semantic/sentence)
+  content-filter.js — BM25 relevance filtering
+  anti-bot.js      — block detection and tier escalation
+  proxy.js         — proxy rotation with failure tracking
+  stealth-setup.js — Puppeteer-extra stealth plugin registration
+  extraction-strategies.js — CSS/XPath/regex flexible extractors
   extractors.js    — browser-context extraction functions (page.evaluate())
   exporter.js      — file export: JSON, Markdown, HTML, CSV
   inspector.js     — DOM extraction for inspect tools
