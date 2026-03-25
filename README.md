@@ -55,14 +55,14 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 
 Click any image to see the full interactive page:
 
-[![tapsite Product Overview](docs/screenshots/product-v2.png)](https://mgriffen.github.io/tapsite/product.html)
+[![tapsite Product Overview](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/product-v2.png)](https://mgriffen.github.io/tapsite/product.html)
 
 | Design System Extraction | Deep Intelligence |
 |:---:|:---:|
-| [![Showcase I](docs/screenshots/showcase-design-v2.png)](https://mgriffen.github.io/tapsite/showcase-design.html) | [![Showcase II](docs/screenshots/showcase-deep-v2.png)](https://mgriffen.github.io/tapsite/showcase-deep.html) |
+| [![Showcase I](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/showcase-design-v2.png)](https://mgriffen.github.io/tapsite/showcase-design.html) | [![Showcase II](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/showcase-deep-v2.png)](https://mgriffen.github.io/tapsite/showcase-deep.html) |
 | Live-extracted colors, fonts, perf, breakpoints, and animations from Stripe, Linear, and Vercel | Accessibility audits, content extraction, form analysis, asset inventory, component detection |
 
-[![Real World Workflows](docs/screenshots/scenarios-v2.png)](https://mgriffen.github.io/tapsite/scenarios.html)
+[![Real World Workflows](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/scenarios-v2.png)](https://mgriffen.github.io/tapsite/scenarios.html)
 
 ## Tools (43)
 
