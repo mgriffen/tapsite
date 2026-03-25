@@ -142,3 +142,5 @@ describe('BrowserPool', () => {
     expect(mockBrowser.close).toHaveBeenCalled();
   });
 });
+
+// ── browser.js facade tests are in browser-facade.test.js ───────────────────
