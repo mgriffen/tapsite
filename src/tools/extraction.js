@@ -919,4 +919,46 @@ module.exports = function registerExtractionTools(server, allowTool = () => true
     );
   }
 
+  if (allowTool('tapsite_extract_markdown')) server.tool(
+    'tapsite_extract_markdown',
+    'Extract page content as clean Markdown. Modes: raw (full page), fit (noise filtered), citations (numbered refs). Optional BM25 query filtering and chunking.',
+    {
+      url: z.string().describe('URL to extract'),
+      mode: z.enum(['raw', 'fit', 'citations']).default('fit').describe('Markdown mode'),
+      query: z.string().optional().describe('BM25 query to filter content by relevance'),
+      chunk: z.enum(['none', 'fixed', 'semantic', 'sentence']).default('none').describe('Chunking strategy'),
+      chunkSize: z.number().default(750).describe('Chunk size in words (fixed/sentence modes)'),
+    },
+    async ({ url, mode, query, chunk, chunkSize }) => {
+      const { generateMarkdown } = require('../markdown');
+      const { bm25Filter } = require('../content-filter');
+      const { chunkMarkdown } = require('../chunker');
+
+      await browser.ensureBrowser();
+      requireSafeUrl(url);
+      await navigateIfNeeded(url);
+
+      const html = await browser.page.content();
+      let md = generateMarkdown(html, { mode });
+
+      // Apply BM25 filter if query provided
+      if (query) {
+        const blocks = md.split(/\n\n+/);
+        const filtered = bm25Filter(blocks, query);
+        md = filtered.join('\n\n');
+      }
+
+      // Apply chunking
+      let result;
+      if (chunk && chunk !== 'none') {
+        result = chunkMarkdown(md, { strategy: chunk, chunkSize });
+      } else {
+        result = md;
+      }
+
+      return summarizeResult('markdown', { url, mode, chunks: Array.isArray(result) ? result.length : 1 },
+        typeof result === 'string' ? result : JSON.stringify(result, null, 2));
+    }
+  );
+
 };

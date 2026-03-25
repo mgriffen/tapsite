@@ -23,7 +23,7 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
       url: z.string().describe('Start URL'),
       maxPages: z.number().min(1).max(100).default(10).describe('Max pages (1-100)'),
       maxDepth: z.number().min(0).max(10).default(2).describe('Max link depth (0-10)'),
-      extract: z.array(z.enum(['content', 'metadata', 'links', 'colors', 'fonts', 'css_vars', 'components', 'forms'])).default(['content']).describe('Extractions per page'),
+      extract: z.array(z.enum(['content', 'metadata', 'links', 'colors', 'fonts', 'css_vars', 'components', 'forms', 'markdown'])).default(['content']).describe('Extractions per page'),
       filterPath: z.string().optional().describe("Path prefix filter (e.g. '/blog/')"),
       sameDomain: z.boolean().default(true).describe('Same domain only'),
       concurrency: z.number().min(1).max(8).default(4).describe('Parallel pages (1-8, limited by pool size)'),
@@ -125,6 +125,11 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
               else if (type === 'css_vars') pageResult.extractions.css_vars = await safeEvaluate(poolPage, extractCssVarsInBrowser, { includeAll: false });
               else if (type === 'components') pageResult.extractions.components = await safeEvaluate(poolPage, extractComponentsInBrowser, { minOccurrences: 2 });
               else if (type === 'forms') pageResult.extractions.forms = await safeEvaluate(poolPage, extractFormsInBrowser);
+              else if (type === 'markdown') {
+                const { generateMarkdown } = require('../markdown');
+                const html = await poolPage.content();
+                pageResult.extractions.markdown = generateMarkdown(html, { mode: 'fit' });
+              }
             } catch (e) {
               pageResult.extractions[type] = { error: e.message };
             }
