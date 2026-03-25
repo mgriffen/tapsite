@@ -39,18 +39,28 @@ function chunkFixed(text, chunkSize, overlap) {
     return [text];
   }
 
+  // Build word boundary offsets from the original text
+  const offsets = []; // { start, end } for each word
+  const wordRe = /\S+/g;
+  let m;
+  while ((m = wordRe.exec(text)) !== null) {
+    offsets.push({ start: m.index, end: m.index + m[0].length });
+  }
+
   const chunks = [];
-  let start = 0;
+  let startIdx = 0;
 
-  while (start < words.length) {
-    const end = Math.min(start + chunkSize, words.length);
-    chunks.push(words.slice(start, end).join(' '));
+  while (startIdx < offsets.length) {
+    const endIdx = Math.min(startIdx + chunkSize, offsets.length);
+    // Slice from start of first word to end of last word
+    const chunkStart = offsets[startIdx].start;
+    const chunkEnd = offsets[endIdx - 1].end;
+    chunks.push(text.slice(chunkStart, chunkEnd));
 
-    if (end === words.length) break;
+    if (endIdx === offsets.length) break;
 
-    // Advance by (chunkSize - overlap), but never go backwards
     const advance = chunkSize - overlap;
-    start += advance > 0 ? advance : 1;
+    startIdx += advance > 0 ? advance : 1;
   }
 
   return chunks;

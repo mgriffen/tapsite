@@ -283,4 +283,19 @@ describe('generateMarkdown — nested elements', () => {
     expect(md).toContain('the docs[1]');
     expect(md).toContain('[1]: https://docs.example.com');
   });
+
+  it('should handle blockquotes', () => {
+    const html = '<blockquote><p>This is a quote.</p></blockquote>';
+    const md = generateMarkdown(html, { mode: 'raw' });
+    expect(md).toContain('> ');
+    expect(md).toContain('This is a quote.');
+  });
+
+  it('should handle multi-paragraph blockquotes', () => {
+    const html = '<blockquote><p>First paragraph.</p><p>Second paragraph.</p></blockquote>';
+    const md = generateMarkdown(html, { mode: 'raw' });
+    expect(md).toContain('> ');
+    expect(md).toContain('First paragraph.');
+    expect(md).toContain('Second paragraph.');
+  });
 });
