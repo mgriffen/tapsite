@@ -31,6 +31,7 @@ const {
   extractCanvasInBrowser,
   extractI18nInBrowser,
   extractGraphqlInBrowser,
+  extractWasmInBrowser,
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
@@ -897,6 +898,23 @@ module.exports = function registerExtractionTools(server, allowTool = () => true
         const clientNames = data.clients.map(c => c.version ? `${c.name} v${c.version}` : c.name).join(', ');
         const summary = `GraphQL: ${data.totalClients} clients (${clientNames || 'none'}) | Endpoints: ${data.endpointHints.length || 'none detected'}`;
         return summarizeResult('graphql', data, summary, { tool: 'tapsite_extract_graphql', description: 'Detect GraphQL clients, scripts, and endpoint hints' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_wasm')) {
+    server.tool(
+      'tapsite_extract_wasm',
+      'Detect WebAssembly modules, infer source languages (Rust, C++, Go, .NET), and check WASM capabilities.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractWasmInBrowser);
+        const langs = data.languageHints.length ? data.languageHints.join(', ') : 'none detected';
+        const caps = Object.entries(data.capabilities).filter(([, v]) => v).map(([k]) => k);
+        const summary = `WASM: ${data.supported ? 'supported' : 'not supported'} | ${data.totalModules} modules | Languages: ${langs} | Capabilities: ${caps.join(', ')}`;
+        return summarizeResult('wasm', data, summary, { tool: 'tapsite_extract_wasm', description: 'Detect WebAssembly modules, source languages, capabilities' });
       }
     );
   }

@@ -2540,6 +2540,58 @@ function extractGraphqlInBrowser() {
   };
 }
 
+function extractWasmInBrowser() {
+  const supported = typeof WebAssembly !== 'undefined';
+
+  const modules = [];
+
+  const langHints = [];
+  if (window.__EMSCRIPTEN__ || window.Module?.HEAPU8 || window.Module?.asm) langHints.push('C/C++ (Emscripten)');
+  if (window.__wbindgen_placeholder__ || window.__wbindgen_describe__) langHints.push('Rust (wasm-bindgen)');
+  if (window.__wbg_init || window.wasm_bindgen) langHints.push('Rust (wasm-bindgen)');
+  if (window.loadPyodide || window.pyodide) langHints.push('Python (Pyodide)');
+  if (window.Go && typeof window.Go === 'function') langHints.push('Go');
+  if (window.Blazor || window._framework?.Blazor) langHints.push('.NET (Blazor)');
+  if (window.__dart_deferred_loaded__) langHints.push('Dart');
+  if (window.__asc_rt) langHints.push('AssemblyScript');
+
+  try {
+    const entries = performance.getEntriesByType('resource').filter(e => e.name.endsWith('.wasm'));
+    entries.forEach(e => {
+      modules.push({
+        url: e.name,
+        transferSizeKB: e.transferSize ? Math.round(e.transferSize / 1024) : null,
+        durationMs: Math.round(e.duration),
+      });
+    });
+  } catch {}
+
+  const capabilities = {
+    supported,
+    streaming: supported && typeof WebAssembly.instantiateStreaming === 'function',
+    threads: typeof SharedArrayBuffer !== 'undefined',
+    simd: (() => {
+      try {
+        return WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]));
+      } catch { return false; }
+    })(),
+    bigInt: typeof BigInt !== 'undefined',
+    multiMemory: (() => {
+      try {
+        return typeof WebAssembly.Memory === 'function';
+      } catch { return false; }
+    })(),
+  };
+
+  return {
+    supported,
+    modules,
+    totalModules: modules.length,
+    languageHints: [...new Set(langHints)],
+    capabilities,
+  };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -2571,4 +2623,5 @@ module.exports = {
   extractCanvasInBrowser,
   extractI18nInBrowser,
   extractGraphqlInBrowser,
+  extractWasmInBrowser,
 };

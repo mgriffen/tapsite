@@ -19,6 +19,7 @@ import {
   extractCanvasInBrowser,
   extractI18nInBrowser,
   extractGraphqlInBrowser,
+  extractWasmInBrowser,
 } from '../src/extractors.js';
 import { inspectPage, inspectPageV2 } from '../src/inspector.js';
 
@@ -746,5 +747,34 @@ describe('extractGraphqlInBrowser', () => {
   it('reports total client count', async () => {
     const result = await page.evaluate(extractGraphqlInBrowser);
     expect(result.totalClients).toBe(2);
+  });
+});
+
+describe('extractWasmInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('wasm.html'));
+  });
+
+  it('reports WASM as supported', async () => {
+    const result = await page.evaluate(extractWasmInBrowser);
+    expect(result.supported).toBe(true);
+  });
+
+  it('detects Emscripten language hint', async () => {
+    const result = await page.evaluate(extractWasmInBrowser);
+    expect(result.languageHints).toContain('C/C++ (Emscripten)');
+  });
+
+  it('detects Rust wasm-bindgen language hint', async () => {
+    const result = await page.evaluate(extractWasmInBrowser);
+    expect(result.languageHints).toContain('Rust (wasm-bindgen)');
+  });
+
+  it('reports WASM capabilities', async () => {
+    const result = await page.evaluate(extractWasmInBrowser);
+    expect(result.capabilities.supported).toBe(true);
+    expect(typeof result.capabilities.streaming).toBe('boolean');
+    expect(typeof result.capabilities.threads).toBe('boolean');
+    expect(typeof result.capabilities.simd).toBe('boolean');
   });
 });

@@ -22,6 +22,11 @@ const {
   extractShadowsInBrowser,
   extractIconsInBrowser,
   extractContrastInBrowser,
+  extractWebComponentsInBrowser,
+  extractThirdPartyInBrowser,
+  extractAiMlInBrowser,
+  extractSecurityInBrowser,
+  extractI18nInBrowser,
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
@@ -31,7 +36,7 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
 
   if (allowTool('tapsite_teardown')) server.tool(
     'tapsite_teardown',
-    'Competitive design teardown — runs colors, fonts, CSS vars, spacing, shadows, components, breakpoints, animations, icons, stack detection, perf, a11y, contrast, and dark mode in one call. Returns a combined summary.',
+    'Competitive design teardown — runs colors, fonts, CSS vars, spacing, shadows, components, breakpoints, animations, icons, stack detection, web components, third-party scripts, AI/ML, perf, a11y, contrast, and dark mode in one call.',
     {
       url: z.string().describe('URL to analyze'),
     },
@@ -56,6 +61,9 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
 
       // Tech stack
       results.stack = await safeEvaluate(browser.page, detectStackInBrowser);
+      results.webComponents = await safeEvaluate(browser.page, extractWebComponentsInBrowser);
+      results.thirdParty = await safeEvaluate(browser.page, extractThirdPartyInBrowser);
+      results.aiml = await safeEvaluate(browser.page, extractAiMlInBrowser);
 
       // Quality
       results.perf = await safeEvaluate(browser.page, extractPerfInBrowser);
@@ -74,13 +82,18 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
       const animCount = (results.animations.keyframes || []).length;
       const bpCount = (results.breakpoints.breakpoints || []).length;
 
+      const wcCount = results.webComponents.totalCustomElements || 0;
+      const tpCount = results.thirdParty.totalThirdParty || 0;
+      const aiCount = results.aiml.totalDetected || 0;
+
       const summaryText = [
         `🔍 TEARDOWN: ${url}`,
         '',
         `🎨 Design: ${(results.colors.colors || []).length} colors (${colors}), ${(results.fonts.families || []).length} fonts (${fonts})`,
         `   ${(results.spacing.spacing || []).length} spacing values (base: ${results.spacing.inferredBase || '?'}), ${(results.shadows.boxShadows || []).length} shadow patterns`,
-        `📐 Structure: ${compCount} components, ${bpCount} breakpoints, ${animCount} animations`,
+        `📐 Structure: ${compCount} components, ${bpCount} breakpoints, ${animCount} animations, ${wcCount} web components`,
         `🔧 Stack: ${techs || 'none detected'}`,
+        `📦 Third-party: ${tpCount} vendors | AI/ML: ${aiCount} libraries`,
         `⚡ Perf: TTFB ${results.perf.timing?.ttfbMs ?? '?'}ms, Load ${results.perf.timing?.loadMs ?? '?'}ms, ${results.perf.dom?.nodeCount ?? '?'} DOM nodes`,
         `♿ A11y: ${results.a11y.score ?? '?'}/100 | Contrast: ${results.contrast.failing || 0} failing pairs`,
         `🌙 Dark mode: ${results.darkmode.supported ? 'supported' : 'not detected'}`,
@@ -95,7 +108,7 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
 
   if (allowTool('tapsite_audit')) server.tool(
     'tapsite_audit',
-    'Pre-launch quality audit with scorecard — runs a11y, contrast, perf, metadata (SEO), dark mode, and forms. Returns pass/fail per category with an overall score out of 100.',
+    'Pre-launch quality audit with scorecard — runs a11y, contrast, perf, metadata (SEO), dark mode, forms, and security. Returns pass/fail per category with an overall score out of 100.',
     {
       url: z.string().describe('URL to audit'),
       standard: z.enum(['aa', 'aaa']).default('aa').describe('WCAG standard'),
@@ -122,6 +135,9 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
       // Forms (for label/validation checks)
       results.forms = await safeEvaluate(browser.page, extractFormsInBrowser);
 
+      // Security (browser-context portion)
+      results.security = await safeEvaluate(browser.page, extractSecurityInBrowser);
+
       // Build scorecard
       const checks = [];
       const a11yScore = results.a11y.score ?? 0;
@@ -142,6 +158,9 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
 
       checks.push({ name: 'Dark Mode', score: results.darkmode.supported ? 100 : 0, max: 100, pass: results.darkmode.supported });
 
+      const secScore = results.security.score ?? 0;
+      checks.push({ name: 'Security', score: secScore, max: 100, pass: secScore >= 70 });
+
       const overall = Math.round(checks.reduce((sum, c) => sum + c.score, 0) / checks.length);
 
       results.scorecard = { overall, checks };
@@ -156,6 +175,7 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
         `  Contrast: ${results.contrast.failing || 0} failing, ${results.contrast.passing || 0} passing`,
         `  Load: ${results.perf.timing?.loadMs ?? '?'}ms | ${results.perf.dom?.nodeCount ?? '?'} DOM nodes`,
         `  SEO: title=${hasTitle ? '✓' : '✗'} desc=${hasDesc ? '✓' : '✗'} OG=${hasOG ? '✓' : '✗'} canonical=${hasCanonical ? '✓' : '✗'}`,
+        `  Security: ${results.security.grade} (${results.security.score}/100) — ${(results.security.findings || []).length} findings`,
         `  Forms: ${(results.forms.forms || []).length} found`,
       ].join('\n');
 
@@ -231,6 +251,14 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
           if (visited.size === 1) {
             const fonts = await safeEvaluate(browser.page, extractFontsInBrowser);
             (fonts.families || []).forEach(f => inventory.fonts.add(f.value));
+          }
+
+          // i18n (first page only)
+          if (visited.size === 1) {
+            const i18n = await safeEvaluate(browser.page, extractI18nInBrowser);
+            pageResult.primaryLanguage = i18n.primaryLanguage;
+            pageResult.hreflangCount = i18n.hreflangCount;
+            inventory.i18n = { primaryLanguage: i18n.primaryLanguage, hreflangCount: i18n.hreflangCount, direction: i18n.direction };
           }
 
           // Links for crawling + inventory
