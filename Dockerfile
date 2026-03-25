@@ -15,4 +15,4 @@ COPY src/ src/
 USER pwuser
 
 # MCP servers communicate over stdio, not HTTP — no EXPOSE needed
-CMD ["node", "src/server.js"]
+CMD ["node", "src/mcp-server.js"]
