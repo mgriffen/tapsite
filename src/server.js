@@ -12,7 +12,23 @@ require('./tools/multipage')(server);
 require('./tools/export')(server);
 require('./tools/workflows')(server);
 
+function checkForUpdates() {
+  const currentVersion = require('../package.json').version;
+  fetch('https://registry.npmjs.org/tapsite/latest', { signal: AbortSignal.timeout(5000) })
+    .then(r => r.json())
+    .then(data => {
+      if (data.version && data.version !== currentVersion) {
+        process.stderr.write(
+          `\n[tapsite] Update available: ${currentVersion} → ${data.version}\n` +
+          `[tapsite] Run: git pull && docker compose build\n\n`
+        );
+      }
+    })
+    .catch(() => {}); // silently ignore network errors
+}
+
 async function main() {
+  checkForUpdates();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
