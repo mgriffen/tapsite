@@ -21,7 +21,7 @@
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
-  <noscript><style>.theme-toggle { display: none; }</style></noscript>
+  <noscript><style>.theme-toggle { display: none; } .card, .section-label, .section-title, .section-desc, .footer-tagline { opacity: 1 !important; transform: none !important; }</style></noscript>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -312,7 +312,10 @@
     .a11y-site {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
       font-size: 0.9rem; letter-spacing: 0.12em; margin-bottom: 0.8rem;
+      color: var(--text-secondary);
     }
+    [data-theme="dark"] .a11y-site.site-light { color: #e2e8f0; }
+    [data-theme="dark"] .a11y-site.site-purple { color: #a393fe; }
     .a11y-issues {
       font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
       color: var(--text-secondary); line-height: 1.8;
@@ -410,8 +413,8 @@
       font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
       padding: 0.25rem 0.7rem; background: rgba(255,59,92,0.08);
       border: 1px solid rgba(255,59,92,0.25); color: var(--neon-red);
-      animation: flicker 4s ease-in-out infinite;
     }
+    [data-theme="dark"] .csrf-badge { animation: flicker 4s ease-in-out infinite; }
 
     .form-table {
       width: 100%; border-collapse: collapse;
@@ -448,7 +451,10 @@
       font-family: 'Exo 2', sans-serif; font-weight: 600;
       font-size: 0.85rem; letter-spacing: 0.12em; margin-bottom: 1.2rem;
       padding-bottom: 0.8rem; border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
     }
+    [data-theme="dark"] .asset-site.site-light { color: #e2e8f0; }
+    [data-theme="dark"] .asset-site.site-purple { color: #a393fe; }
     .asset-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 0.5rem 0;
@@ -525,7 +531,10 @@
     .spacing-site {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
       font-size: 0.85rem; letter-spacing: 0.12em; margin-bottom: 0.3rem;
+      color: var(--text-secondary);
     }
+    [data-theme="dark"] .spacing-site.site-purple { color: #a393fe; }
+    [data-theme="dark"] .spacing-site.site-indigo { color: #8c93e6; }
     .spacing-meta {
       font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
       color: var(--text-muted); margin-bottom: 1.2rem;
@@ -650,7 +659,7 @@
     <div class="a11y-grid">
       <!-- GitHub -->
       <div class="card a11y-card">
-        <div class="a11y-site" style="color: #e2e8f0;">GITHUB.COM</div>
+        <div class="a11y-site site-light">GITHUB.COM</div>
         <div class="gauge-wrap">
           <svg class="gauge-svg" viewBox="0 0 160 160">
             <circle class="gauge-track" cx="80" cy="80" r="70"/>
@@ -675,7 +684,7 @@
 
       <!-- Stripe -->
       <div class="card a11y-card">
-        <div class="a11y-site" style="color: #a393fe;">STRIPE.COM</div>
+        <div class="a11y-site site-purple">STRIPE.COM</div>
         <div class="gauge-wrap">
           <svg class="gauge-svg" viewBox="0 0 160 160">
             <circle class="gauge-track" cx="80" cy="80" r="70"/>
@@ -694,7 +703,7 @@
 
       <!-- Vercel -->
       <div class="card a11y-card">
-        <div class="a11y-site" style="color: #e2e8f0;">VERCEL.COM</div>
+        <div class="a11y-site site-light">VERCEL.COM</div>
         <div class="gauge-wrap">
           <svg class="gauge-svg" viewBox="0 0 160 160">
             <circle class="gauge-track" cx="80" cy="80" r="70"/>
@@ -862,7 +871,7 @@
     <div class="asset-grid">
       <!-- Stripe -->
       <div class="card asset-card">
-        <div class="asset-site" style="color: #a393fe;">STRIPE.COM</div>
+        <div class="asset-site site-purple">STRIPE.COM</div>
         <div class="asset-row">
           <span class="asset-label">Images</span>
           <span class="asset-val">168</span>
@@ -895,7 +904,7 @@
 
       <!-- Vercel -->
       <div class="card asset-card">
-        <div class="asset-site" style="color: #e2e8f0;">VERCEL.COM</div>
+        <div class="asset-site site-light">VERCEL.COM</div>
         <div class="asset-row">
           <span class="asset-label">Images</span>
           <span class="asset-val">39</span>
@@ -933,7 +942,7 @@
 
       <!-- GitHub -->
       <div class="card asset-card">
-        <div class="asset-site" style="color: #e2e8f0;">GITHUB.COM</div>
+        <div class="asset-site site-light">GITHUB.COM</div>
         <div class="asset-row">
           <span class="asset-label">Favicons</span>
           <span class="asset-val">16</span>
@@ -1038,7 +1047,7 @@
 
     <div class="spacing-compare">
       <div class="card spacing-card">
-        <div class="spacing-site" style="color: #a393fe;">STRIPE.COM</div>
+        <div class="spacing-site site-purple">STRIPE.COM</div>
         <div class="spacing-meta">19 unique values &bull; 200 elements sampled</div>
         <div class="spacing-ruler">
           <div class="ruler-row">
@@ -1090,7 +1099,7 @@
       </div>
 
       <div class="card spacing-card">
-        <div class="spacing-site" style="color: #8c93e6;">LINEAR.APP</div>
+        <div class="spacing-site site-indigo">LINEAR.APP</div>
         <div class="spacing-meta">28 unique values &bull; 200 elements sampled</div>
         <div class="spacing-ruler">
           <div class="ruler-row">

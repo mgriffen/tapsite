@@ -21,7 +21,7 @@
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
-  <noscript><style>.theme-toggle { display: none; }</style></noscript>
+  <noscript><style>.theme-toggle { display: none; } .dossier, .section-label, .section-title, .section-desc, .summary-stats, .summary-tagline { opacity: 1 !important; transform: none !important; }</style></noscript>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -327,7 +327,11 @@
     .dossier-site {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
       font-size: 1rem; letter-spacing: 0.12em;
+      color: var(--text-secondary);
     }
+    [data-theme="dark"] .dossier-site.site-purple { color: #a393fe; }
+    [data-theme="dark"] .dossier-site.site-indigo { color: #8c93e6; }
+    [data-theme="dark"] .dossier-site.site-light { color: #e2e8f0; }
     .dossier-status {
       font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
       letter-spacing: 0.2em; text-transform: uppercase; color: var(--neon-green);
@@ -639,7 +643,7 @@
       <div class="dossier-header">
         <div class="dossier-target">
           <div class="dossier-dot" style="background: #533afd; color: #533afd;"></div>
-          <div class="dossier-site" style="color: #a393fe;">STRIPE.COM</div>
+          <div class="dossier-site site-purple">STRIPE.COM</div>
         </div>
         <div class="dossier-status">&#x2713; EXTRACTED</div>
       </div>
@@ -775,7 +779,7 @@
       <div class="dossier-header">
         <div class="dossier-target">
           <div class="dossier-dot" style="background: #5e6ad2; color: #5e6ad2;"></div>
-          <div class="dossier-site" style="color: #8c93e6;">LINEAR.APP</div>
+          <div class="dossier-site site-indigo">LINEAR.APP</div>
         </div>
         <div class="dossier-status">&#x2713; EXTRACTED</div>
       </div>
@@ -925,7 +929,7 @@
       <div class="dossier-header">
         <div class="dossier-target">
           <div class="dossier-dot" style="background: #ffffff; color: #ffffff;"></div>
-          <div class="dossier-site" style="color: #e2e8f0;">VERCEL.COM</div>
+          <div class="dossier-site site-light">VERCEL.COM</div>
         </div>
         <div class="dossier-status">&#x2713; EXTRACTED</div>
       </div>
