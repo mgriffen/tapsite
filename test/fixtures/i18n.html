@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>i18n Fixture</title>
+<meta http-equiv="Content-Language" content="en-US">
+<link rel="alternate" hreflang="en-US" href="https://example.com/en/">
+<link rel="alternate" hreflang="es" href="https://example.com/es/">
+<link rel="alternate" hreflang="fr" href="https://example.com/fr/">
+<link rel="alternate" hreflang="ar" href="https://example.com/ar/">
+<link rel="alternate" hreflang="x-default" href="https://example.com/">
+</head>
+<body>
+<nav>
+  <select id="language-selector" aria-label="Language">
+    <option value="en" selected>English</option>
+    <option value="es">Español</option>
+    <option value="fr">Français</option>
+    <option value="ar">العربية</option>
+  </select>
+</nav>
+<h1>i18n Test Page</h1>
+<p lang="es">Este es un párrafo en español.</p>
+<p dir="rtl" lang="ar">هذا نص باللغة العربية</p>
+<script>
+window.i18next = { language: 'en-US', languages: ['en-US', 'es', 'fr', 'ar'], t: function() {} };
+</script>
+</body>
+</html>

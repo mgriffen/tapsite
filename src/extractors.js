@@ -2427,6 +2427,119 @@ function extractCanvasInBrowser() {
   };
 }
 
+function extractI18nInBrowser() {
+  const htmlLang = document.documentElement.lang || null;
+  const htmlDir = document.documentElement.dir || null;
+
+  const contentLanguage = (() => {
+    const meta = document.querySelector('meta[http-equiv="Content-Language"]');
+    return meta ? meta.content : null;
+  })();
+
+  const hreflangs = [...document.querySelectorAll('link[rel="alternate"][hreflang]')].map(l => ({
+    lang: l.hreflang,
+    href: l.href,
+  }));
+
+  const inlineLangs = new Set();
+  document.querySelectorAll('[lang]').forEach(el => {
+    if (el !== document.documentElement) inlineLangs.add(el.lang);
+  });
+
+  const rtlElements = document.querySelectorAll('[dir="rtl"]').length;
+  const hasRtlContent = rtlElements > 0 || htmlDir === 'rtl';
+
+  const frameworks = [];
+  if (window.i18next) frameworks.push({ name: 'i18next', language: window.i18next.language || null, languages: window.i18next.languages || [] });
+  if (window.ReactIntl || window.__REACT_INTL_CONTEXT__) frameworks.push({ name: 'react-intl' });
+  if (window.__VUE_I18N__) frameworks.push({ name: 'vue-i18n' });
+  if (window.IntlMessageFormat) frameworks.push({ name: 'FormatJS' });
+  if (window.Globalize) frameworks.push({ name: 'Globalize' });
+  if (window.polyglot) frameworks.push({ name: 'Polyglot.js' });
+
+  let languageSwitcher = null;
+  const selects = [...document.querySelectorAll('select')];
+  for (const sel of selects) {
+    const label = sel.getAttribute('aria-label') || '';
+    const id = sel.id || '';
+    if (/language|lang|locale|idioma/i.test(label + id)) {
+      languageSwitcher = {
+        type: 'select',
+        options: [...sel.options].map(o => ({ value: o.value, text: o.text, selected: o.selected })),
+      };
+      break;
+    }
+  }
+  if (!languageSwitcher) {
+    const links = [...document.querySelectorAll('a[hreflang], a[data-lang], a[data-locale]')];
+    if (links.length >= 2) {
+      languageSwitcher = {
+        type: 'links',
+        options: links.map(a => ({ lang: a.hreflang || a.dataset.lang || a.dataset.locale, href: a.href, text: a.textContent.trim() })),
+      };
+    }
+  }
+
+  const localeUrl = /\/(en|es|fr|de|ja|zh|ko|pt|ru|ar|it|nl|pl|sv|tr|he|th|vi)([-_][A-Z]{2})?\//i.test(location.pathname);
+
+  return {
+    primaryLanguage: htmlLang,
+    direction: htmlDir,
+    contentLanguage,
+    hreflangs,
+    hreflangCount: hreflangs.length,
+    inlineLanguages: [...inlineLangs],
+    hasRtlContent,
+    rtlElements,
+    frameworks,
+    languageSwitcher,
+    localeInUrl: localeUrl,
+  };
+}
+
+function extractGraphqlInBrowser() {
+  const clients = [];
+
+  if (window.__APOLLO_CLIENT__) {
+    const entry = { name: 'Apollo Client', detected: true };
+    if (window.__APOLLO_CLIENT__.version) entry.version = window.__APOLLO_CLIENT__.version;
+    clients.push(entry);
+  }
+  if (window.__APOLLO_STATE__ || window.__APOLLO_CACHE__) {
+    if (!clients.find(c => c.name === 'Apollo Client')) {
+      clients.push({ name: 'Apollo Client', detected: true, note: 'SSR state detected' });
+    }
+  }
+
+  if (window.__RELAY_STORE__ || window.__RELAY_PAYLOADS__) {
+    clients.push({ name: 'Relay', detected: true });
+  }
+
+  if (window.__URQL_DATA__ || window.__urqlClient) {
+    clients.push({ name: 'urql', detected: true });
+  }
+
+  const scriptSrcs = [...document.querySelectorAll('script[src]')].map(s => s.src);
+  const gqlScripts = scriptSrcs.filter(s => /apollo|relay|urql|graphql/i.test(s));
+  if (gqlScripts.length && !clients.length) {
+    clients.push({ name: 'Unknown GraphQL client', detected: true, scripts: gqlScripts });
+  }
+
+  const endpointHints = [];
+  const links = [...document.querySelectorAll('link[href*="graphql"], a[href*="graphql"]')];
+  links.forEach(l => endpointHints.push(l.href));
+
+  const metaEndpoint = document.querySelector('meta[name="graphql-endpoint"], meta[name="graphql-uri"]');
+  if (metaEndpoint) endpointHints.push(metaEndpoint.content);
+
+  return {
+    clients,
+    totalClients: clients.length,
+    gqlRelatedScripts: gqlScripts,
+    endpointHints: [...new Set(endpointHints)],
+  };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -2456,4 +2569,6 @@ module.exports = {
   extractSecurityInBrowser,
   extractAiMlInBrowser,
   extractCanvasInBrowser,
+  extractI18nInBrowser,
+  extractGraphqlInBrowser,
 };

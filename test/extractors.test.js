@@ -17,6 +17,8 @@ import {
   extractSecurityInBrowser,
   extractAiMlInBrowser,
   extractCanvasInBrowser,
+  extractI18nInBrowser,
+  extractGraphqlInBrowser,
 } from '../src/extractors.js';
 import { inspectPage, inspectPageV2 } from '../src/inspector.js';
 
@@ -668,5 +670,81 @@ describe('extractCanvasInBrowser', () => {
   it('reports WebGPU support status', async () => {
     const result = await page.evaluate(extractCanvasInBrowser);
     expect(typeof result.webgpuSupported).toBe('boolean');
+  });
+});
+
+describe('extractI18nInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('i18n.html'));
+  });
+
+  it('detects primary language and direction', async () => {
+    const result = await page.evaluate(extractI18nInBrowser);
+    expect(result.primaryLanguage).toBe('en-US');
+    expect(result.direction).toBe('ltr');
+  });
+
+  it('detects Content-Language meta', async () => {
+    const result = await page.evaluate(extractI18nInBrowser);
+    expect(result.contentLanguage).toBe('en-US');
+  });
+
+  it('detects hreflang tags', async () => {
+    const result = await page.evaluate(extractI18nInBrowser);
+    expect(result.hreflangCount).toBe(5);
+    const es = result.hreflangs.find(h => h.lang === 'es');
+    expect(es).toBeDefined();
+    expect(es.href).toContain('/es/');
+  });
+
+  it('detects inline language attributes', async () => {
+    const result = await page.evaluate(extractI18nInBrowser);
+    expect(result.inlineLanguages).toContain('es');
+    expect(result.inlineLanguages).toContain('ar');
+  });
+
+  it('detects RTL content', async () => {
+    const result = await page.evaluate(extractI18nInBrowser);
+    expect(result.hasRtlContent).toBe(true);
+    expect(result.rtlElements).toBeGreaterThan(0);
+  });
+
+  it('detects i18next framework', async () => {
+    const result = await page.evaluate(extractI18nInBrowser);
+    const i18next = result.frameworks.find(f => f.name === 'i18next');
+    expect(i18next).toBeDefined();
+    expect(i18next.language).toBe('en-US');
+    expect(i18next.languages).toContain('es');
+  });
+
+  it('detects language switcher', async () => {
+    const result = await page.evaluate(extractI18nInBrowser);
+    expect(result.languageSwitcher).toBeDefined();
+    expect(result.languageSwitcher.type).toBe('select');
+    expect(result.languageSwitcher.options.length).toBe(4);
+  });
+});
+
+describe('extractGraphqlInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('graphql.html'));
+  });
+
+  it('detects Apollo Client with version', async () => {
+    const result = await page.evaluate(extractGraphqlInBrowser);
+    const apollo = result.clients.find(c => c.name === 'Apollo Client');
+    expect(apollo).toBeDefined();
+    expect(apollo.version).toBe('3.8.0');
+  });
+
+  it('detects Relay', async () => {
+    const result = await page.evaluate(extractGraphqlInBrowser);
+    const relay = result.clients.find(c => c.name === 'Relay');
+    expect(relay).toBeDefined();
+  });
+
+  it('reports total client count', async () => {
+    const result = await page.evaluate(extractGraphqlInBrowser);
+    expect(result.totalClients).toBe(2);
   });
 });

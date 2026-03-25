@@ -29,6 +29,8 @@ const {
   extractSecurityInBrowser,
   extractAiMlInBrowser,
   extractCanvasInBrowser,
+  extractI18nInBrowser,
+  extractGraphqlInBrowser,
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
@@ -863,6 +865,38 @@ module.exports = function registerExtractionTools(server, allowTool = () => true
         const gpu = data.gpuInfo?.renderer ? ` | GPU: ${data.gpuInfo.renderer}` : '';
         const summary = `Canvas: ${data.totalCanvases} elements | Frameworks: ${fws || 'none'}${gpu} | WebGPU: ${data.webgpuSupported ? 'yes' : 'no'}`;
         return summarizeResult('canvas', data, summary, { tool: 'tapsite_extract_canvas', description: 'Inventory canvas elements, 2D/3D frameworks, GPU info' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_i18n')) {
+    server.tool(
+      'tapsite_extract_i18n',
+      'Profile internationalization: languages, hreflang tags, RTL content, i18n frameworks, and language switchers.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractI18nInBrowser);
+        const fws = data.frameworks.map(f => f.name).join(', ');
+        const summary = `i18n: ${data.primaryLanguage || 'unset'} | hreflang: ${data.hreflangCount} | RTL: ${data.hasRtlContent ? 'yes' : 'no'} | Frameworks: ${fws || 'none'} | Switcher: ${data.languageSwitcher ? data.languageSwitcher.type : 'none'}`;
+        return summarizeResult('i18n', data, summary, { tool: 'tapsite_extract_i18n', description: 'Profile internationalization: languages, hreflang, RTL, frameworks' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_graphql')) {
+    server.tool(
+      'tapsite_extract_graphql',
+      'Detect GraphQL clients (Apollo, Relay, urql), related scripts, and endpoint hints.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractGraphqlInBrowser);
+        const clientNames = data.clients.map(c => c.version ? `${c.name} v${c.version}` : c.name).join(', ');
+        const summary = `GraphQL: ${data.totalClients} clients (${clientNames || 'none'}) | Endpoints: ${data.endpointHints.length || 'none detected'}`;
+        return summarizeResult('graphql', data, summary, { tool: 'tapsite_extract_graphql', description: 'Detect GraphQL clients, scripts, and endpoint hints' });
       }
     );
   }
