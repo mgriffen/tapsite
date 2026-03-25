@@ -37,9 +37,9 @@ describe('MCP Server Integration', () => {
     await server?.close();
   });
 
-  it('lists all 53 tools', async () => {
+  it('lists all 52 tools', async () => {
     const result = await client.listTools();
-    expect(result.tools.length).toBe(53);
+    expect(result.tools.length).toBe(52);
   });
 
   it('all tools have descriptions', async () => {
@@ -56,14 +56,6 @@ describe('MCP Server Integration', () => {
     }
   });
 
-  it('tapsite_login rejects when TAPSITE_ALLOW_AUTO_LOGIN is unset', async () => {
-    delete process.env.TAPSITE_ALLOW_AUTO_LOGIN;
-    const result = await client.callTool({
-      name: 'tapsite_login',
-      arguments: { url: 'https://example.com', username: 'test', password: 'test' },
-    });
-    expect(result.content[0].text).toContain('disabled by default');
-  });
 
   it('tapsite_close succeeds even when no browser is open', async () => {
     const result = await client.callTool({

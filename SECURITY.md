@@ -97,7 +97,6 @@ All tool inputs are validated with Zod schemas:
 
 - **Auth headers redacted**: `Authorization`, `Cookie`, `Set-Cookie`, `X-Auth-Token`, `X-API-Key`, `X-CSRF-Token` are replaced with `[REDACTED]` in network capture output.
 - **Hidden form field values not extracted**: Only `hidden: true` and `csrf: true` flags are returned — actual token values are never exposed.
-- **Auto-login gated**: `tapsite_login` requires `TAPSITE_ALLOW_AUTO_LOGIN=1` environment variable. Without it, the tool returns an error directing users to `tapsite_login_manual` (headed browser with no credential exposure).
 - **JSON on disk sanitized**: `summarizeResult()` applies recursive `sanitizeForLLM()` to all data before writing JSON files.
 - **Markdown export sanitized**: `compressedDOM` content is run through `sanitizeForLLM()` before embedding.
 

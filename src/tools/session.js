@@ -6,45 +6,6 @@ const { navigateIfNeeded, requireSafeUrl, indexPage, resolveElement, formatIndex
 module.exports = function registerSessionTools(server) {
 
   server.tool(
-    'tapsite_login',
-    'Auto-login with credentials. Session persists across calls.',
-    {
-      url: z.string().describe('Login page URL'),
-      username: z.string().describe('Username'),
-      password: z.string().describe('Password'),
-      usernameSelector: z.string().max(500).default('input[name="username"]').describe('Username field selector'),
-      passwordSelector: z.string().max(500).default('input[name="password"]').describe('Password field selector'),
-      submitSelector: z.string().max(500).default('input[type="submit"]').describe('Submit button selector'),
-    },
-    async ({ url, username, password, usernameSelector, passwordSelector, submitSelector }) => {
-      if (process.env.TAPSITE_ALLOW_AUTO_LOGIN !== '1') {
-        return { content: [{ type: 'text', text: 'tapsite_login is disabled by default because credentials appear in MCP transport logs.\nSet TAPSITE_ALLOW_AUTO_LOGIN=1 to enable, or use tapsite_login_manual for safe interactive login.' }] };
-      }
-      await browser.ensureBrowser();
-      requireSafeUrl(url);
-      await browser.page.goto(url);
-      await browser.page.fill(usernameSelector, username);
-      await browser.page.fill(passwordSelector, password);
-      await browser.page.click(submitSelector);
-      await browser.page.waitForLoadState('networkidle').catch(() => {});
-      await browser.page.waitForTimeout(2000);
-
-      const title = await browser.page.title();
-      const currentUrl = browser.page.url();
-      const bodyPreview = await safeEvaluate(browser.page, () =>
-        (document.body?.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 500)
-      );
-
-      return {
-        content: [{
-          type: 'text',
-          text: `Logged in successfully.\nTitle: ${title}\nURL: ${currentUrl}\n\nPage preview:\n${bodyPreview}`,
-        }],
-      };
-    }
-  );
-
-  server.tool(
     'tapsite_login_manual',
     'Open headed browser for manual login (MFA). Call login_check when done.',
     {

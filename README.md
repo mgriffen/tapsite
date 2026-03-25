@@ -4,7 +4,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/tapsite?style=flat-square&color=00727d)](https://www.npmjs.com/package/tapsite)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-The MCP server for web intelligence extraction. 43 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
+The MCP server for web intelligence extraction. 52 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
 
 Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or track accessibility regressions over time — all as structured JSON that agents can reason about.
 
@@ -69,7 +69,6 @@ Click any image to see the full interactive page:
 ### Session
 | Tool | Description |
 |------|-------------|
-| `tapsite_login` | Automated login (username + password, no MFA) |
 | `tapsite_login_manual` | Open headed browser for manual login + MFA |
 | `tapsite_login_check` | Verify authenticated session state |
 | `tapsite_inspect` | Navigate to URL and inspect the DOM (nav, headings, buttons, forms, tables, links) |
