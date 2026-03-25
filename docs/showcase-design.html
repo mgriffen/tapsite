@@ -27,7 +27,7 @@
 
     :root, [data-theme="light"] {
       --bg-primary: #ffffff;
-      --bg-secondary: #f8f9fa;
+      --bg-secondary: #f5f7fa;
       --bg-card: #ffffff;
       --bg-code: #f1f5f9;
       --text-primary: #1a1a2a;
@@ -41,6 +41,8 @@
       --link-hover: #004080;
       --card-hover-border: #0066cc;
       --card-hover-shadow: rgba(0, 102, 204, 0.1);
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --card-shadow-hover: 0 10px 30px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
       /* Data viz colors - keep vivid in both themes */
       --neon-blue: #0066cc;
       --neon-pink: #c9185b;
@@ -66,6 +68,8 @@
       --link-hover: #22ecdb;
       --card-hover-border: rgba(0, 212, 255, 0.3);
       --card-hover-shadow: rgba(0, 212, 255, 0.06);
+      --card-shadow: none;
+      --card-shadow-hover: 0 0 30px rgba(0, 212, 255, 0.06);
       --neon-blue: #00d4ff;
       --neon-pink: #ff2d78;
       --neon-magenta: #e040fb;
@@ -161,7 +165,7 @@
     .hero-glow.g3 { background: var(--neon-cyan); top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.04; }
 
     .hero-eyebrow {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
       letter-spacing: 0.4em; text-transform: uppercase; color: var(--accent-secondary);
       border: 1px solid var(--border); padding: 0.5rem 1.5rem;
       margin-bottom: 2.5rem; position: relative;
@@ -210,7 +214,7 @@
     @keyframes holo { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 
     .hero-sub {
-      font-weight: 200; font-size: clamp(1rem, 2.2vw, 1.3rem);
+      font-weight: 200; font-size: clamp(1.1rem, 2.5vw, 1.4rem);
       color: var(--text-secondary); max-width: 620px; margin-bottom: 3.5rem; letter-spacing: 0.03em;
     }
     .hero-sub em { font-style: italic; color: var(--accent-secondary); font-weight: 400; }
@@ -229,13 +233,13 @@
     .proof-val.pink { color: var(--neon-pink); }
     .proof-val.green { color: var(--neon-green); }
     .proof-label {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
       letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted); margin-top: 0.4rem;
     }
 
     .scroll-hint {
       position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
-      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
       letter-spacing: 0.3em; color: var(--text-muted);
       animation: bob 2s ease-in-out infinite;
     }
@@ -250,7 +254,7 @@
     .section { padding: 7rem 0; position: relative; }
 
     .section-label {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
       letter-spacing: 0.4em; text-transform: uppercase; color: var(--neon-pink);
       display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
     }
@@ -272,20 +276,23 @@
     }
 
     .section-desc {
-      color: var(--text-secondary); font-size: 1rem; max-width: 540px; margin-bottom: 4rem;
+      color: var(--text-secondary); font-size: 1.1rem; max-width: 540px; margin-bottom: 4rem;
     }
 
     /* ── DOSSIER CARD ── */
     .dossier {
       margin-bottom: 4rem;
       border: 1px solid var(--border);
+      border-radius: 12px;
       background: var(--bg-card);
+      box-shadow: var(--card-shadow);
       position: relative; overflow: hidden;
-      transition: border-color 0.4s ease;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
       z-index: 10000; isolation: isolate;
     }
     .dossier:hover {
       border-color: var(--border-hover);
+      box-shadow: var(--card-shadow-hover);
     }
 
     /* Top edge glow */
@@ -326,14 +333,14 @@
     }
     .dossier-site {
       font-family: 'Exo 2', sans-serif; font-weight: 600;
-      font-size: 1rem; letter-spacing: 0.12em;
+      font-size: 1.1rem; letter-spacing: 0.12em;
       color: var(--text-secondary);
     }
     [data-theme="dark"] .dossier-site.site-purple { color: #a393fe; }
     [data-theme="dark"] .dossier-site.site-indigo { color: #8c93e6; }
     [data-theme="dark"] .dossier-site.site-light { color: #e2e8f0; }
     .dossier-status {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
       letter-spacing: 0.2em; text-transform: uppercase; color: var(--neon-green);
     }
 
@@ -350,13 +357,13 @@
     }
 
     .profile-section-label {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
       letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted);
       margin-bottom: 0.5rem;
     }
 
     .profile-desc {
-      font-size: 0.95rem; color: var(--text-secondary); line-height: 1.5;
+      font-size: 1.05rem; color: var(--text-secondary); line-height: 1.5;
     }
 
     /* Color palette swatches */
@@ -373,7 +380,7 @@
     }
     .swatch.light { border-color: rgba(0,0,0,0.15); }
     .swatch-info {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--text-secondary);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.95rem; color: var(--text-secondary);
     }
     .swatch-hex { color: var(--text-primary); }
     .swatch-count { color: var(--text-muted); margin-left: 0.3rem; }
@@ -387,7 +394,7 @@
     /* Stack badge */
     .stack-badge {
       display: inline-flex; align-items: center; gap: 0.4rem;
-      font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 1rem;
       padding: 0.4rem 1rem;
       border: 1px solid var(--border);
       background: var(--bg-secondary);
@@ -398,7 +405,7 @@
     .dossier-readout {
       padding: 1.5rem;
       font-family: 'Share Tech Mono', monospace;
-      font-size: 0.9rem;
+      font-size: 1rem;
       line-height: 1.7;
       display: flex; flex-direction: column; gap: 1.2rem;
       background: var(--bg-secondary);
@@ -407,7 +414,7 @@
     .readout-group { }
 
     .readout-label {
-      font-size: 0.75rem; letter-spacing: 0.25em; text-transform: uppercase;
+      font-size: 0.85rem; letter-spacing: 0.25em; text-transform: uppercase;
       color: var(--text-muted); margin-bottom: 0.4rem;
       display: flex; align-items: center; gap: 0.5rem;
     }
@@ -421,7 +428,7 @@
     }
     .readout-key { color: var(--neon-blue); }
     .readout-val { color: var(--text-primary); }
-    .readout-unit { color: var(--text-muted); font-size: 0.8rem; }
+    .readout-unit { color: var(--text-muted); font-size: 0.9rem; }
     .readout-sep { color: var(--text-muted); }
 
     /* Perf bars */
@@ -432,7 +439,7 @@
       display: flex; align-items: center; gap: 0.6rem;
     }
     .perf-bar-label {
-      width: 110px; font-size: 0.8rem; color: var(--text-secondary); text-align: right; flex-shrink: 0;
+      width: 110px; font-size: 0.9rem; color: var(--text-secondary); text-align: right; flex-shrink: 0;
     }
     .perf-bar-track {
       flex: 1; height: 4px; background: var(--bg-secondary); border-radius: 2px;
@@ -451,7 +458,7 @@
       box-shadow: 0 0 8px currentColor;
     }
     .perf-bar-val {
-      width: 65px; font-size: 0.8rem; color: var(--text-primary); flex-shrink: 0;
+      width: 65px; font-size: 0.9rem; color: var(--text-primary); flex-shrink: 0;
     }
 
     /* Font stack display */
@@ -459,7 +466,7 @@
       display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem;
     }
     .font-tag {
-      padding: 0.3rem 0.6rem; font-size: 0.8rem;
+      padding: 0.3rem 0.6rem; font-size: 0.9rem;
       border: 1px solid rgba(224,64,251,0.15);
       color: var(--neon-magenta); background: rgba(224,64,251,0.04);
     }
@@ -524,13 +531,13 @@
     [data-theme="dark"] .summary-val.v2 { filter: drop-shadow(0 0 15px rgba(34,236,219,0.4)); }
     [data-theme="dark"] .summary-val.v3 { filter: drop-shadow(0 0 15px rgba(57,255,142,0.4)); }
     .summary-unit {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
       letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted);
       margin-top: 0.5rem;
     }
 
     .summary-tagline {
-      font-family: 'Exo 2', sans-serif; font-weight: 200; font-size: 1.1rem;
+      font-family: 'Exo 2', sans-serif; font-weight: 200; font-size: 1.25rem;
       color: var(--text-secondary); max-width: 500px; margin: 0 auto 3rem;
     }
     .summary-tagline em { font-style: italic; color: var(--accent-secondary); font-weight: 400; }
@@ -545,10 +552,10 @@
 
     .logo { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 1.5rem; letter-spacing: 0.12em; color: var(--accent-primary); }
     [data-theme="dark"] .logo { background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .footer-stack { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-muted); margin-top: 0.8rem; letter-spacing: 0.15em; }
-    .footer-line { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; }
+    .footer-stack { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.8rem; letter-spacing: 0.15em; }
+    .footer-line { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; }
     .footer-links { margin-top: 1rem; }
-    .footer-links a { color: var(--link-color); text-decoration: none; font-size: 0.8rem; }
+    .footer-links a { color: var(--link-color); text-decoration: none; font-size: 0.9rem; }
     .footer-links a:hover { color: var(--link-hover); }
 
     /* ── NEON DIVIDER ── */
