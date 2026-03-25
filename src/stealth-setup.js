@@ -1,6 +1,8 @@
 const { chromium } = require('playwright-extra');
 const stealth = require('puppeteer-extra-plugin-stealth');
 
-chromium.use(stealth());
+if (!chromium._plugins?.some(p => p.name === 'stealth')) {
+  chromium.use(stealth());
+}
 
 module.exports = { chromium };

@@ -14,6 +14,7 @@ class BrowserPool {
     this._chromium = opts.chromium ?? defaultChromium;
     this._poolSize = opts.poolSize ?? config.POOL_SIZE;
     this._healthCheckTimeout = opts.healthCheckTimeout ?? config.POOL_HEALTH_CHECK_TIMEOUT_MS;
+    this._acquireTimeout = opts.acquireTimeout ?? 30000;
     this._browser = null;
     this._primaryContext = null;
     this._primaryPage = null;
@@ -124,8 +125,17 @@ class BrowserPool {
       }
     }
     // All busy — queue a waiter
-    return new Promise((resolve) => {
-      this._waitQueue.push(resolve);
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        const idx = this._waitQueue.indexOf(entry);
+        if (idx !== -1) this._waitQueue.splice(idx, 1);
+        reject(new Error('Pool acquire timeout'));
+      }, this._acquireTimeout);
+      const entry = (index) => {
+        clearTimeout(timer);
+        resolve(index);
+      };
+      this._waitQueue.push(entry);
     });
   }
 
