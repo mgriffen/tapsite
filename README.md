@@ -53,20 +53,13 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 
 ## Showcase
 
-Click any image to see the full interactive page:
+[![tapsite Landing Page](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/landing-v3.png)](https://mgriffen.github.io/tapsite/)
 
-[![tapsite Product Overview](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/product-v2.png)](https://mgriffen.github.io/tapsite/product.html)
+[![TCGplayer Extraction Demo](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/demo-v3.png)](https://mgriffen.github.io/tapsite/demo.html)
 
-| Design System Extraction | Deep Intelligence |
-|:---:|:---:|
-| [![Showcase I](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/showcase-design-v2.png)](https://mgriffen.github.io/tapsite/showcase-design.html) | [![Showcase II](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/showcase-deep-v2.png)](https://mgriffen.github.io/tapsite/showcase-deep.html) |
-| Live-extracted colors, fonts, perf, breakpoints, and animations from Stripe, Linear, and Vercel | Accessibility audits, content extraction, form analysis, asset inventory, component detection |
+## Tools (52)
 
-[![Real World Workflows](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/scenarios-v2.png)](https://mgriffen.github.io/tapsite/scenarios.html)
-
-## Tools (43)
-
-### Session
+### Session (8)
 | Tool | Description |
 |------|-------------|
 | `tapsite_login_manual` | Open headed browser for manual login + MFA |
@@ -78,7 +71,7 @@ Click any image to see the full interactive page:
 | `tapsite_run_js` | Execute arbitrary JavaScript and return the result |
 | `tapsite_close` | Close the browser session |
 
-### Content Extraction
+### Content Extraction (5)
 | Tool | Description |
 |------|-------------|
 | `tapsite_extract_table` | Extract a specific table as structured data |
@@ -87,7 +80,7 @@ Click any image to see the full interactive page:
 | `tapsite_extract_content` | Extract main readable content (article body, headings, paragraphs) |
 | `tapsite_extract_forms` | Extract all forms with fields, labels, and actions |
 
-### Design Tokens
+### Design Tokens (5)
 | Tool | Description |
 |------|-------------|
 | `tapsite_extract_colors` | Extract color palette (hex values + usage counts) |
@@ -96,7 +89,7 @@ Click any image to see the full interactive page:
 | `tapsite_extract_spacing` | Extract spacing scale values |
 | `tapsite_extract_shadows` | Extract box-shadow and text-shadow patterns |
 
-### Visual Assets
+### Visual Assets (4)
 | Tool | Description |
 |------|-------------|
 | `tapsite_extract_images` | Extract all images with src, alt, dimensions |
@@ -104,27 +97,27 @@ Click any image to see the full interactive page:
 | `tapsite_extract_svgs` | Extract inline SVGs |
 | `tapsite_extract_favicon` | Extract favicon URLs and sizes |
 
-### Layout Intelligence
+### Layout Intelligence (3)
 | Tool | Description |
 |------|-------------|
 | `tapsite_extract_layout` | Extract layout tree (inline text representation) |
 | `tapsite_extract_components` | Detect repeated UI components and patterns |
 | `tapsite_extract_breakpoints` | Extract responsive breakpoints from CSS media queries |
 
-### Network Intelligence
+### Network Intelligence (3)
 | Tool | Description |
 |------|-------------|
 | `tapsite_capture_network` | Capture network requests during a page load |
 | `tapsite_extract_api_schema` | Infer API schema from observed network traffic |
 | `tapsite_extract_stack` | Detect frontend framework, libraries, and tech stack |
 
-### Multi-page
+### Multi-page (2)
 | Tool | Description |
 |------|-------------|
 | `tapsite_crawl` | Crawl multiple pages from a start URL |
 | `tapsite_diff_pages` | Compare two URLs (cross-site) or track changes over time (temporal) using real extractors |
 
-### Advanced
+### Advanced (16)
 | Tool | Description |
 |------|-------------|
 | `tapsite_extract_animations` | Extract CSS animations and transitions |
@@ -133,14 +126,24 @@ Click any image to see the full interactive page:
 | `tapsite_extract_perf` | Extract performance metrics (Core Web Vitals, resource sizes) |
 | `tapsite_extract_icons` | Detect icon libraries and extract icon usage |
 | `tapsite_extract_contrast` | Audit WCAG contrast ratios between text and background |
+| `tapsite_extract_security` | Audit security headers (CSP, HSTS, SRI, permissions policy) |
+| `tapsite_extract_pwa` | Detect PWA support (manifest, service worker, installability) |
+| `tapsite_extract_i18n` | Extract internationalization signals (lang, hreflang, translations) |
+| `tapsite_extract_graphql` | Detect GraphQL endpoints and introspect schemas |
+| `tapsite_extract_aiml` | Detect AI/ML integrations (models, embeddings, inference endpoints) |
+| `tapsite_extract_canvas` | Extract canvas and WebGL usage patterns |
+| `tapsite_extract_wasm` | Detect WebAssembly modules and usage |
+| `tapsite_extract_web_components` | Detect custom elements and shadow DOM usage |
+| `tapsite_extract_third_party` | Inventory third-party scripts, trackers, and services |
+| `tapsite_extract_storage` | Audit client-side storage (cookies, localStorage, sessionStorage, IndexedDB) |
 
-### Export
+### Export (2)
 | Tool | Description |
 |------|-------------|
 | `tapsite_export` | Export inspection results as JSON + Markdown + HTML report + CSV tables + screenshots |
 | `tapsite_export_design_report` | Full design system report: `report.html` (visual), `design-tokens.json` (W3C format), `design-tokens.css` (copy-pasteable `:root` vars) |
 
-### Workflows (Presets)
+### Workflows (4)
 | Tool | Description |
 |------|-------------|
 | `tapsite_teardown` | Comprehensive competitive design teardown (all extractors) |

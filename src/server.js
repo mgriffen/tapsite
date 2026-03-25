@@ -4,7 +4,7 @@ const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
 const { getProfileFilter } = require('./profiles');
 
-const server = new McpServer({ name: 'tapsite', version: '4.5.0' });
+const server = new McpServer({ name: 'tapsite', version: '4.5.1' });
 
 const allowTool = getProfileFilter(process.argv);
 
