@@ -26,8 +26,9 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
       extract: z.array(z.enum(['content', 'metadata', 'links', 'colors', 'fonts', 'css_vars', 'components', 'forms'])).default(['content']).describe('Extractions per page'),
       filterPath: z.string().optional().describe("Path prefix filter (e.g. '/blog/')"),
       sameDomain: z.boolean().default(true).describe('Same domain only'),
+      concurrency: z.number().min(1).max(8).default(4).describe('Parallel pages (1-8, limited by pool size)'),
     },
-    async ({ url, maxPages, maxDepth, extract, filterPath, sameDomain }) => {
+    async ({ url, maxPages, maxDepth, extract, filterPath, sameDomain, concurrency }) => {
       await browser.ensureBrowser();
       requireSafeUrl(url);
 
@@ -51,22 +52,19 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
       const MAX_OUTPUT_BYTES = 50 * 1024 * 1024; // 50 MB
       let totalBytes = 0;
 
-      while (queue.length > 0 && visited.size < maxPages) {
-        if (Date.now() - crawlStart > CRAWL_TIMEOUT_MS) break;
-        const { url: currentUrl, depth } = queue.shift();
-        if (visited.has(currentUrl)) continue;
-        visited.add(currentUrl);
+      const effectiveConcurrency = browser.pool ? Math.min(concurrency, browser.pool.size) : 1;
 
-        const pageResult = { url: currentUrl, depth, extractions: {} };
+      async function processPage(poolPage, pageUrl, depth) {
+        const pageResult = { url: pageUrl, depth, extractions: {} };
         try {
-          try { await browser.page.goto(currentUrl, { waitUntil: 'networkidle', timeout: 30000 }); } catch {}
-          await browser.page.waitForTimeout(1000);
+          try { await poolPage.goto(pageUrl, { waitUntil: 'networkidle', timeout: 30000 }); } catch {}
+          await poolPage.waitForTimeout(1000);
 
           for (const type of extract) {
             try {
-              if (type === 'content') pageResult.extractions.content = (await safeEvaluate(browser.page, extractContentInBrowser, { selector: null, includeImages: false })).content;
-              else if (type === 'metadata') pageResult.extractions.metadata = await safeEvaluate(browser.page, extractMetadataInBrowser);
-              else if (type === 'links') pageResult.extractions.links = await safeEvaluate(browser.page, () => {
+              if (type === 'content') pageResult.extractions.content = (await safeEvaluate(poolPage, extractContentInBrowser, { selector: null, includeImages: false })).content;
+              else if (type === 'metadata') pageResult.extractions.metadata = await safeEvaluate(poolPage, extractMetadataInBrowser);
+              else if (type === 'links') pageResult.extractions.links = await safeEvaluate(poolPage, () => {
                 function isHiddenElement(el) {
                   if (!el || el.nodeType !== 1) return false;
                   const cs = getComputedStyle(el);
@@ -85,41 +83,84 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
                 }
                 return [...document.querySelectorAll('a[href]')].filter(a => !isHiddenElement(a)).map(a => ({ text: a.textContent.trim().slice(0, 100), href: a.href }));
               });
-              else if (type === 'colors') pageResult.extractions.colors = await safeEvaluate(browser.page, extractColorsInBrowser, { limit: 50 });
-              else if (type === 'fonts') pageResult.extractions.fonts = await safeEvaluate(browser.page, extractFontsInBrowser);
-              else if (type === 'css_vars') pageResult.extractions.css_vars = await safeEvaluate(browser.page, extractCssVarsInBrowser, { includeAll: false });
-              else if (type === 'components') pageResult.extractions.components = await safeEvaluate(browser.page, extractComponentsInBrowser, { minOccurrences: 2 });
-              else if (type === 'forms') pageResult.extractions.forms = await safeEvaluate(browser.page, extractFormsInBrowser);
+              else if (type === 'colors') pageResult.extractions.colors = await safeEvaluate(poolPage, extractColorsInBrowser, { limit: 50 });
+              else if (type === 'fonts') pageResult.extractions.fonts = await safeEvaluate(poolPage, extractFontsInBrowser);
+              else if (type === 'css_vars') pageResult.extractions.css_vars = await safeEvaluate(poolPage, extractCssVarsInBrowser, { includeAll: false });
+              else if (type === 'components') pageResult.extractions.components = await safeEvaluate(poolPage, extractComponentsInBrowser, { minOccurrences: 2 });
+              else if (type === 'forms') pageResult.extractions.forms = await safeEvaluate(poolPage, extractFormsInBrowser);
             } catch (e) {
               pageResult.extractions[type] = { error: e.message };
             }
           }
 
+          let discoveredLinks = [];
           if (depth < maxDepth) {
-            const links = await safeEvaluate(browser.page, () =>
+            discoveredLinks = await safeEvaluate(poolPage, () =>
               [...document.querySelectorAll('a[href]')].map(a => a.href).filter(h => h.startsWith('http'))
             );
-            for (const link of links) {
-              try {
-                const linkUrl = new URL(link);
-                const normLink = `${linkUrl.origin}${linkUrl.pathname}`;
-                if (visited.has(normLink)) continue;
-                if (sameDomain && linkUrl.hostname !== startUrl.hostname) continue;
-                if (filterPath && !linkUrl.pathname.startsWith(filterPath)) continue;
-                queue.push({ url: normLink, depth: depth + 1 });
-              } catch {}
-            }
           }
+          return { pageResult, links: discoveredLinks };
         } catch (e) {
           pageResult.error = e.message;
+          return { pageResult, links: [] };
         }
+      }
 
-        results.push(pageResult);
-        const filename = `page-${String(results.length).padStart(3, '0')}.json`;
-        const json = JSON.stringify(pageResult, null, 2);
-        totalBytes += Buffer.byteLength(json);
+      while (queue.length > 0 && visited.size < maxPages) {
+        if (Date.now() - crawlStart > CRAWL_TIMEOUT_MS) break;
+
+        // Take batch from queue
+        const batch = [];
+        while (batch.length < effectiveConcurrency && queue.length > 0 && visited.size + batch.length < maxPages) {
+          const item = queue.shift();
+          if (visited.has(item.url)) continue;
+          visited.add(item.url);
+          batch.push(item);
+        }
+        if (batch.length === 0) break;
+
+        // Process batch concurrently
+        const batchPromises = batch.map(async ({ url: pageUrl, depth, retried }) => {
+          if (effectiveConcurrency <= 1 || !browser.pool) {
+            return processPage(browser.page, pageUrl, depth);
+          }
+          const lease = await browser.pool.acquire();
+          try {
+            return await processPage(lease.page, pageUrl, depth);
+          } catch (err) {
+            // Re-enqueue on context death (max 1 retry)
+            if (!retried && (err.message.includes('Target closed') || err.message.includes('destroyed'))) {
+              queue.unshift({ url: pageUrl, depth, retried: true });
+            }
+            return { pageResult: { url: pageUrl, depth, error: err.message, extractions: {} }, links: [] };
+          } finally {
+            await lease.release();
+          }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+
+        // Process results + enqueue discovered links
+        for (const { pageResult, links } of batchResults) {
+          results.push(pageResult);
+          const filename = `page-${String(results.length).padStart(3, '0')}.json`;
+          const json = JSON.stringify(pageResult, null, 2);
+          totalBytes += Buffer.byteLength(json);
+          if (totalBytes > MAX_OUTPUT_BYTES) break;
+          fs.writeFileSync(path.join(runDir, filename), json);
+
+          for (const link of links) {
+            try {
+              const linkUrl = new URL(link);
+              const normLink = `${linkUrl.origin}${linkUrl.pathname}`;
+              if (visited.has(normLink)) continue;
+              if (sameDomain && linkUrl.hostname !== startUrl.hostname) continue;
+              if (filterPath && !linkUrl.pathname.startsWith(filterPath)) continue;
+              queue.push({ url: normLink, depth: pageResult.depth + 1 });
+            } catch {}
+          }
+        }
         if (totalBytes > MAX_OUTPUT_BYTES) break;
-        fs.writeFileSync(path.join(runDir, filename), json);
       }
 
       const summary = {
