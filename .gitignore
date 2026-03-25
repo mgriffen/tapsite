@@ -4,7 +4,13 @@ output/
 *.Zone.Identifier
 *:Zone.Identifier
 claude_tapsite_intent.md
-.claude/*
-!.claude/commands/
+.claude/
 .mcp.json
 .mcpregistry_*
+tapsite-promo.html
+docs/superpowers/
+docs/assets/extract-icons.sh
+docs/assets/extract-icons2.sh
+docs/assets/icon-candidates.html
+docs/assets/favicon-mockup.html
+docs/assets/tapicons_raw.png

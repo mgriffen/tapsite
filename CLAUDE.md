@@ -70,6 +70,17 @@ Memory lives at `~/.claude/projects/-home-griffen-projects-tapsite/memory/`.
 
 A Stop hook will surface a reminder at session end, but don't wait for it — update as things happen.
 
+## Git hygiene
+
+Keep the public repo clean — only ship what users need. **Never commit:**
+- `.claude/` — Claude commands, settings, memory (gitignored)
+- `docs/superpowers/` — internal plans and design specs (gitignored)
+- `docs/assets/extract-icons*.sh`, `icon-candidates.html`, `favicon-mockup.html`, `tapicons_raw.png` — icon/favicon work artifacts (gitignored)
+- `tapsite-promo.html` or other scratch/promo files (gitignored)
+- `audit-pages.js` or other one-off scripts unless intentionally shipping them
+
+When creating new working files (plans, specs, build scripts, scratch pages), place them in `docs/superpowers/` or add them to `.gitignore` before committing.
+
 ## Security
 
 - **Hidden element filtering**: `isHiddenElement()` is inlined in `extractContentInBrowser`, `extractFormsInBrowser`, `extractA11yInBrowser`, and link extractors. Skips `display:none`, `visibility:hidden`, `opacity:0`, zero-size, and clip-hidden elements to block invisible prompt injection text.
