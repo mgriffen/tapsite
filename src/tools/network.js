@@ -64,9 +64,9 @@ async function captureNetwork({ duration, includeStatic, filterUrl, filterMethod
   return [...entryMap.values()].filter((e) => e.status !== undefined);
 }
 
-module.exports = function registerNetworkTools(server) {
+module.exports = function registerNetworkTools(server, allowTool = () => true) {
 
-  server.tool(
+  if (allowTool('tapsite_capture_network')) server.tool(
     'tapsite_capture_network',
     'Capture network traffic for a duration. Filters static assets by default.',
     {
@@ -96,7 +96,7 @@ module.exports = function registerNetworkTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_api_schema')) server.tool(
     'tapsite_extract_api_schema',
     'Infer API schemas from captured network traffic.',
     {
@@ -198,7 +198,7 @@ module.exports = function registerNetworkTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_stack')) server.tool(
     'tapsite_extract_stack',
     'Detect tech stack: frameworks, libraries, CMS, analytics, CDNs.',
     {

@@ -14,9 +14,9 @@ const {
 const config = require('../config');
 const browser = require('../browser');
 
-module.exports = function registerMultipageTools(server) {
+module.exports = function registerMultipageTools(server, allowTool = () => true) {
 
-  server.tool(
+  if (allowTool('tapsite_crawl')) server.tool(
     'tapsite_crawl',
     'BFS crawl with extraction per page. Writes to output/crawl-{ts}/.',
     {
@@ -141,7 +141,7 @@ module.exports = function registerMultipageTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_diff_pages')) server.tool(
     'tapsite_diff_pages',
     'Compare two URLs (cross-site) or the same URL over time (temporal). Runs real extractors — colors, fonts, spacing, a11y, perf, metadata, components, breakpoints — and produces a structured diff with regressions/improvements highlighted. Omit url2 for temporal mode (compares against last saved snapshot).',
     {

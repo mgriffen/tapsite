@@ -27,9 +27,9 @@ const config = require('../config');
 const browser = require('../browser');
 const { navigateIfNeeded, requireSafeUrl, summarizeResult, safeEvaluate } = require('../helpers');
 
-module.exports = function registerWorkflowTools(server) {
+module.exports = function registerWorkflowTools(server, allowTool = () => true) {
 
-  server.tool(
+  if (allowTool('tapsite_teardown')) server.tool(
     'tapsite_teardown',
     'Competitive design teardown — runs colors, fonts, CSS vars, spacing, shadows, components, breakpoints, animations, icons, stack detection, perf, a11y, contrast, and dark mode in one call. Returns a combined summary.',
     {
@@ -93,7 +93,7 @@ module.exports = function registerWorkflowTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_audit')) server.tool(
     'tapsite_audit',
     'Pre-launch quality audit with scorecard — runs a11y, contrast, perf, metadata (SEO), dark mode, and forms. Returns pass/fail per category with an overall score out of 100.',
     {
@@ -166,7 +166,7 @@ module.exports = function registerWorkflowTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_harvest')) server.tool(
     'tapsite_harvest',
     'Migration asset inventory — crawls up to maxPages pages and extracts content, images, SVGs, forms, fonts, and links per page. Returns per-page counts and a link map. Output written to output/harvest-{ts}/.',
     {
@@ -293,7 +293,7 @@ module.exports = function registerWorkflowTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_designsystem')) server.tool(
     'tapsite_designsystem',
     'Design system extraction — runs colors, fonts, spacing, shadows, CSS vars, breakpoints, animations, icons, and components. Exports W3C design-tokens.json, design-tokens.css, and raw-data.json to output/design-system-{ts}/.',
     {

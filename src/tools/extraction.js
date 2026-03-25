@@ -54,9 +54,9 @@ function formatLayoutTree(node, indent = '') {
   return lines.join('\n');
 }
 
-module.exports = function registerExtractionTools(server) {
+module.exports = function registerExtractionTools(server, allowTool = () => true) {
 
-  server.tool(
+  if (allowTool('tapsite_extract_table')) server.tool(
     'tapsite_extract_table',
     'Extract table data as structured rows.',
     {
@@ -99,7 +99,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_links')) server.tool(
     'tapsite_extract_links',
     'Extract all links with text and href.',
     {
@@ -151,7 +151,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_colors')) server.tool(
     'tapsite_extract_colors',
     'Extract color palette sorted by frequency.',
     {
@@ -169,7 +169,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_fonts')) server.tool(
     'tapsite_extract_fonts',
     'Extract fonts: families, sizes, weights, sources.',
     {
@@ -186,7 +186,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_css_vars')) server.tool(
     'tapsite_extract_css_vars',
     'Extract CSS custom properties, categorized by type.',
     {
@@ -205,7 +205,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_spacing')) server.tool(
     'tapsite_extract_spacing',
     'Extract spacing scale: margins, padding, gaps, radii.',
     {
@@ -224,7 +224,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_images')) server.tool(
     'tapsite_extract_images',
     'Extract all images with src, dimensions, alt, format.',
     {
@@ -246,7 +246,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_download_images')) server.tool(
     'tapsite_download_images',
     'Download images to disk. Uses session cookies for auth assets.',
     {
@@ -316,7 +316,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_svgs')) server.tool(
     'tapsite_extract_svgs',
     'Extract SVGs: inline markup, external URLs, icon/illustration classification.',
     {
@@ -369,7 +369,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_favicon')) server.tool(
     'tapsite_extract_favicon',
     'Extract favicon and icon references. Optional download.',
     {
@@ -446,7 +446,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_layout')) server.tool(
     'tapsite_extract_layout',
     'Extract layout tree: flex/grid/block containers with properties.',
     {
@@ -462,7 +462,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_components')) server.tool(
     'tapsite_extract_components',
     'Detect repeated UI component patterns with instance counts.',
     {
@@ -480,7 +480,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_breakpoints')) server.tool(
     'tapsite_extract_breakpoints',
     'Extract CSS breakpoints and detect framework (Tailwind/Bootstrap/MUI).',
     {
@@ -498,7 +498,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_metadata')) server.tool(
     'tapsite_extract_metadata',
     'Extract metadata: OG, Twitter Cards, JSON-LD, RSS, canonical.',
     {
@@ -516,7 +516,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_content')) server.tool(
     'tapsite_extract_content',
     'Extract main content as clean markdown, stripping chrome.',
     {
@@ -532,7 +532,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_forms')) server.tool(
     'tapsite_extract_forms',
     'Extract forms: fields, validation, actions, hidden fields.',
     {
@@ -553,7 +553,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_animations')) server.tool(
     'tapsite_extract_animations',
     'Extract CSS animations, transitions, and detect animation libraries.',
     {
@@ -572,7 +572,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_a11y')) server.tool(
     'tapsite_extract_a11y',
     'Accessibility audit with score (0-100) and issues by severity.',
     {
@@ -593,7 +593,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_darkmode')) server.tool(
     'tapsite_extract_darkmode',
     'Detect dark mode support. Optionally capture dark palette.',
     {
@@ -634,7 +634,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_perf')) server.tool(
     'tapsite_extract_perf',
     'Performance metrics: Web Vitals, resource sizes, timing.',
     {
@@ -654,7 +654,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_shadows')) server.tool(
     'tapsite_extract_shadows',
     'Extract box-shadow and text-shadow patterns as design tokens.',
     {
@@ -676,7 +676,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_icons')) server.tool(
     'tapsite_extract_icons',
     'Detect icon font libraries and extract icon usage (Font Awesome, Material, Bootstrap Icons, etc.).',
     {
@@ -693,7 +693,7 @@ module.exports = function registerExtractionTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_extract_contrast')) server.tool(
     'tapsite_extract_contrast',
     'WCAG contrast ratio audit between text and background color pairs.',
     {

@@ -21,9 +21,9 @@ function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-module.exports = function registerExportTools(server) {
+module.exports = function registerExportTools(server, allowTool = () => true) {
 
-  server.tool(
+  if (allowTool('tapsite_export')) server.tool(
     'tapsite_export',
     'Export URLs as Markdown + HTML report + JSON + CSV + screenshots.',
     {
@@ -66,7 +66,7 @@ module.exports = function registerExportTools(server) {
     }
   );
 
-  server.tool(
+  if (allowTool('tapsite_export_design_report')) server.tool(
     'tapsite_export_design_report',
     'Full design system report: HTML + W3C tokens JSON + CSS vars.',
     {

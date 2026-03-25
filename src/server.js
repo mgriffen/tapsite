@@ -2,15 +2,18 @@
 
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
+const { getProfileFilter } = require('./profiles');
 
 const server = new McpServer({ name: 'tapsite', version: '4.0.1' });
 
+const allowTool = getProfileFilter(process.argv);
+
 require('./tools/session')(server);
-require('./tools/extraction')(server);
-require('./tools/network')(server);
-require('./tools/multipage')(server);
-require('./tools/export')(server);
-require('./tools/workflows')(server);
+require('./tools/extraction')(server, allowTool);
+require('./tools/network')(server, allowTool);
+require('./tools/multipage')(server, allowTool);
+require('./tools/export')(server, allowTool);
+require('./tools/workflows')(server, allowTool);
 
 function checkForUpdates() {
   const currentVersion = require('../package.json').version;
