@@ -15,4 +15,6 @@ module.exports = {
   POOL_SIZE: parseInt(process.env.TAPSITE_POOL_SIZE, 10) || 4,
   CRAWL_CONCURRENCY: parseInt(process.env.TAPSITE_CRAWL_CONCURRENCY, 10) || 4,
   POOL_HEALTH_CHECK_TIMEOUT_MS: 5000,
+  CACHE_DIR: path.join(ROOT_DIR, 'output', 'cache'),
+  CACHE_TTL_MS: 3600000, // 1 hour
 };
