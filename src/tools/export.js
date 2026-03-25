@@ -28,8 +28,9 @@ module.exports = function registerExportTools(server, allowTool = () => true) {
     'Export URLs as Markdown + HTML report + JSON + CSV + screenshots.',
     {
       urls: z.array(z.string()).describe('URLs to export'),
+      format: z.array(z.enum(['json', 'markdown', 'html', 'csv', 'screenshots'])).default(['json', 'markdown', 'html', 'csv', 'screenshots']).describe('Output formats to include'),
     },
-    async ({ urls }) => {
+    async ({ urls, format }) => {
       await browser.ensureBrowser();
       const runDir = createRunDir();
       const results = [];
@@ -42,24 +43,42 @@ module.exports = function registerExportTools(server, allowTool = () => true) {
         await browser.page.waitForTimeout(1500);
 
         const data = await inspectPageV2(browser.page);
-        await browser.page.screenshot({ path: screenshotPath(runDir, i), fullPage: true });
+        if (format.includes('screenshots')) {
+          await browser.page.screenshot({ path: screenshotPath(runDir, i), fullPage: true });
+        }
+        // Generate page-level markdown from live HTML if markdown format requested
+        if (format.includes('markdown')) {
+          const { generateMarkdown } = require('../markdown');
+          const html = await browser.page.content();
+          const mdContent = generateMarkdown(html, { mode: 'fit' });
+          const mdFile = path.join(runDir, `page-${i}.md`);
+          fs.writeFileSync(mdFile, mdContent, 'utf-8');
+          data._markdownFile = mdFile;
+        }
         results.push(data);
       }
 
-      const jsonPath = exportJSON(runDir, results);
-      const mdPath = exportMarkdown(runDir, results);
-      const htmlPath = exportHTML(runDir, results);
-      const csvFiles = exportCSV(runDir, results);
-
-      const lines = [
-        `Exported ${results.length} page(s) to ${runDir}`,
-        `  JSON:     ${jsonPath}`,
-        `  Markdown: ${mdPath}`,
-        `  HTML:     ${htmlPath}`,
-        `  Screenshots: ${runDir}/screenshots/`,
-      ];
-      if (csvFiles.length) {
-        lines.push(`  CSV tables (${csvFiles.length}): ${csvFiles.map(f => path.basename(f)).join(', ')}`);
+      const lines = [`Exported ${results.length} page(s) to ${runDir}`];
+      if (format.includes('json')) {
+        const jsonPath = exportJSON(runDir, results);
+        lines.push(`  JSON:     ${jsonPath}`);
+      }
+      if (format.includes('markdown')) {
+        const mdPath = exportMarkdown(runDir, results);
+        lines.push(`  Markdown: ${mdPath}`);
+      }
+      if (format.includes('html')) {
+        const htmlPath = exportHTML(runDir, results);
+        lines.push(`  HTML:     ${htmlPath}`);
+      }
+      if (format.includes('screenshots')) {
+        lines.push(`  Screenshots: ${runDir}/screenshots/`);
+      }
+      if (format.includes('csv')) {
+        const csvFiles = exportCSV(runDir, results);
+        if (csvFiles.length) {
+          lines.push(`  CSV tables (${csvFiles.length}): ${csvFiles.map(f => path.basename(f)).join(', ')}`);
+        }
       }
 
       return { content: [{ type: 'text', text: lines.join('\n') }] };
