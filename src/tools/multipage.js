@@ -57,7 +57,10 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
       async function processPage(poolPage, pageUrl, depth) {
         const pageResult = { url: pageUrl, depth, extractions: {} };
         try {
-          try { await poolPage.goto(pageUrl, { waitUntil: 'networkidle', timeout: 30000 }); } catch {}
+          try { await poolPage.goto(pageUrl, { waitUntil: 'networkidle', timeout: 30000 }); } catch (navErr) {
+            pageResult.error = `Navigation failed: ${navErr.message}`;
+            return { pageResult, links: [] };
+          }
           await poolPage.waitForTimeout(1000);
 
           for (const type of extract) {
@@ -101,6 +104,10 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
           }
           return { pageResult, links: discoveredLinks };
         } catch (e) {
+          // Re-throw context-death errors for retry handling in outer scope
+          if (e.message && (e.message.includes('Target closed') || e.message.includes('destroyed') || e.message.includes('execution context'))) {
+            throw e;
+          }
           pageResult.error = e.message;
           return { pageResult, links: [] };
         }
@@ -131,6 +138,9 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
             // Re-enqueue on context death (max 1 retry)
             if (!retried && (err.message.includes('Target closed') || err.message.includes('destroyed'))) {
               queue.unshift({ url: pageUrl, depth, retried: true });
+              // Remove from visited so retry can process it
+              visited.delete(pageUrl);
+              return null; // Signal: no result for this attempt
             }
             return { pageResult: { url: pageUrl, depth, error: err.message, extractions: {} }, links: [] };
           } finally {
@@ -138,7 +148,7 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
           }
         });
 
-        const batchResults = await Promise.all(batchPromises);
+        const batchResults = (await Promise.all(batchPromises)).filter(Boolean);
 
         // Process results + enqueue discovered links
         for (const { pageResult, links } of batchResults) {
