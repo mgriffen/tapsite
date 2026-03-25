@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TAPSITE // Web Intelligence MCP Server</title>
+  <meta property="og:title" content="TAPSITE — Web Intelligence MCP Server">
+  <meta property="og:description" content="43 tools that give AI agents the ability to extract design systems, audit accessibility, and pull structured intelligence from any website.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+  <link rel="icon" type="image/svg+xml" href="assets/icon-source.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      var saved = localStorage.getItem('tapsite-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <noscript><style>.theme-toggle { display: none; }</style></noscript>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root, [data-theme="light"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f7fa;
+      --bg-card: #ffffff;
+      --bg-code: #f1f5f9;
+      --text-primary: #1a1a2a;
+      --text-secondary: #4a5568;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --accent-primary: #0055b3;
+      --accent-secondary: #00727d;
+      --link-color: #0055b3;
+      --link-hover: #004080;
+      --card-hover-border: #0066cc;
+      --card-hover-shadow: rgba(0, 102, 204, 0.1);
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --card-shadow-hover: 0 10px 30px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+    }
+    [data-theme="dark"] {
+      --bg-primary: #04060c;
+      --bg-secondary: #0a0e1a;
+      --bg-card: #000000;
+      --bg-code: #0f1525;
+      --text-primary: #e8edf5;
+      --text-secondary: #94a3b8;
+      --text-muted: #718096;
+      --border: rgba(0, 212, 255, 0.12);
+      --border-hover: rgba(0, 212, 255, 0.3);
+      --accent-primary: #00d4ff;
+      --accent-secondary: #22ecdb;
+      --link-color: #00d4ff;
+      --link-hover: #22ecdb;
+      --card-hover-border: rgba(0, 212, 255, 0.3);
+      --card-hover-shadow: rgba(0, 212, 255, 0.06);
+      --card-shadow: none;
+      --card-shadow-hover: 0 0 30px rgba(0, 212, 255, 0.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.25s, color 0.25s;
+    }
+
+    /* ── THEME TOGGLE ── */
+    .theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 10000;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.3s, background 0.3s;
+      padding: 0;
+    }
+    .theme-toggle:hover { border-color: var(--border-hover); }
+    .theme-toggle:focus-visible, .hero-cta:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+    .theme-toggle svg { width: 1.1rem; height: 1.1rem; }
+    .icon-sun { display: none; color: var(--text-secondary); }
+    .icon-moon { display: block; color: var(--text-secondary); }
+    [data-theme="dark"] .icon-sun { display: block; }
+    [data-theme="dark"] .icon-moon { display: none; }
+
+    /* ── RAIN ── */
+    .rain-container { display: none; pointer-events: none; }
+    [data-theme="dark"] .rain-container {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+    }
+    @media (max-width: 768px) {
+      [data-theme="dark"] .rain-container { display: none; }
+    }
+
+    .rain-drop {
+      position: absolute;
+      top: -120px;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(0, 212, 255, 0.25), transparent);
+      animation: rainfall linear infinite;
+      opacity: 0;
+    }
+
+    @keyframes rainfall {
+      0% { transform: translateY(-120px); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(105vh); opacity: 0; }
+    }
+
+    /* ── WET PAVEMENT GROUND (dark only) ── */
+    .wet-ground { display: none; }
+    [data-theme="dark"] .wet-ground {
+      display: block;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 30vh;
+      z-index: 0;
+      background: linear-gradient(180deg,
+        transparent 0%,
+        rgba(0, 212, 255, 0.01) 30%,
+        rgba(0, 212, 255, 0.04) 70%,
+        rgba(0, 212, 255, 0.06) 100%
+      );
+      pointer-events: none;
+    }
+
+    [data-theme="dark"] .wet-ground::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 212, 255, 0.015) 3px,
+        rgba(0, 212, 255, 0.015) 4px
+      );
+    }
+
+    /* ── CONTENT WRAPPER ── */
+    .content {
+      position: relative;
+      z-index: 10;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      padding: 4rem 2rem;
+    }
+
+    .hero-bg-glow {
+      position: absolute;
+      width: 800px;
+      height: 800px;
+      border-radius: 50%;
+      filter: blur(180px);
+      opacity: 0;
+      pointer-events: none;
+    }
+    [data-theme="dark"] .hero-bg-glow { opacity: 0.15; }
+    [data-theme="dark"] .hero-bg-glow.pink { opacity: 0.08; }
+
+    .hero-bg-glow.blue {
+      background: #00d4ff;
+      top: -200px;
+      left: -200px;
+    }
+
+    .hero-bg-glow.pink {
+      background: #ff2d78;
+      bottom: -300px;
+      right: -200px;
+    }
+
+    .hero-badge {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--accent-secondary);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      border-radius: 2px;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+
+    [data-theme="dark"] .hero-badge {
+      border-color: rgba(34, 236, 219, 0.25);
+      animation: badge-flicker 4s ease-in-out infinite;
+    }
+
+    [data-theme="dark"] .hero-badge::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 2px;
+      background: linear-gradient(135deg, rgba(34, 236, 219, 0.1), transparent 50%);
+      z-index: -1;
+    }
+
+    @keyframes badge-flicker {
+      0%, 95%, 100% { opacity: 1; }
+      96% { opacity: 0.7; }
+      97% { opacity: 1; }
+      98% { opacity: 0.6; }
+    }
+
+    .hero-title {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 800;
+      font-size: clamp(3.5rem, 9vw, 7.5rem);
+      letter-spacing: 0.08em;
+      line-height: 1;
+      margin-bottom: 0.3em;
+      position: relative;
+      color: var(--accent-primary);
+    }
+
+    [data-theme="dark"] .hero-title {
+      background: linear-gradient(
+        135deg,
+        #00d4ff 0%,
+        #ffffff 25%,
+        #22ecdb 50%,
+        #e040fb 75%,
+        #00d4ff 100%
+      );
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: holo-shift 8s ease-in-out infinite;
+      filter: drop-shadow(0 0 40px rgba(0, 212, 255, 0.3));
+    }
+
+    @keyframes holo-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .hero-title-reflection {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 800;
+      font-size: clamp(3.5rem, 9vw, 7.5rem);
+      letter-spacing: 0.08em;
+      line-height: 1;
+      display: none;
+      user-select: none;
+      pointer-events: none;
+      margin-bottom: 2rem;
+    }
+
+    [data-theme="dark"] .hero-title-reflection {
+      display: block;
+      background: linear-gradient(180deg, rgba(0, 212, 255, 0.15), transparent 80%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transform: scaleY(-0.35) translateY(-10px);
+      transform-origin: top center;
+      filter: blur(2px);
+    }
+
+    .hero-subtitle {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 200;
+      font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+      color: var(--text-secondary);
+      max-width: 650px;
+      margin-bottom: 3rem;
+      letter-spacing: 0.04em;
+    }
+
+    .hero-subtitle em {
+      font-style: italic;
+      color: var(--accent-secondary);
+      font-weight: 400;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 3rem;
+    }
+
+    .stat {
+      text-align: center;
+      position: relative;
+    }
+
+    .stat-value {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 2.5rem;
+      color: var(--accent-primary);
+      line-height: 1;
+    }
+
+    [data-theme="dark"] .stat-value {
+      filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.4));
+    }
+
+    .stat-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--bg-primary);
+      background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+      padding: 1rem 2.5rem;
+      border: none;
+      position: relative;
+      cursor: pointer;
+      clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+      transition: all 0.3s ease;
+    }
+
+    .hero-cta:hover {
+      filter: brightness(1.2);
+      transform: translateY(-2px);
+    }
+
+    [data-theme="dark"] .hero-cta:hover {
+      filter: brightness(1.2) drop-shadow(0 0 20px rgba(0, 212, 255, 0.5));
+    }
+
+    .hero-cta::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ── SCROLL INDICATOR ── */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      animation: float-down 2s ease-in-out infinite;
+    }
+
+    .scroll-indicator .chevron {
+      width: 20px;
+      height: 20px;
+      border-right: 1px solid var(--text-muted);
+      border-bottom: 1px solid var(--text-muted);
+      transform: rotate(45deg);
+    }
+
+    @keyframes float-down {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
+    /* ── SECTION TITLES ── */
+    .section {
+      padding: 8rem 0;
+      position: relative;
+    }
+
+    .section-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--accent-secondary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .section-label::before {
+      content: '';
+      width: 30px;
+      height: 1px;
+      background: var(--accent-secondary);
+    }
+
+    [data-theme="dark"] .section-label::before {
+      box-shadow: 0 0 8px rgba(0, 114, 125, 0.5);
+    }
+
+    .section-title {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 600;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .section-title .accent {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+      max-width: 560px;
+      margin-bottom: 4rem;
+    }
+
+    /* ── GLASS CARD ── */
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s ease;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+      opacity: 0;
+    }
+
+    [data-theme="dark"] .glass-card::before {
+      opacity: 0.5;
+    }
+
+    .glass-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), transparent 40%);
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    [data-theme="dark"] .glass-card::after {
+      opacity: 1;
+    }
+
+    [data-theme="dark"] .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .glass-card:hover {
+      border-color: var(--card-hover-border);
+      box-shadow: var(--card-shadow-hover);
+      transform: translateY(-4px);
+    }
+
+    [data-theme="dark"] .glass-card:hover {
+      box-shadow: var(--card-shadow-hover), inset 0 0 30px rgba(0, 212, 255, 0.02);
+    }
+
+    /* ── FEATURES GRID ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.2rem;
+      position: relative;
+      font-size: 1.5rem;
+    }
+
+    .feature-icon svg {
+      width: 28px;
+      height: 28px;
+      stroke-width: 1.5;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-icon::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 2px;
+      border: 1px solid;
+      opacity: 0.2;
+    }
+
+    .feature-icon::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 1px;
+      opacity: 0.08;
+    }
+
+    .feature-icon.blue svg { stroke: var(--accent-primary); }
+    .feature-icon.blue::before { border-color: var(--accent-primary); }
+    .feature-icon.blue::after { background: var(--accent-primary); }
+
+    .feature-icon.pink svg { stroke: #ff2d78; }
+    .feature-icon.pink::before { border-color: #ff2d78; }
+    .feature-icon.pink::after { background: #ff2d78; }
+
+    .feature-icon.cyan svg { stroke: var(--accent-secondary); }
+    .feature-icon.cyan::before { border-color: var(--accent-secondary); }
+    .feature-icon.cyan::after { background: var(--accent-secondary); }
+
+    .feature-icon.purple svg { stroke: #b266ff; }
+    .feature-icon.purple::before { border-color: #b266ff; }
+    .feature-icon.purple::after { background: #b266ff; }
+
+    .feature-title {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.6rem;
+    }
+
+    .feature-text {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    /* ── TOOL CATEGORIES ── */
+    .tool-categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .tool-cat {
+      background: var(--bg-secondary);
+      padding: 1.8rem;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .tool-cat:hover {
+      background: var(--bg-code);
+    }
+
+    .tool-cat:hover .tool-cat-count {
+      color: var(--accent-primary);
+    }
+
+    [data-theme="dark"] .tool-cat:hover .tool-cat-count {
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    }
+
+    .tool-cat-count {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 800;
+      font-size: 2rem;
+      color: var(--text-muted);
+      line-height: 1;
+      transition: all 0.3s ease;
+    }
+
+    .tool-cat-name {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 0.6rem;
+      color: var(--text-secondary);
+    }
+
+    .tool-cat-items {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.8rem;
+      line-height: 1.6;
+    }
+
+    /* ── TERMINAL DEMO ── */
+    .terminal {
+      background: rgba(5, 7, 15, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 4px 4px 2px 2px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .terminal {
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(0, 212, 255, 0.03);
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.75rem 1rem;
+      background: rgba(15, 21, 37, 0.8);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid;
+    }
+
+    .terminal-dot.red { border-color: #ff5f57; background: rgba(255, 95, 87, 0.2); }
+    .terminal-dot.yellow { border-color: #ffbd2e; background: rgba(255, 189, 46, 0.2); }
+    .terminal-dot.green { border-color: #28c840; background: rgba(40, 200, 64, 0.2); }
+
+    .terminal-title {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-left: 0.75rem;
+      letter-spacing: 0.1em;
+    }
+
+    .terminal-body {
+      padding: 1.5rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .t-comment { color: var(--text-muted); }
+    .t-prompt { color: var(--accent-secondary); }
+    .t-cmd { color: var(--text-primary); }
+    .t-string { color: #ff2d78; }
+    .t-key { color: var(--accent-primary); }
+    .t-value { color: var(--accent-secondary); }
+    .t-success { color: #28c840; }
+    .t-dim { color: var(--text-muted); }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--accent-secondary);
+      animation: blink 1s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ── ARCHITECTURE ── */
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin: 3rem 0;
+    }
+
+    .arch-node {
+      padding: 1.2rem 2rem;
+      text-align: center;
+      position: relative;
+      min-width: 160px;
+    }
+
+    .arch-node-label {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+    }
+
+    .arch-node-sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    .arch-node.claude {
+      border: 1px solid rgba(0, 85, 179, 0.3);
+      background: rgba(0, 85, 179, 0.05);
+    }
+    .arch-node.claude .arch-node-label { color: var(--accent-primary); }
+
+    [data-theme="dark"] .arch-node.claude {
+      border-color: rgba(0, 212, 255, 0.3);
+      background: rgba(0, 212, 255, 0.05);
+    }
+
+    .arch-node.mcp {
+      border: 1px solid rgba(178, 102, 255, 0.3);
+      background: rgba(178, 102, 255, 0.05);
+    }
+    .arch-node.mcp .arch-node-label { color: #b266ff; }
+
+    [data-theme="dark"] .arch-node.mcp {
+      border-color: rgba(224, 64, 251, 0.3);
+      background: rgba(224, 64, 251, 0.05);
+    }
+    [data-theme="dark"] .arch-node.mcp .arch-node-label { color: #e040fb; }
+
+    .arch-node.browser {
+      border: 1px solid rgba(0, 114, 125, 0.3);
+      background: rgba(0, 114, 125, 0.05);
+    }
+    .arch-node.browser .arch-node-label { color: var(--accent-secondary); }
+
+    [data-theme="dark"] .arch-node.browser {
+      border-color: rgba(34, 236, 219, 0.3);
+      background: rgba(34, 236, 219, 0.05);
+    }
+
+    .arch-node.target {
+      border: 1px solid rgba(255, 45, 120, 0.3);
+      background: rgba(255, 45, 120, 0.05);
+    }
+    .arch-node.target .arch-node-label { color: #ff2d78; }
+
+    .arch-arrow {
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      padding: 0 0.5rem;
+      animation: pulse-arrow 2s ease-in-out infinite;
+    }
+
+    .arch-arrow:nth-child(4) { animation-delay: 0.3s; }
+    .arch-arrow:nth-child(6) { animation-delay: 0.6s; }
+
+    @keyframes pulse-arrow {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* ── CREDENTIALS NOTICE ── */
+    .security-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.2rem;
+      padding: 1.5rem 2rem;
+      border: 1px solid rgba(255, 45, 120, 0.2);
+      background: rgba(255, 45, 120, 0.03);
+      border-radius: 2px;
+      margin-top: 4rem;
+    }
+
+    .security-notice .shield {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      stroke: #ff2d78;
+      stroke-width: 1.5;
+    }
+
+    [data-theme="dark"] .security-notice .shield {
+      filter: drop-shadow(0 0 6px rgba(255, 45, 120, 0.3));
+    }
+
+    .security-notice-title {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      color: #ff2d78;
+      margin-bottom: 0.3rem;
+    }
+
+    .security-notice-text {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ── COMPATIBILITY ── */
+    .compat-section { text-align: center; padding: 2rem 0; }
+    .compat-row { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+    .compat-badge {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+      padding: 0.3rem 0.8rem; border: 1px solid var(--border);
+      border-radius: 999px; color: var(--text-secondary); letter-spacing: 0.05em;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      padding: 6rem 0 3rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+    }
+
+    .footer .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 800;
+      font-size: 1.7rem;
+      letter-spacing: 0.12em;
+      color: var(--accent-primary);
+    }
+
+    [data-theme="dark"] .footer .logo {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .footer-stack {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.8rem;
+      letter-spacing: 0.15em;
+    }
+
+    .footer-line { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; }
+    .footer-links { margin-top: 1rem; }
+    .footer-links a { color: var(--link-color); text-decoration: none; font-size: 0.9rem; }
+    .footer-links a:hover { color: var(--link-hover); }
+
+    /* ── DIVIDER LINE ── */
+    .neon-divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+      opacity: 0.3;
+      margin: 2rem 0;
+    }
+
+    /* ── FLOATING PARTICLES (dark only) ── */
+    .particles { display: none; }
+    [data-theme="dark"] .particles {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: var(--accent-primary);
+      border-radius: 50%;
+      animation: float-particle linear infinite;
+      opacity: 0;
+    }
+
+    @keyframes float-particle {
+      0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.3; }
+      100% { transform: translateY(-20vh) translateX(40px); opacity: 0; }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .content { padding: 0 1.2rem; }
+      .hero { padding: 3rem 1rem; min-height: 90vh; }
+      .hero-stats { gap: 2rem; }
+      .section { padding: 5rem 0; }
+      .features-grid { grid-template-columns: 1fr; }
+      .tool-categories { grid-template-columns: 1fr 1fr; }
+      .arch-flow { flex-direction: column; }
+      .arch-arrow { transform: rotate(90deg); }
+      .glass-card { padding: 1.5rem; }
+    }
+
+    @media (max-width: 480px) {
+      .tool-categories { grid-template-columns: 1fr; }
+      .hero-stats { flex-direction: column; gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<button class="theme-toggle" aria-label="Switch to dark mode">
+  <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+  <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+
+<!-- Rain Effect -->
+<div class="rain-container" id="rain"></div>
+
+<!-- Floating Particles -->
+<div class="particles" id="particles"></div>
+
+<div class="wet-ground"></div>
+
+<!-- ████████████████████████████████████████████
+     HERO
+     ████████████████████████████████████████████ -->
+<header class="hero">
+  <div class="hero-bg-glow blue"></div>
+  <div class="hero-bg-glow pink"></div>
+
+  <div class="hero-badge">MCP Server for Any AI Agent</div>
+
+  <h1 class="hero-title">TAPSITE</h1>
+  <div class="hero-title-reflection" aria-hidden="true">TAPSITE</div>
+
+  <p class="hero-subtitle">
+    Give your AI eyes behind any login wall. Extract design systems, audit accessibility, capture assets &mdash; all from a single prompt.
+    <em>See every detail. Extract any design.</em>
+  </p>
+
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-value" data-count="43">0</div>
+      <div class="stat-label">Extraction Tools</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" data-count="9">0</div>
+      <div class="stat-label">Capability Areas</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">∞</div>
+      <div class="stat-label">Login Once, Extract Forever</div>
+    </div>
+  </div>
+
+  <a href="#capabilities" class="hero-cta">Explore Capabilities</a>
+
+  <div class="scroll-indicator">
+    <span>Scroll</span>
+    <div class="chevron"></div>
+  </div>
+</header>
+
+<main class="content">
+
+  <!-- ████████████████████████████████████████████
+       ARCHITECTURE
+       ████████████████████████████████████████████ -->
+  <section class="section">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">How <span class="accent">It Connects</span></h2>
+    <p class="section-desc">
+      tapsite runs as a local MCP server, connecting your AI agent to a persistent browser.
+      You ask. It extracts. No code required.
+    </p>
+
+    <div class="arch-flow">
+      <div class="arch-node claude">
+        <div class="arch-node-label">Your AI Agent</div>
+        <div class="arch-node-sub">Claude &bull; Cursor &bull; Any MCP Client</div>
+      </div>
+      <div class="arch-arrow">&rsaquo;&rsaquo;</div>
+      <div class="arch-node mcp">
+        <div class="arch-node-label">MCP Server</div>
+        <div class="arch-node-sub">43 Tools</div>
+      </div>
+      <div class="arch-arrow">&rsaquo;&rsaquo;</div>
+      <div class="arch-node browser">
+        <div class="arch-node-label">Playwright</div>
+        <div class="arch-node-sub">Persistent Context</div>
+      </div>
+      <div class="arch-arrow">&rsaquo;&rsaquo;</div>
+      <div class="arch-node target">
+        <div class="arch-node-label">Any Website</div>
+        <div class="arch-node-sub">Even Behind Login</div>
+      </div>
+    </div>
+
+    <div class="security-notice">
+      <svg class="shield" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" stroke-linejoin="round"/>
+        <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="security-notice-title">Your Credentials Never Leave Your Machine</div>
+        <div class="security-notice-text">
+          Login happens in a real browser window you control &mdash; just like normal browsing. MFA, SSO, whatever.
+          Sessions persist locally. Your AI gets access, your passwords stay private.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="neon-divider"></div>
+
+  <!-- ████████████████████████████████████████████
+       CAPABILITIES
+       ████████████████████████████████████████████ -->
+  <section class="section" id="capabilities">
+    <div class="section-label">What You Can Extract</div>
+    <h2 class="section-title">Design Intelligence <span class="accent">Toolkit</span></h2>
+    <p class="section-desc">
+      From pixel-perfect screenshots to complete design systems. Ask your AI to extract &mdash; tapsite handles the rest, returning structured data ready to use.
+    </p>
+
+    <div class="features-grid">
+
+      <div class="glass-card">
+        <div class="feature-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8M12 17v4"/>
+          </svg>
+        </div>
+        <div class="feature-title">Browse &amp; Interact</div>
+        <div class="feature-text">Navigate any site &mdash; even behind MFA &mdash; click elements, scroll, and interact. Your AI gets the same access you have in your browser.</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="feature-icon pink">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+        </div>
+        <div class="feature-title">Visual Capture</div>
+        <div class="feature-text">Full-page screenshots, individual elements, every image and SVG on the page. Download assets to disk &mdash; ready for your design files or codebase.</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="feature-icon cyan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="feature-title">Design System Extraction</div>
+        <div class="feature-text">Pull the complete design language from any site: colors with usage frequency, full type scale, spacing system, CSS variables, breakpoints, and animation patterns. Export as W3C design tokens.</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="feature-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+          </svg>
+        </div>
+        <div class="feature-title">Content &amp; Structure</div>
+        <div class="feature-text">Extract clean markdown content, page metadata, every link mapped and classified, table data structured, and form fields inventoried. Understand any page at a glance.</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="feature-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="feature-title">Network &amp; API Discovery</div>
+        <div class="feature-text">See what APIs a site calls, auto-generate OpenAPI schemas from observed traffic, and detect the full tech stack. Great for competitive research and integration planning.</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="feature-icon pink">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <div class="feature-title">Performance &amp; Accessibility</div>
+        <div class="feature-text">Instant WCAG accessibility audits with scored results. Core Web Vitals, resource budgets, dark mode detection. Catch issues before your users do.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="neon-divider"></div>
+
+  <!-- ████████████████████████████████████████████
+       WORKFLOWS
+       ████████████████████████████████████████████ -->
+  <section class="section">
+    <div class="section-label">Compound Tools</div>
+    <h2 class="section-title">One Command. <span class="accent">Everything You Need.</span></h2>
+    <p class="section-desc">
+      Workflow tools chain multiple extractors into a single call. Run a complete audit, extract a full design system, or inventory an entire site — all from one prompt.
+    </p>
+
+    <div class="features-grid">
+      <div class="glass-card">
+        <div class="feature-icon" aria-hidden="true" style="color: var(--accent-primary); font-size: 1.5rem;">&#x2713;</div>
+        <div class="feature-title">tapsite_audit</div>
+        <div class="feature-text">Pre-launch quality check with scored report. Chains: a11y + contrast + perf + metadata + dark mode + forms.</div>
+      </div>
+      <div class="glass-card">
+        <div class="feature-icon" aria-hidden="true" style="color: var(--accent-secondary); font-size: 1.5rem;">&#x25A8;</div>
+        <div class="feature-title">tapsite_designsystem</div>
+        <div class="feature-text">Full design system extraction with W3C token export. Chains: colors + fonts + spacing + shadows + css_vars + breakpoints + animations + icons + components.</div>
+      </div>
+      <div class="glass-card">
+        <div class="feature-icon" aria-hidden="true" style="color: var(--accent-primary); font-size: 1.5rem;">&#x2694;</div>
+        <div class="feature-title">tapsite_teardown</div>
+        <div class="feature-text">Competitive design teardown — all extractors in one call. Colors, fonts, spacing, shadows, components, breakpoints, animations, icons, stack, perf, a11y, contrast, dark mode.</div>
+      </div>
+      <div class="glass-card">
+        <div class="feature-icon" aria-hidden="true" style="color: var(--accent-secondary); font-size: 1.5rem;">&#x21C4;</div>
+        <div class="feature-title">tapsite_harvest</div>
+        <div class="feature-text">Migration asset inventory. Crawls up to N pages, extracting content, images, SVGs, forms, fonts, and links per page.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="neon-divider"></div>
+
+  <!-- ████████████████████████████████████████████
+       TOOL INVENTORY
+       ████████████████████████████████████████████ -->
+  <section class="section">
+    <div class="section-label">Full Toolkit</div>
+    <h2 class="section-title"><span class="accent">43</span> Tools Across 9 Areas</h2>
+    <p class="section-desc">
+      Every extraction runs inside a real browser for maximum accuracy. You get concise summaries in chat plus full JSON exports saved to disk.
+    </p>
+
+    <div class="tool-categories">
+      <div class="tool-cat">
+        <div class="tool-cat-count">09</div>
+        <div class="tool-cat-name">Session</div>
+        <div class="tool-cat-items">login / login_manual / login_check / inspect / screenshot / interact / scroll / run_js / close</div>
+      </div>
+      <div class="tool-cat">
+        <div class="tool-cat-count">04</div>
+        <div class="tool-cat-name">Visual</div>
+        <div class="tool-cat-items">download_images / extract_images / extract_svgs / extract_favicon</div>
+      </div>
+      <div class="tool-cat">
+        <div class="tool-cat-count">08</div>
+        <div class="tool-cat-name">Design System</div>
+        <div class="tool-cat-items">extract_colors / extract_fonts / extract_css_vars / extract_spacing / extract_shadows / extract_icons / extract_components / extract_breakpoints</div>
+      </div>
+      <div class="tool-cat">
+        <div class="tool-cat-count">05</div>
+        <div class="tool-cat-name">Content</div>
+        <div class="tool-cat-items">extract_content / extract_metadata / extract_links / extract_table / extract_forms</div>
+      </div>
+      <div class="tool-cat">
+        <div class="tool-cat-count">03</div>
+        <div class="tool-cat-name">Network</div>
+        <div class="tool-cat-items">capture_network / extract_api_schema / extract_stack</div>
+      </div>
+      <div class="tool-cat">
+        <div class="tool-cat-count">06</div>
+        <div class="tool-cat-name">Analysis</div>
+        <div class="tool-cat-items">extract_layout / extract_animations / extract_a11y / extract_contrast / extract_darkmode / extract_perf</div>
+      </div>
+      <div class="tool-cat">
+        <div class="tool-cat-count">02</div>
+        <div class="tool-cat-name">Multi-Page</div>
+        <div class="tool-cat-items">crawl / diff_pages</div>
+      </div>
+      <div class="tool-cat">
+        <div class="tool-cat-count">02</div>
+        <div class="tool-cat-name">Export</div>
+        <div class="tool-cat-items">export / export_design_report</div>
+      </div>
+      <div class="tool-cat">
+        <div class="tool-cat-count">04</div>
+        <div class="tool-cat-name">Workflows</div>
+        <div class="tool-cat-items">audit / designsystem / teardown / harvest</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="compat-section">
+    <div class="compat-row">
+      <span class="compat-badge">Claude</span>
+      <span class="compat-badge">Cursor</span>
+      <span class="compat-badge">Windsurf</span>
+      <span class="compat-badge">Any MCP Agent</span>
+      <span class="compat-badge">LangChain / LangGraph (coming soon)</span>
+    </div>
+  </div>
+
+  <div class="neon-divider"></div>
+
+  <!-- ████████████████████████████████████████████
+       TERMINAL DEMO
+       ████████████████████████████████████████████ -->
+  <section class="section">
+    <div class="section-label">In Action</div>
+    <h2 class="section-title">From <span class="accent">Prompt to Design System</span></h2>
+    <p class="section-desc">
+      Tell your AI what you need. tapsite handles the login, navigation, and extraction behind the scenes.
+    </p>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot red"></div>
+        <div class="terminal-dot yellow"></div>
+        <div class="terminal-dot green"></div>
+        <span class="terminal-title">tapsite — mcp session</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-comment">// Login once — your credentials stay in the browser, never in the chat</span></div>
+        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">tapsite_login_manual</span></div>
+        <div><span class="t-success">&check;</span> <span class="t-dim">Browser opened. Login normally (MFA works too)...</span></div>
+        <div><span class="t-success">&check;</span> <span class="t-dim">Session saved. You won't need to login again.</span></div>
+        <br>
+        <div><span class="t-comment">// Now extract a competitor's entire design system</span></div>
+        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">tapsite_extract_colors</span> <span class="t-string">{ url: "https://competitor.com" }</span></div>
+        <div>&nbsp;&nbsp;<span class="t-key">colors:</span> <span class="t-value">42 unique</span> <span class="t-dim">|</span> <span class="t-key">palette:</span> <span class="t-value">#1a1a2e, #16213e, #0f3460, #e94560...</span></div>
+        <br>
+        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">tapsite_extract_fonts</span></div>
+        <div>&nbsp;&nbsp;<span class="t-key">families:</span> <span class="t-value">3</span> <span class="t-dim">|</span> <span class="t-key">sizes:</span> <span class="t-value">8</span> <span class="t-dim">|</span> <span class="t-key">weights:</span> <span class="t-value">4</span></div>
+        <br>
+        <div><span class="t-prompt">&gt;</span> <span class="t-cmd">tapsite_export_design_report</span></div>
+        <div><span class="t-success">&check;</span> <span class="t-dim">Design report ready:</span> <span class="t-value">output/design-report-2026/</span></div>
+        <div>&nbsp;&nbsp;<span class="t-dim">report.html</span> <span class="t-dim">|</span> <span class="t-dim">design-tokens.json</span> <span class="t-dim">|</span> <span class="t-dim">design-tokens.css</span></div>
+        <br>
+        <div><span class="t-prompt">&gt;</span> <span class="cursor-blink"></span></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ████████████████████████████████████████████
+     FOOTER
+     ████████████████████████████████████████████ -->
+<footer class="footer content">
+  <div class="logo">TAPSITE</div>
+  <div class="footer-stack">Node.js &bull; Playwright &bull; Model Context Protocol</div>
+  <div class="footer-line">Open source &bull; Works with any MCP-compatible AI agent &bull; LangChain/LangGraph integration coming soon</div>
+  <div class="footer-links">
+    <a href="https://github.com/mgriffen/tapsite">GitHub</a> &bull;
+    <a href="https://www.npmjs.com/package/tapsite">npm</a>
+  </div>
+</footer>
+
+<script>
+  // Theme toggle
+  (function() {
+    var t = document.querySelector('.theme-toggle');
+    if (t) t.addEventListener('click', function() {
+      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('tapsite-theme', next);
+      t.setAttribute('aria-label', next === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      if (next === 'dark') { createRain(); createParticles(); }
+      else { var rc = document.getElementById('rain'); if (rc) rc.innerHTML = ''; var pc = document.getElementById('particles'); if (pc) pc.innerHTML = ''; }
+    });
+  })();
+
+  // Rain (dark mode only)
+  function createRain() {
+    var rc = document.getElementById('rain');
+    if (!rc) return;
+    rc.innerHTML = '';
+    for (var i = 0; i < 80; i++) {
+      var d = document.createElement('div');
+      d.className = 'rain-drop';
+      d.style.left = Math.random() * 100 + '%';
+      d.style.height = (60 + Math.random() * 100) + 'px';
+      d.style.animationDuration = (0.6 + Math.random() * 0.8) + 's';
+      d.style.animationDelay = (Math.random() * 3) + 's';
+      rc.appendChild(d);
+    }
+  }
+
+  // Particles (dark mode only)
+  function createParticles() {
+    var pc = document.getElementById('particles');
+    if (!pc) return;
+    pc.innerHTML = '';
+    var colors = ['var(--accent-primary)', 'var(--accent-secondary)'];
+    for (var i = 0; i < 25; i++) {
+      var p = document.createElement('div');
+      p.className = 'particle';
+      var size = 1 + Math.random() * 2;
+      var color = colors[Math.floor(Math.random() * colors.length)];
+      p.style.cssText = 'left:' + (Math.random()*100) + '%;width:' + size + 'px;height:' + size + 'px;background:' + color + ';box-shadow:0 0 ' + (size*3) + 'px ' + color + ';animation-duration:' + (10+Math.random()*20) + 's;animation-delay:' + (Math.random()*15) + 's';
+      pc.appendChild(p);
+    }
+  }
+
+  if (document.documentElement.getAttribute('data-theme') === 'dark') { createRain(); createParticles(); }
+
+  // ── STAT COUNTER ANIMATION ──
+  var counters = document.querySelectorAll('.stat-value[data-count]');
+  var counterObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        var el = entry.target;
+        var target = parseInt(el.dataset.count);
+        var current = 0;
+        var increment = Math.ceil(target / 30);
+        var timer = setInterval(function() {
+          current += increment;
+          if (current >= target) {
+            current = target;
+            clearInterval(timer);
+          }
+          el.textContent = current;
+        }, 40);
+        counterObserver.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  counters.forEach(function(c) { counterObserver.observe(c); });
+
+  // ── SCROLL-REVEAL ──
+  var revealElements = document.querySelectorAll('.glass-card, .section-label, .section-title, .section-desc, .terminal, .tool-categories, .arch-flow, .security-notice');
+
+  var revealObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = entry.target.style.transform ? entry.target.style.transform.replace('translateY(30px)', 'translateY(0)') : 'translateY(0)';
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  revealElements.forEach(function(el) {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(30px)';
+    el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+    revealObserver.observe(el);
+  });
+</script>
+
+</body>
+</html>
