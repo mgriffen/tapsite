@@ -17,7 +17,7 @@ Other MCP browser tools let agents click buttons. tapsite lets agents extract a 
 | **Quality & Compliance** | 7 | Accessibility, contrast, performance, security headers, dark mode, PWA, i18n |
 | **Technology Detection** | 10 | Frameworks, animations, icons, GraphQL, AI/ML, canvas, WASM, web components, third-party scripts, storage |
 | **Network & API** | 2 | Traffic capture and API schema inference |
-| **Multi-Page** | 2 | BFS crawl with per-page extraction, cross-site and temporal diffs |
+| **Multi-page** | 2 | BFS crawl with per-page extraction, cross-site and temporal diffs |
 | **Export** | 2 | Multi-format output: JSON, Markdown, HTML reports, CSV, screenshots, W3C design tokens |
 | **Workflows** | 4 | Single-call presets — teardown, audit, harvest, designsystem |
 
