@@ -2180,6 +2180,154 @@ function extractStorageInBrowser() {
   };
 }
 
+function extractPwaInBrowser() {
+  const manifest = document.querySelector('link[rel="manifest"]');
+  const manifestUrl = manifest ? manifest.href : null;
+
+  const getMeta = (name) => {
+    const el = document.querySelector(`meta[name="${name}"]`);
+    return el ? el.content : null;
+  };
+
+  const themeColor = getMeta('theme-color');
+  const appleCapable = getMeta('apple-mobile-web-app-capable');
+  const appleStatusBar = getMeta('apple-mobile-web-app-status-bar-style');
+  const appleTitle = getMeta('apple-mobile-web-app-title');
+  const mobileWebAppCapable = getMeta('mobile-web-app-capable');
+  const msTileColor = getMeta('msapplication-TileColor');
+  const msConfig = getMeta('msapplication-config');
+
+  const appleTouchIcons = [...document.querySelectorAll('link[rel="apple-touch-icon"], link[rel="apple-touch-icon-precomposed"]')].map(el => ({
+    href: el.href,
+    sizes: el.getAttribute('sizes') || 'default',
+  }));
+
+  let serviceWorker = { registered: false, scope: null };
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      serviceWorker = { registered: true, scope: navigator.serviceWorker.controller.scriptURL };
+    }
+  } catch {}
+
+  const capabilities = {
+    serviceWorkerApi: 'serviceWorker' in navigator,
+    pushApi: 'PushManager' in window,
+    notificationApi: 'Notification' in window,
+    cacheApi: 'caches' in window,
+    backgroundSync: 'SyncManager' in window,
+    periodicSync: 'PeriodicSyncManager' in window,
+    badgeApi: 'setAppBadge' in navigator,
+    shareApi: 'share' in navigator,
+    shareTargetApi: 'ShareTarget' in window,
+  };
+
+  return {
+    manifestUrl,
+    themeColor,
+    appleMeta: {
+      capable: appleCapable,
+      statusBarStyle: appleStatusBar,
+      title: appleTitle,
+      touchIcons: appleTouchIcons,
+    },
+    msMeta: { tileColor: msTileColor, config: msConfig },
+    mobileWebAppCapable,
+    serviceWorker,
+    capabilities,
+  };
+}
+
+function extractSecurityInBrowser() {
+  const metaCsp = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+  const cspContent = metaCsp ? metaCsp.content : null;
+
+  const referrerMeta = document.querySelector('meta[name="referrer"]');
+  const referrerPolicy = referrerMeta ? referrerMeta.content : null;
+
+  const scripts = [...document.querySelectorAll('script[src]')];
+  const externalScripts = scripts.filter(s => {
+    try { return new URL(s.src).origin !== location.origin; } catch { return false; }
+  });
+  const sriAudit = {
+    total: externalScripts.length,
+    withSri: externalScripts.filter(s => s.integrity).length,
+    withoutSri: externalScripts.filter(s => !s.integrity).length,
+    details: externalScripts.map(s => ({
+      src: s.src,
+      hasSri: !!s.integrity,
+      integrity: s.integrity || null,
+      crossorigin: s.crossOrigin || null,
+    })),
+  };
+
+  const links = [...document.querySelectorAll('link[rel="stylesheet"][href]')];
+  const externalLinks = links.filter(l => {
+    try { return new URL(l.href).origin !== location.origin; } catch { return false; }
+  });
+  const styleSriAudit = {
+    total: externalLinks.length,
+    withSri: externalLinks.filter(l => l.integrity).length,
+    withoutSri: externalLinks.filter(l => !l.integrity).length,
+  };
+
+  const iframes = [...document.querySelectorAll('iframe')].map(f => ({
+    src: f.src || null,
+    sandbox: f.sandbox ? [...f.sandbox].join(' ') : null,
+    isSandboxed: f.hasAttribute('sandbox'),
+  }));
+  const unsandboxedIframes = iframes.filter(f => f.src && !f.isSandboxed);
+
+  const forms = [...document.querySelectorAll('form[action]')];
+  const insecureForms = forms.filter(f => {
+    try { return new URL(f.action, location.origin).protocol === 'http:'; } catch { return false; }
+  }).map(f => f.action);
+
+  const allSrcs = [
+    ...scripts.map(s => s.src),
+    ...[...document.querySelectorAll('img[src], audio[src], video[src], source[src]')].map(e => e.src),
+    ...[...document.querySelectorAll('link[href]')].map(e => e.href),
+  ];
+  const mixedContent = allSrcs.filter(src => {
+    try {
+      const u = new URL(src, location.origin);
+      return u.protocol === 'http:' && location.protocol === 'https:';
+    } catch { return false; }
+  });
+
+  const findings = [];
+  if (!cspContent) findings.push({ issue: 'No meta CSP found', severity: 'medium' });
+  if (sriAudit.withoutSri > 0) findings.push({ issue: `${sriAudit.withoutSri} external scripts without SRI`, severity: 'medium' });
+  if (styleSriAudit.withoutSri > 0) findings.push({ issue: `${styleSriAudit.withoutSri} external stylesheets without SRI`, severity: 'low' });
+  if (unsandboxedIframes.length > 0) findings.push({ issue: `${unsandboxedIframes.length} unsandboxed iframes`, severity: 'medium' });
+  if (insecureForms.length > 0) findings.push({ issue: `${insecureForms.length} forms with insecure action URLs`, severity: 'high' });
+  if (mixedContent.length > 0) findings.push({ issue: `${mixedContent.length} mixed content resources`, severity: 'high' });
+  if (!referrerPolicy) findings.push({ issue: 'No referrer policy set', severity: 'low' });
+
+  let score = 100;
+  for (const f of findings) {
+    if (f.severity === 'high') score -= 20;
+    else if (f.severity === 'medium') score -= 10;
+    else score -= 5;
+  }
+  score = Math.max(0, score);
+
+  const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F';
+
+  return {
+    metaCsp: cspContent,
+    referrerPolicy,
+    sriAudit,
+    styleSriAudit,
+    iframes,
+    unsandboxedIframes: unsandboxedIframes.length,
+    insecureForms,
+    mixedContent: mixedContent.length,
+    findings,
+    score,
+    grade,
+  };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -2205,4 +2353,6 @@ module.exports = {
   extractWebComponentsInBrowser,
   extractThirdPartyInBrowser,
   extractStorageInBrowser,
+  extractPwaInBrowser,
+  extractSecurityInBrowser,
 };

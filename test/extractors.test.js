@@ -13,6 +13,8 @@ import {
   extractWebComponentsInBrowser,
   extractThirdPartyInBrowser,
   extractStorageInBrowser,
+  extractPwaInBrowser,
+  extractSecurityInBrowser,
 } from '../src/extractors.js';
 import { inspectPage, inspectPageV2 } from '../src/inspector.js';
 
@@ -495,5 +497,96 @@ describe('extractStorageInBrowser', () => {
   it('reports indexedDB support', async () => {
     const result = await page.evaluate(extractStorageInBrowser);
     expect(result.indexedDB.supported).toBe(true);
+  });
+});
+
+describe('extractPwaInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('pwa.html'));
+  });
+
+  it('detects manifest URL', async () => {
+    const result = await page.evaluate(extractPwaInBrowser);
+    expect(result.manifestUrl).toBeTruthy();
+    expect(result.manifestUrl).toContain('manifest.json');
+  });
+
+  it('detects theme color', async () => {
+    const result = await page.evaluate(extractPwaInBrowser);
+    expect(result.themeColor).toBe('#4285f4');
+  });
+
+  it('detects Apple meta tags', async () => {
+    const result = await page.evaluate(extractPwaInBrowser);
+    expect(result.appleMeta.capable).toBe('yes');
+    expect(result.appleMeta.statusBarStyle).toBe('black-translucent');
+    expect(result.appleMeta.title).toBe('Test PWA');
+    expect(result.appleMeta.touchIcons.length).toBe(1);
+  });
+
+  it('detects MS meta tags', async () => {
+    const result = await page.evaluate(extractPwaInBrowser);
+    expect(result.msMeta.tileColor).toBe('#4285f4');
+    expect(result.msMeta.config).toBe('browserconfig.xml');
+  });
+
+  it('reports platform capabilities', async () => {
+    const result = await page.evaluate(extractPwaInBrowser);
+    expect(result.capabilities).toBeDefined();
+    expect(typeof result.capabilities.serviceWorkerApi).toBe('boolean');
+    expect(typeof result.capabilities.cacheApi).toBe('boolean');
+  });
+});
+
+describe('extractSecurityInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('security-headers.html'));
+  });
+
+  it('detects meta CSP', async () => {
+    const result = await page.evaluate(extractSecurityInBrowser);
+    expect(result.metaCsp).toBeTruthy();
+    expect(result.metaCsp).toContain("default-src 'self'");
+  });
+
+  it('detects referrer policy', async () => {
+    const result = await page.evaluate(extractSecurityInBrowser);
+    expect(result.referrerPolicy).toBe('strict-origin-when-cross-origin');
+  });
+
+  it('audits SRI on external scripts', async () => {
+    const result = await page.evaluate(extractSecurityInBrowser);
+    expect(result.sriAudit.total).toBe(2);
+    expect(result.sriAudit.withSri).toBe(1);
+    expect(result.sriAudit.withoutSri).toBe(1);
+  });
+
+  it('detects sandboxed and unsandboxed iframes', async () => {
+    const result = await page.evaluate(extractSecurityInBrowser);
+    expect(result.iframes.length).toBe(2);
+    const sandboxed = result.iframes.filter(f => f.isSandboxed);
+    expect(sandboxed.length).toBe(1);
+    expect(result.unsandboxedIframes).toBe(1);
+  });
+
+  it('detects insecure form actions', async () => {
+    const result = await page.evaluate(extractSecurityInBrowser);
+    expect(result.insecureForms.length).toBe(1);
+    expect(result.insecureForms[0]).toContain('http://');
+  });
+
+  it('provides score and grade', async () => {
+    const result = await page.evaluate(extractSecurityInBrowser);
+    expect(typeof result.score).toBe('number');
+    expect(result.score).toBeLessThanOrEqual(100);
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(['A', 'B', 'C', 'D', 'F']).toContain(result.grade);
+  });
+
+  it('produces findings array', async () => {
+    const result = await page.evaluate(extractSecurityInBrowser);
+    expect(result.findings.length).toBeGreaterThan(0);
+    const sriIssue = result.findings.find(f => f.issue.includes('SRI'));
+    expect(sriIssue).toBeDefined();
   });
 });

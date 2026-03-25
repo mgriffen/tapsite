@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Security Headers Fixture</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.example.com; style-src 'self' 'unsafe-inline'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+</head>
+<body>
+<h1>Security Test Page</h1>
+
+<script src="https://cdn.example.com/lib.js" integrity="sha384-abc123" crossorigin="anonymous"></script>
+<script src="https://cdn.example.com/other.js"></script>
+<script src="/local.js" integrity="sha256-def456" crossorigin="anonymous"></script>
+<script src="/no-sri.js"></script>
+
+<link rel="stylesheet" href="https://cdn.example.com/style.css" integrity="sha384-xyz789" crossorigin="anonymous">
+<link rel="stylesheet" href="/local-no-sri.css">
+
+<iframe src="https://embed.example.com/widget" sandbox="allow-scripts allow-same-origin"></iframe>
+<iframe src="https://unsafe.example.com/frame"></iframe>
+
+<form action="http://insecure.example.com/submit" method="post">
+  <input type="text" name="data">
+  <button type="submit">Submit</button>
+</form>
+<form action="https://secure.example.com/submit" method="post">
+  <input type="text" name="data">
+  <button type="submit">Submit</button>
+</form>
+
+<img src="http://insecure.example.com/image.jpg" alt="Mixed content image">
+<img src="https://secure.example.com/image.jpg" alt="Secure image">
+</body>
+</html>

@@ -25,6 +25,8 @@ const {
   extractWebComponentsInBrowser,
   extractThirdPartyInBrowser,
   extractStorageInBrowser,
+  extractPwaInBrowser,
+  extractSecurityInBrowser,
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
@@ -759,6 +761,72 @@ module.exports = function registerExtractionTools(server, allowTool = () => true
         const cookieClasses = Object.entries(data.cookies.classified).map(([k, v]) => `${k}: ${v}`).join(', ');
         const summary = `Storage: ${data.cookies.total} cookies (${cookieClasses || 'none classified'}) | localStorage: ${data.localStorage.total} items (${data.localStorage.totalSizeEstimate}) | sessionStorage: ${data.sessionStorage.total} items (${data.sessionStorage.totalSizeEstimate})`;
         return summarizeResult('storage', data, summary, { tool: 'tapsite_extract_storage', description: 'Audit client-side storage: cookies, localStorage, sessionStorage, IndexedDB' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_pwa')) {
+    server.tool(
+      'tapsite_extract_pwa',
+      'Profile PWA readiness: manifest, service worker, Apple/MS meta tags, and platform capabilities.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractPwaInBrowser);
+        let manifest = null;
+        if (data.manifestUrl) {
+          try {
+            const resp = await browser.page.context().request.get(data.manifestUrl);
+            if (resp.ok()) manifest = await resp.json();
+          } catch {}
+        }
+        if (manifest) data.manifest = manifest;
+        const installable = !!(manifest && manifest.name && manifest.start_url && manifest.display && manifest.icons?.length);
+        data.installable = installable;
+        const caps = Object.entries(data.capabilities).filter(([, v]) => v).map(([k]) => k);
+        const summary = `PWA: manifest ${data.manifestUrl ? 'found' : 'missing'} | installable: ${installable ? 'yes' : 'no'} | SW: ${data.serviceWorker.registered ? 'active' : 'not registered'} | Capabilities: ${caps.length ? caps.join(', ') : 'none'}`;
+        return summarizeResult('pwa', data, summary, { tool: 'tapsite_extract_pwa', description: 'Profile PWA readiness: manifest, service worker, capabilities' });
+      }
+    );
+  }
+
+  if (allowTool('tapsite_extract_security')) {
+    server.tool(
+      'tapsite_extract_security',
+      'Security audit: CSP, SRI, mixed content, iframe sandboxing, insecure forms, response headers, and scoring.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractSecurityInBrowser);
+        let responseHeaders = null;
+        try {
+          const resp = await browser.page.context().request.get(browser.page.url());
+          if (resp.ok()) {
+            const h = resp.headers();
+            const secHeaders = [
+              'content-security-policy', 'strict-transport-security', 'x-content-type-options',
+              'x-frame-options', 'permissions-policy', 'referrer-policy',
+              'cross-origin-embedder-policy', 'cross-origin-opener-policy', 'cross-origin-resource-policy',
+            ];
+            responseHeaders = {};
+            for (const name of secHeaders) {
+              if (h[name]) responseHeaders[name] = h[name];
+            }
+          }
+        } catch {}
+        if (responseHeaders) {
+          data.responseHeaders = responseHeaders;
+          if (responseHeaders['strict-transport-security']) data.score = Math.min(100, data.score + 5);
+          if (responseHeaders['x-content-type-options']) data.score = Math.min(100, data.score + 5);
+          if (responseHeaders['content-security-policy'] && !data.metaCsp) data.score = Math.min(100, data.score + 10);
+          if (!responseHeaders['strict-transport-security']) data.findings.push({ issue: 'No HSTS header', severity: 'medium' });
+          if (!responseHeaders['x-content-type-options']) data.findings.push({ issue: 'No X-Content-Type-Options header', severity: 'low' });
+          data.grade = data.score >= 90 ? 'A' : data.score >= 80 ? 'B' : data.score >= 70 ? 'C' : data.score >= 60 ? 'D' : 'F';
+        }
+        const summary = `Security: ${data.grade} (${data.score}/100) | ${data.findings.length} findings | CSP: ${data.metaCsp ? 'yes' : 'no'} | SRI: ${data.sriAudit.withSri}/${data.sriAudit.total} scripts`;
+        return summarizeResult('security', data, summary, { tool: 'tapsite_extract_security', description: 'Security audit: CSP, SRI, mixed content, headers, scoring' });
       }
     );
   }
