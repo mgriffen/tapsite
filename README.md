@@ -8,7 +8,7 @@ The MCP server for web intelligence extraction. 43 tools that give AI agents the
 
 Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or track accessibility regressions over time — all as structured JSON that agents can reason about.
 
-Works with Claude, Cursor, Windsurf, LangChain/LangGraph, and any MCP-compatible AI agent.
+Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent. LangChain/LangGraph integration coming soon.
 
 **[View the full docs site →](https://mgriffen.github.io/tapsite/)**
 
@@ -149,55 +149,9 @@ Click any image to see the full interactive page:
 | `tapsite_harvest` | Inventory all site assets (images, SVGs, forms, fonts, links) |
 | `tapsite_designsystem` | Extract design tokens as W3C JSON and CSS variables |
 
-## Using tapsite with LangChain / LangGraph
+## LangChain / LangGraph integration (coming soon)
 
-tapsite works with LangChain and LangGraph via the official [`langchain-mcp-adapters`](https://github.com/langchain-ai/langchain-mcp-adapters) package.
-
-```bash
-pip install langchain-mcp-adapters langgraph langchain-anthropic
-```
-
-Requires Node.js installed (tapsite is a Node.js MCP server).
-
-```python
-import asyncio
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.graph import StateGraph, MessagesState, START
-from langgraph.prebuilt import ToolNode, tools_condition
-from langchain_anthropic import ChatAnthropic
-
-model = ChatAnthropic(model="claude-sonnet-4-20250514")
-
-async def main():
-    async with MultiServerMCPClient({
-        "tapsite": {
-            "transport": "stdio",
-            "command": "npx",
-            "args": ["-y", "tapsite"],
-        }
-    }) as client:
-        tools = await client.get_tools()
-
-        def call_model(state: MessagesState):
-            return {"messages": model.bind_tools(tools).invoke(state["messages"])}
-
-        graph = StateGraph(MessagesState)
-        graph.add_node("agent", call_model)
-        graph.add_node("tools", ToolNode(tools))
-        graph.add_edge(START, "agent")
-        graph.add_conditional_edges("agent", tools_condition)
-        graph.add_edge("tools", "agent")
-        app = graph.compile()
-
-        result = await app.ainvoke({
-            "messages": [("user", "Extract the design system from https://example.com")]
-        })
-        print(result["messages"][-1].content)
-
-asyncio.run(main())
-```
-
-**Important:** tapsite uses a persistent browser context — session cookies survive across tool calls. For authenticated workflows, use the `MultiServerMCPClient` context manager as shown above to maintain a single MCP session. The default stateless mode creates a fresh connection per tool call, which breaks session persistence.
+Native LangChain and LangGraph integration is on the roadmap. When released, it will provide a dedicated Python wrapper with tool subsets and managed session lifecycle.
 
 ## Security
 
