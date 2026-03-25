@@ -6,12 +6,21 @@
   <title>tapsite — tap into any site's intelligence</title>
   <meta property="og:title" content="tapsite — Web Intelligence for AI Agents">
   <meta property="og:description" content="43 MCP tools to pull structured intelligence from any website — colors, fonts, components, accessibility, and more. Works with Claude, Cursor, Windsurf.">
+  <meta property="og:type" content="website">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
   <link rel="icon" type="image/svg+xml" href="assets/icon-source.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:ital,wght@0,200;0,300;0,400;0,500;0,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      var saved = localStorage.getItem('tapsite-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <noscript><style>.theme-toggle { display: none; }</style></noscript>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -72,7 +81,7 @@
       position: fixed;
       top: 1.25rem;
       right: 1.25rem;
-      z-index: 100;
+      z-index: 10000;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 50%;
@@ -89,9 +98,17 @@
       border-color: var(--border-hover);
       box-shadow: 0 2px 8px var(--card-hover-shadow);
     }
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--accent-primary);
+      outline-offset: 2px;
+    }
+    .card:focus-visible {
+      outline: 2px solid var(--accent-primary);
+      outline-offset: 2px;
+    }
     .theme-toggle svg { width: 1.1rem; height: 1.1rem; }
-    .icon-sun { display: none; color: var(--accent-primary); }
-    .icon-moon { display: block; color: var(--accent-primary); }
+    .icon-sun { display: none; color: var(--text-secondary); }
+    .icon-moon { display: block; color: var(--text-secondary); }
     [data-theme="dark"] .icon-sun { display: block; }
     [data-theme="dark"] .icon-moon { display: none; }
 
