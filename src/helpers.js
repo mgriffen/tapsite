@@ -4,8 +4,15 @@ const { sanitizeForLLM } = require('./sanitizer');
 const { inspectPageV2 } = require('./inspector');
 const config = require('./config');
 const browser = require('./browser');
-const { isBlocked, AntiBot, STEALTH_INIT_SCRIPT } = require('./anti-bot');
+const { isBlocked, AntiBot, STEALTH_INIT_SCRIPT, UNDETECTED_ARGS } = require('./anti-bot');
 const { ProxyManager } = require('./proxy');
+// Lazy-loaded to allow test override via _setChromium
+let _chromium = null;
+function getChromium() {
+  if (!_chromium) _chromium = require('./stealth-setup').chromium;
+  return _chromium;
+}
+function _setChromium(c) { _chromium = c; }
 
 const antiBot = new AntiBot();
 const proxyManager = new ProxyManager(config.PROXY_LIST);
@@ -156,33 +163,60 @@ async function safeNavigate(page, url, opts = {}) {
   const startTier = antiBot.getTier(domain);
 
   for (let tier = startTier; tier <= config.ANTI_BOT_MAX_TIER; tier++) {
-    // Apply tier 2+ enhancements
-    if (tier >= 2) {
-      await page.addInitScript(STEALTH_INIT_SCRIPT).catch(() => {});
-    }
+    let navPage = page;
+    let tmpBrowser = null;
 
-    let response;
     try {
-      response = await page.goto(url, { waitUntil, timeout });
-    } catch {
+      // Tier 3: launch separate browser with undetected args
+      if (tier === 3) {
+        const proxyOpt = proxyManager.hasProxies ? proxyManager.next() : null;
+        const launchOpts = { headless: true, args: UNDETECTED_ARGS };
+        if (proxyOpt) launchOpts.proxy = { server: proxyOpt.url, username: proxyOpt.username, password: proxyOpt.password };
+        tmpBrowser = await getChromium().launch(launchOpts);
+        const tmpContext = await tmpBrowser.newContext({ viewport: config.VIEWPORT });
+        navPage = await tmpContext.newPage();
+        await navPage.addInitScript(STEALTH_INIT_SCRIPT);
+      } else if (tier >= 2) {
+        // Tier 2: stealth init script + proxy awareness
+        await page.addInitScript(STEALTH_INIT_SCRIPT).catch(() => {});
+      }
+
+      let response;
       try {
-        response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
-      } catch {}
-    }
+        response = await navPage.goto(url, { waitUntil, timeout });
+      } catch {
+        try {
+          response = await navPage.goto(url, { waitUntil: 'domcontentloaded', timeout });
+        } catch {}
+      }
 
-    const statusCode = response ? response.status() : 0;
-    const blocked = await isBlocked(page, statusCode);
+      const statusCode = response ? response.status() : 0;
+      const blocked = await isBlocked(navPage, statusCode);
 
-    if (!blocked) {
-      antiBot.recordSuccess(domain);
-      if (waitMs > 0) await page.waitForTimeout(waitMs);
-      return response;
-    }
+      if (!blocked) {
+        antiBot.recordSuccess(domain);
+        // If tier 3 succeeded, copy content back to original page
+        if (tmpBrowser && navPage !== page) {
+          const content = await navPage.content();
+          await page.setContent(content);
+        }
+        if (waitMs > 0) await page.waitForTimeout(waitMs);
+        return response;
+      }
 
-    // Blocked — escalate
-    antiBot.escalate(domain);
-    if (tier < config.ANTI_BOT_MAX_TIER) {
-      await page.waitForTimeout(config.ANTI_BOT_RETRY_DELAY);
+      // Record proxy failure if one was used
+      if (tier >= 2 && proxyManager.hasProxies) {
+        const usedProxy = proxyManager._proxies[((proxyManager._index - 1) + proxyManager._proxies.length) % proxyManager._proxies.length];
+        if (usedProxy) proxyManager.recordFailure(usedProxy.url);
+      }
+
+      // Blocked — escalate
+      antiBot.escalate(domain);
+      if (tier < config.ANTI_BOT_MAX_TIER) {
+        await page.waitForTimeout(config.ANTI_BOT_RETRY_DELAY);
+      }
+    } finally {
+      if (tmpBrowser) await tmpBrowser.close().catch(() => {});
     }
   }
 
@@ -191,4 +225,4 @@ async function safeNavigate(page, url, opts = {}) {
   return null;
 }
 
-module.exports = { navigateIfNeeded, requireSafeUrl, summarizeResult, indexPage, resolveElement, formatIndexResult, safeEvaluate, safeNavigate };
+module.exports = { navigateIfNeeded, requireSafeUrl, summarizeResult, indexPage, resolveElement, formatIndexResult, safeEvaluate, safeNavigate, _setChromium };

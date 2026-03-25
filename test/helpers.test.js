@@ -16,13 +16,15 @@ vi.mock('../src/browser.js', () => ({
   elementMap: [],
 }));
 
+// No stealth-setup mock needed — we use _setChromium for DI in tests.
+
 // helpers.js and config.js are CJS modules. Import them after setting up mocks.
 // config must be imported via createRequire or require() to share the same
 // CJS module instance that helpers.js uses.
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const config = require('../src/config.js');
-const { summarizeResult, requireSafeUrl, safeEvaluate, safeNavigate } = require('../src/helpers.js');
+const { summarizeResult, requireSafeUrl, safeEvaluate, safeNavigate, _setChromium } = require('../src/helpers.js');
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -163,9 +165,28 @@ describe('safeNavigate', () => {
   });
 
   it('returns null when all anti-bot tiers are exhausted', async () => {
+    // Inject mock chromium for tier 3 browser launch
+    _setChromium({
+      launch: vi.fn().mockResolvedValue({
+        newContext: vi.fn().mockResolvedValue({
+          newPage: vi.fn().mockResolvedValue({
+            goto: vi.fn().mockResolvedValue({ status: () => 403 }),
+            addInitScript: vi.fn().mockResolvedValue(undefined),
+            evaluate: vi.fn().mockResolvedValue({ bodyText: 'Access denied' }),
+            content: vi.fn().mockResolvedValue('<html></html>'),
+            waitForTimeout: vi.fn().mockResolvedValue(undefined),
+          }),
+        }),
+        close: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
     const mockPage = makeMockPage(vi.fn().mockResolvedValue({ status: () => 403 }));
-    const result = await safeNavigate(mockPage, 'https://example.com');
+    mockPage.evaluate = vi.fn().mockResolvedValue({ bodyText: 'Access denied' });
+    mockPage.setContent = vi.fn().mockResolvedValue(undefined);
+    const result = await safeNavigate(mockPage, 'https://exhausted-test.com');
     expect(result).toBeNull();
+    // Reset chromium for other tests
+    _setChromium(null);
   });
 });
 
