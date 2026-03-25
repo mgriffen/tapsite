@@ -1,135 +1,463 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>tapsite — tap into any site's intelligence</title>
+  <meta property="og:title" content="tapsite — Web Intelligence for AI Agents">
+  <meta property="og:description" content="43 MCP tools to pull structured intelligence from any website — colors, fonts, components, accessibility, and more. Works with Claude, Cursor, Windsurf.">
+  <meta property="og:type" content="website">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
   <link rel="icon" type="image/svg+xml" href="assets/icon-source.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:ital,wght@0,200;0,300;0,400;0,500;0,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      var saved = localStorage.getItem('tapsite-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <noscript><style>.theme-toggle { display: none; }</style></noscript>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --void: #04060c;
-      --neon-blue: #00d4ff;
-      --neon-pink: #ff2d78;
-      --neon-cyan: #22ecdb;
-      --neon-magenta: #e040fb;
-      --text-primary: #e2e8f0;
-      --text-dim: #7a8faa;
-      --text-muted: #344560;
+
+    :root, [data-theme="light"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-card: #ffffff;
+      --bg-code: #f1f5f9;
+      --text-primary: #1a1a2a;
+      --text-secondary: #4a5568;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --accent-primary: #0055b3;
+      --accent-secondary: #00727d;
+      --link-color: #0055b3;
+      --link-hover: #004080;
+      --card-hover-border: #0066cc;
+      --card-hover-shadow: rgba(0, 102, 204, 0.1);
     }
+
+    [data-theme="dark"] {
+      --bg-primary: #04060c;
+      --bg-secondary: #0a0e1a;
+      --bg-card: #000000;
+      --bg-code: #0f1525;
+      --text-primary: #e8edf5;
+      --text-secondary: #94a3b8;
+      --text-muted: #718096;
+      --border: rgba(0, 212, 255, 0.12);
+      --border-hover: rgba(0, 212, 255, 0.3);
+      --accent-primary: #00d4ff;
+      --accent-secondary: #22ecdb;
+      --link-color: #00d4ff;
+      --link-hover: #22ecdb;
+      --card-hover-border: rgba(0, 212, 255, 0.3);
+      --card-hover-shadow: rgba(0, 212, 255, 0.06);
+    }
+
     body {
-      background: var(--void);
+      background: var(--bg-primary);
       color: var(--text-primary);
       font-family: 'Exo 2', sans-serif;
       font-weight: 300;
       min-height: 100vh;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 3rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 2rem 4rem;
+      transition: background 0.25s, color 0.25s;
+      position: relative;
+      overflow-x: hidden;
     }
 
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      z-index: 10000;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      padding: 0;
+    }
+    .theme-toggle:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 2px 8px var(--card-hover-shadow);
+    }
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--accent-primary);
+      outline-offset: 2px;
+    }
+    .card:focus-visible {
+      outline: 2px solid var(--accent-primary);
+      outline-offset: 2px;
+    }
+    .theme-toggle svg { width: 1.1rem; height: 1.1rem; }
+    .icon-sun { display: none; color: var(--text-secondary); }
+    .icon-moon { display: block; color: var(--text-secondary); }
+    [data-theme="dark"] .icon-sun { display: block; }
+    [data-theme="dark"] .icon-moon { display: none; }
+
+    /* Rain */
+    .rain-container { display: none; pointer-events: none; }
+    [data-theme="dark"] .rain-container {
+      display: block;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+    @media (max-width: 768px) {
+      [data-theme="dark"] .rain-container { display: none; }
+    }
+    .rain-drop {
+      position: absolute;
+      top: -100px;
+      width: 1px;
+      background: linear-gradient(to bottom, transparent, rgba(0, 212, 255, 0.4));
+      border-radius: 1px;
+      animation: rain-fall linear infinite;
+    }
+    @keyframes rain-fall {
+      0% { transform: translateY(-100px); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(110vh); opacity: 0; }
+    }
+
+    /* Main content wrapper above rain */
+    .page-content {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      max-width: 720px;
+      width: 100%;
+      padding: 3rem 0 2.5rem;
+    }
+    .hero-lead {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+    .hero-title {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 600;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      line-height: 1.25;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      letter-spacing: -0.01em;
+    }
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      max-width: 580px;
+      margin: 0 auto 2rem;
+    }
+
+    /* Install block */
+    .install-block {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 1.75rem;
+    }
+    .install-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .install-cmd {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem;
+      background: var(--bg-code);
+      color: var(--accent-primary);
+      padding: 0.55rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      user-select: all;
+    }
+
+    /* Badges */
+    .badges-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .badges-row img { height: 20px; }
+
+    /* Compat */
+    .compat-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .compat-badge {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      padding: 0.25rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+    }
+
+    /* Logo */
     .logo {
-      font-family: 'Orbitron', sans-serif; font-weight: 900;
-      font-size: clamp(2.5rem, 6vw, 4rem); letter-spacing: 0.08em;
-      background: linear-gradient(135deg, var(--neon-blue), #fff, var(--neon-cyan));
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(1.8rem, 4vw, 2.75rem);
+      letter-spacing: 0.12em;
+      margin-top: 0.5rem;
+      margin-bottom: 2.5rem;
+      color: var(--accent-primary);
+    }
+    [data-theme="dark"] .logo {
+      background: linear-gradient(135deg, #00d4ff, #fff, #22ecdb);
       background-size: 200% 200%;
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
       background-clip: text;
       animation: holo 6s ease-in-out infinite;
-      margin-bottom: 0.5rem;
     }
-    @keyframes holo { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-
-    .tagline {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
-      letter-spacing: 0.3em; text-transform: uppercase;
-      color: var(--text-muted); margin-bottom: 3rem;
+    @keyframes holo {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
+    /* Cards */
     .cards {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem; max-width: 1000px; width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1000px;
+      width: 100%;
     }
 
     .card {
-      background: #000; border: 1px solid rgba(0,212,255,0.1);
-      padding: 2rem; text-decoration: none; color: var(--text-primary);
-      position: relative; overflow: hidden;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      text-decoration: none;
+      color: var(--text-primary);
+      position: relative;
+      overflow: hidden;
       transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
     }
     .card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
-      opacity: 0.4;
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
     }
+    [data-theme="dark"] .card::before { opacity: 0.4; }
     .card:hover {
-      border-color: rgba(0,212,255,0.3);
+      border-color: var(--card-hover-border);
       transform: translateY(-4px);
-      box-shadow: 0 0 30px rgba(0,212,255,0.06);
+      box-shadow: 0 0 30px var(--card-hover-shadow);
     }
 
     .card-label {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
-      letter-spacing: 0.3em; text-transform: uppercase;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
       margin-bottom: 0.8rem;
     }
     .card-title {
-      font-family: 'Orbitron', sans-serif; font-weight: 700;
-      font-size: 1.1rem; letter-spacing: 0.06em; margin-bottom: 0.8rem;
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 600;
+      font-size: 1.1rem;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.8rem;
+      color: var(--text-primary);
     }
     .card-desc {
-      font-size: 0.95rem; color: var(--text-dim); line-height: 1.6;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
     }
     .card-arrow {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
-      color: var(--neon-cyan); margin-top: 1.2rem; display: block;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent-secondary);
+      margin-top: 1.2rem;
+      display: block;
     }
 
+    /* Footer */
     .footer {
-      margin-top: 4rem; text-align: center;
-      font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
-      color: var(--text-muted); letter-spacing: 0.15em;
+      margin-top: 4rem;
+      text-align: center;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      line-height: 2;
+    }
+    .footer a {
+      color: var(--link-color);
+      text-decoration: none;
+    }
+    .footer a:hover { color: var(--link-hover); text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .hero { padding: 2rem 0 2rem; }
+      .hero-title { font-size: 1.5rem; }
+      .install-cmd { font-size: 0.85rem; padding: 0.45rem 1rem; }
+      body { padding: 2rem 1.25rem 3rem; }
     }
   </style>
 </head>
 <body>
 
-  <div class="logo">TAPSITE</div>
-  <div class="tagline">tap into any site's intelligence</div>
+  <button class="theme-toggle" aria-label="Switch to dark mode">
+    <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+    </svg>
+    <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  </button>
 
-  <div class="cards">
-    <a class="card" href="product.html">
-      <div class="card-label" style="color: var(--neon-cyan);">Product</div>
-      <div class="card-title">The MCP Server</div>
-      <div class="card-desc">43 tools for web design extraction and analysis. Works with Claude, Cursor, Windsurf &amp; any MCP-compatible AI agent.</div>
-      <span class="card-arrow">View &rsaquo;&rsaquo;</span>
-    </a>
-    <a class="card" href="showcase-design.html">
-      <div class="card-label" style="color: var(--neon-pink);">Showcase I</div>
-      <div class="card-title">Design System Extraction</div>
-      <div class="card-desc">Live-extracted colors, fonts, performance, breakpoints, and animations from Stripe, Linear, and Vercel.</div>
-      <span class="card-arrow">View &rsaquo;&rsaquo;</span>
-    </a>
-    <a class="card" href="showcase-deep.html">
-      <div class="card-label" style="color: var(--neon-magenta);">Showcase II</div>
-      <div class="card-title">Deep Intelligence</div>
-      <div class="card-desc">Accessibility audits, content extraction, form analysis, asset inventory, component detection, and spacing forensics.</div>
-      <span class="card-arrow">View &rsaquo;&rsaquo;</span>
-    </a>
-    <a class="card" href="scenarios.html">
-      <div class="card-label" style="color: #39ff8e;">Use Cases</div>
-      <div class="card-title">Real World Workflows</div>
-      <div class="card-desc">Four real-world workflows: design system extraction, competitive research, accessibility auditing, and asset migration.</div>
-      <span class="card-arrow">View &rsaquo;&rsaquo;</span>
-    </a>
+  <div class="rain-container" id="rain"></div>
+
+  <div class="page-content">
+
+    <section class="hero">
+      <div class="hero-lead">MCP Server &middot; 43 Tools &middot; Open Source</div>
+      <h1 class="hero-title">Your AI can browse.<br>Can it extract a complete design system?</h1>
+      <p class="hero-subtitle">tapsite gives AI agents 43 specialized tools to pull structured intelligence from any website — even behind login walls.</p>
+      <div class="install-block">
+        <div class="install-label">Get started in 10 seconds</div>
+        <code class="install-cmd">npx -y tapsite</code>
+      </div>
+      <div class="badges-row">
+        <img alt="GitHub stars" src="https://img.shields.io/github/stars/mgriffen/tapsite?style=flat-square&color=0055b3">
+        <img alt="npm downloads" src="https://img.shields.io/npm/dm/tapsite?style=flat-square&color=00727d">
+      </div>
+      <div class="compat-row">
+        <span class="compat-badge">Claude</span>
+        <span class="compat-badge">Cursor</span>
+        <span class="compat-badge">Windsurf</span>
+        <span class="compat-badge">Any MCP Agent</span>
+      </div>
+    </section>
+
+    <div class="logo">TAPSITE</div>
+
+    <div class="cards">
+      <a class="card" href="product.html">
+        <div class="card-label" style="color: var(--accent-primary);">Product</div>
+        <div class="card-title">The MCP Server</div>
+        <div class="card-desc">43 tools for web design extraction and analysis. Works with Claude, Cursor, Windsurf &amp; any MCP-compatible AI agent.</div>
+        <span class="card-arrow">View &rsaquo;&rsaquo;</span>
+      </a>
+      <a class="card" href="scenarios.html">
+        <div class="card-label" style="color: var(--accent-secondary);">Use Cases</div>
+        <div class="card-title">Real World Workflows</div>
+        <div class="card-desc">Four real-world workflows: design system extraction, competitive research, accessibility auditing, and asset migration.</div>
+        <span class="card-arrow">View &rsaquo;&rsaquo;</span>
+      </a>
+      <a class="card" href="showcase-design.html">
+        <div class="card-label" style="color: var(--accent-primary);">Showcase I</div>
+        <div class="card-title">Design System Extraction</div>
+        <div class="card-desc">Live-extracted colors, fonts, performance, breakpoints, and animations from Stripe, Linear, and Vercel.</div>
+        <span class="card-arrow">View &rsaquo;&rsaquo;</span>
+      </a>
+      <a class="card" href="showcase-deep.html">
+        <div class="card-label" style="color: var(--accent-secondary);">Showcase II</div>
+        <div class="card-title">Deep Intelligence</div>
+        <div class="card-desc">Accessibility audits, content extraction, form analysis, asset inventory, component detection, and spacing forensics.</div>
+        <span class="card-arrow">View &rsaquo;&rsaquo;</span>
+      </a>
+    </div>
+
+    <footer class="footer">
+      Open source &bull; Works with any MCP-compatible AI agent &bull; LangChain/LangGraph compatible<br>
+      <a href="https://github.com/mgriffen/tapsite">GitHub</a> &bull;
+      <a href="https://www.npmjs.com/package/tapsite">npm</a>
+    </footer>
+
   </div>
 
-  <div class="footer">Open source &bull; Works with any MCP-compatible AI agent</div>
+  <script>
+    (function() {
+      var t = document.querySelector('.theme-toggle');
+      var saved = localStorage.getItem('tapsite-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      if (t) t.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      if (t) t.addEventListener('click', function() {
+        var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('tapsite-theme', next);
+        t.setAttribute('aria-label', next === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+        if (next === 'dark') createRain();
+        else { var rc = document.getElementById('rain'); if (rc) rc.innerHTML = ''; }
+      });
+    })();
+
+    function createRain() {
+      var rc = document.getElementById('rain');
+      if (!rc) return;
+      rc.innerHTML = '';
+      for (var i = 0; i < 60; i++) {
+        var d = document.createElement('div');
+        d.className = 'rain-drop';
+        d.style.left = Math.random() * 100 + '%';
+        d.style.height = (40 + Math.random() * 80) + 'px';
+        d.style.animationDuration = (0.5 + Math.random() * 0.7) + 's';
+        d.style.animationDelay = (Math.random() * 2) + 's';
+        rc.appendChild(d);
+      }
+    }
+    if (document.documentElement.getAttribute('data-theme') === 'dark') createRain();
+  </script>
 
 </body>
 </html>

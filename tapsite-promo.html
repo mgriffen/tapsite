@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tapsite — Web Intelligence Extraction for AI Agents</title>
+  <meta name="description" content="43 specialized tools for extracting structured intelligence from any website. Design systems, accessibility audits, temporal diffs, and more.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep: #0a0a0f;
+      --bg-surface: #12121a;
+      --bg-elevated: #1a1a28;
+      --bg-card: #16162266;
+      --border: #ffffff0d;
+      --border-hover: #ffffff1a;
+      --text-primary: #f0f0f5;
+      --text-secondary: #9090a8;
+      --text-muted: #606078;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-purple: #8b5cf6;
+      --accent-blue-dim: #3b82f633;
+      --accent-cyan-dim: #06b6d433;
+      --accent-purple-dim: #8b5cf633;
+      --glow-blue: #3b82f620;
+      --glow-cyan: #06b6d418;
+      --glow-purple: #8b5cf618;
+      --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 10000;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 100px 0;
+      position: relative;
+    }
+
+    /* ── SECTION DIVIDERS ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-hover), transparent);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* ── TYPOGRAPHY ── */
+    h1, h2, h3, h4 {
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 40px);
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .section-subtitle {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      line-height: 1.7;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 120px 0 100px;
+      overflow: hidden;
+    }
+
+    /* Hero background glow */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 900px;
+      background: radial-gradient(ellipse at center,
+        var(--glow-blue) 0%,
+        var(--glow-purple) 30%,
+        transparent 70%);
+      animation: hero-pulse 8s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes hero-pulse {
+      0% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+      100% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+    }
+
+    .hero-content {
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 100px;
+      border: 1px solid var(--border-hover);
+      background: var(--bg-card);
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+      backdrop-filter: blur(12px);
+    }
+
+    .hero-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      animation: dot-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes dot-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero-name {
+      font-size: clamp(56px, 10vw, 96px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-blue) 50%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradient-shift 6s ease-in-out infinite alternate;
+      background-size: 200% 200%;
+    }
+
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    .hero-tagline {
+      font-size: clamp(18px, 3vw, 24px);
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .hero-sub {
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 48px;
+    }
+
+    .hero-sub strong {
+      color: var(--accent-blue);
+      font-weight: 500;
+    }
+
+    /* Orb visualization */
+    .hero-orb-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 0 auto 56px;
+    }
+
+    .hero-orb {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 30% 30%,
+        var(--accent-blue-dim),
+        var(--accent-purple-dim) 40%,
+        var(--accent-cyan-dim) 70%,
+        transparent 100%);
+      border: 1px solid var(--border-hover);
+      animation: orb-rotate 12s linear infinite;
+      overflow: hidden;
+    }
+
+    .hero-orb::before {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      background: conic-gradient(from 0deg,
+        transparent 0%,
+        var(--accent-blue-dim) 10%,
+        transparent 20%,
+        var(--accent-purple-dim) 35%,
+        transparent 45%,
+        var(--accent-cyan-dim) 60%,
+        transparent 70%,
+        var(--accent-blue-dim) 85%,
+        transparent 100%);
+      animation: orb-inner 8s linear infinite reverse;
+    }
+
+    .hero-orb::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 40% 40%,
+        #1a1a2880,
+        var(--bg-deep) 70%);
+    }
+
+    @keyframes orb-rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes orb-inner {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Orbital rings */
+    .hero-orbit {
+      position: absolute;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      animation: orbit-spin linear infinite;
+    }
+
+    .hero-orbit:nth-child(2) {
+      inset: -20px;
+      animation-duration: 20s;
+    }
+
+    .hero-orbit:nth-child(3) {
+      inset: -48px;
+      animation-duration: 30s;
+      animation-direction: reverse;
+    }
+
+    .hero-orbit:nth-child(4) {
+      inset: -84px;
+      animation-duration: 40s;
+      border-style: dashed;
+      border-color: #ffffff08;
+    }
+
+    /* Orbital dots */
+    .hero-orbit::after {
+      content: '';
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      top: 50%;
+      right: -3px;
+    }
+
+    .hero-orbit:nth-child(2)::after { background: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); }
+    .hero-orbit:nth-child(3)::after { background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
+    .hero-orbit:nth-child(4)::after { background: var(--accent-purple); box-shadow: 0 0 8px var(--accent-purple); }
+
+    @keyframes orbit-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .hero-cta-group {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-install {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: white;
+      box-shadow: 0 0 24px var(--glow-blue), 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .btn-install:hover {
+      box-shadow: 0 0 40px var(--glow-blue), 0 6px 20px rgba(0,0,0,0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-hover);
+      backdrop-filter: blur(8px);
+    }
+
+    .btn-secondary:hover {
+      color: var(--text-primary);
+      border-color: var(--accent-blue);
+      background: var(--bg-elevated);
+    }
+
+    /* ── FEATURES GRID ── */
+    .features-section { background: var(--bg-surface); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin-top: 56px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .feature-card {
+      padding: 40px 32px;
+      background: var(--bg-surface);
+      transition: background 0.3s ease;
+    }
+
+    .feature-card:hover {
+      background: var(--bg-elevated);
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: 700;
+      font-family: var(--mono);
+    }
+
+    .feature-icon.extract {
+      background: var(--accent-blue-dim);
+      color: var(--accent-blue);
+      border: 1px solid #3b82f622;
+    }
+
+    .feature-icon.audit {
+      background: var(--accent-cyan-dim);
+      color: var(--accent-cyan);
+      border: 1px solid #06b6d422;
+    }
+
+    .feature-icon.compare {
+      background: var(--accent-purple-dim);
+      color: var(--accent-purple);
+      border: 1px solid #8b5cf622;
+    }
+
+    .feature-card h3 {
+      font-size: 20px;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+
+    .feature-card p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .steps-section {
+      background: var(--bg-deep);
+    }
+
+    .steps-header {
+      text-align: center;
+      margin-bottom: 72px;
+    }
+
+    .steps-header .section-subtitle {
+      margin: 0 auto;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      position: relative;
+    }
+
+    /* Connecting line behind steps */
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 32px;
+      left: calc(16.67% + 16px);
+      right: calc(16.67% + 16px);
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--accent-purple));
+      opacity: 0.3;
+    }
+
+    .step {
+      text-align: center;
+      position: relative;
+    }
+
+    .step-number {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 700;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hover);
+      position: relative;
+      z-index: 1;
+    }
+
+    .step:nth-child(1) .step-number { color: var(--accent-blue); box-shadow: 0 0 20px var(--glow-blue); }
+    .step:nth-child(2) .step-number { color: var(--accent-cyan); box-shadow: 0 0 20px var(--glow-cyan); }
+    .step:nth-child(3) .step-number { color: var(--accent-purple); box-shadow: 0 0 20px var(--glow-purple); }
+
+    .step h3 {
+      font-size: 17px;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+
+    /* ── TOOL CATEGORIES ── */
+    .tools-section {
+      background: var(--bg-surface);
+    }
+
+    .tools-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .tools-header .section-subtitle {
+      margin: 0 auto;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .tool-category {
+      padding: 28px 24px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .tool-category:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .tool-category-name {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-category:nth-child(3n+1) .tool-category-name { color: var(--accent-blue); }
+    .tool-category:nth-child(3n+2) .tool-category-name { color: var(--accent-cyan); }
+    .tool-category:nth-child(3n+3) .tool-category-name { color: var(--accent-purple); }
+
+    .tool-category-name::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .tool-category:nth-child(3n+1) .tool-category-name::before { background: var(--accent-blue); }
+    .tool-category:nth-child(3n+2) .tool-category-name::before { background: var(--accent-cyan); }
+    .tool-category:nth-child(3n+3) .tool-category-name::before { background: var(--accent-purple); }
+
+    .tool-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tool-tag {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      transition: color 0.2s;
+    }
+
+    .tool-category:hover .tool-tag {
+      color: var(--text-secondary);
+    }
+
+    /* ── DIFFERENTIATOR ── */
+    .diff-section {
+      background: var(--bg-deep);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .diff-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center,
+        var(--glow-purple) 0%,
+        transparent 60%);
+      pointer-events: none;
+    }
+
+    .diff-content {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .diff-quote {
+      font-size: clamp(22px, 3.5vw, 32px);
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: -0.02em;
+      margin-bottom: 40px;
+    }
+
+    .diff-quote .highlight {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .diff-features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .diff-feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      backdrop-filter: blur(8px);
+    }
+
+    .diff-feature::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    /* ── CTA / INSTALL ── */
+    .cta-section {
+      background: var(--bg-surface);
+      text-align: center;
+    }
+
+    .cta-content {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .install-block {
+      margin: 40px auto;
+      max-width: 400px;
+    }
+
+    .install-cmd {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-hover);
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 16px;
+    }
+
+    .install-cmd .prompt {
+      color: var(--text-muted);
+      user-select: none;
+    }
+
+    .install-cmd .command {
+      color: var(--accent-cyan);
+    }
+
+    .cta-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 32px;
+    }
+
+    .cta-link {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .cta-link:hover {
+      color: var(--accent-blue);
+      border-color: var(--border-hover);
+      background: var(--bg-elevated);
+    }
+
+    .cta-link-sep {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      padding: 40px 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      background: var(--bg-deep);
+    }
+
+    .footer p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .footer .footer-brand {
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      section { padding: 72px 0; }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1px;
+      }
+
+      .steps-grid {
+        grid-template-columns: 1fr;
+        gap: 48px;
+      }
+
+      .steps-grid::before { display: none; }
+
+      .tools-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .diff-features {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-orb-container {
+        width: 200px;
+        height: 200px;
+      }
+
+      .hero-orbit:nth-child(4) { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 0 16px; }
+      .feature-card { padding: 28px 20px; }
+      .hero-cta-group { flex-direction: column; align-items: center; }
+    }
+
+    /* ── BADGES ── */
+    .hero-badges {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    .hero-badges img {
+      height: 20px;
+    }
+
+    .compat-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .compat-badge {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      border: 1px solid var(--border-hover);
+      color: var(--text-secondary);
+    }
+
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+  </style>
+</head>
+<body>
+
+  <!-- ════════ HERO ════════ -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+
+        <div class="hero-badge">
+          <span class="dot"></span>
+          v3 — 43 extraction tools
+        </div>
+
+        <div class="hero-orb-container">
+          <div class="hero-orb"></div>
+          <div class="hero-orbit"></div>
+          <div class="hero-orbit"></div>
+          <div class="hero-orbit"></div>
+        </div>
+
+        <h1 class="hero-name">tapsite</h1>
+        <p class="hero-tagline">Web intelligence extraction for AI agents</p>
+        <p class="hero-sub"><strong>43</strong> tools. Any website. Structured data out.</p>
+
+        <div class="hero-cta-group">
+          <a href="https://www.npmjs.com/package/tapsite" class="btn-primary btn-install">
+            npx -y tapsite
+          </a>
+          <a href="https://github.com/mgriffen/tapsite" class="btn-primary btn-secondary">
+            View on GitHub
+          </a>
+        </div>
+
+        <div class="hero-badges">
+          <img alt="GitHub stars" src="https://img.shields.io/github/stars/mgriffen/tapsite?style=flat-square&color=3b82f6">
+          <img alt="npm downloads" src="https://img.shields.io/npm/dm/tapsite?style=flat-square&color=06b6d4">
+        </div>
+
+        <div class="compat-row">
+          <span class="compat-badge">Claude</span>
+          <span class="compat-badge">Cursor</span>
+          <span class="compat-badge">Windsurf</span>
+          <span class="compat-badge">Any MCP Agent</span>
+          <span class="compat-badge">LangChain / LangGraph</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ════════ WHAT IT DOES ════════ -->
+  <section class="features-section">
+    <div class="container">
+      <span class="section-label reveal">Capabilities</span>
+      <h2 class="section-title reveal">What it does</h2>
+      <p class="section-subtitle reveal">Three modes of intelligence. One unified toolkit.</p>
+
+      <div class="features-grid">
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon extract">Ex</div>
+          <h3>Extract</h3>
+          <p>Pull design systems, color palettes, font stacks, spacing scales, components, and breakpoints from any live website. Structured JSON, every time.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon audit">Au</div>
+          <h3>Audit</h3>
+          <p>Run accessibility scores, contrast ratio checks, performance timing analysis, dark mode detection, and stack fingerprinting without leaving your agent.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="feature-icon compare">Di</div>
+          <h3>Compare</h3>
+          <p>Diff pages across sites or across time. Track design drift, detect regressions, and build temporal intelligence with snapshot-based analysis.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ════════ HOW IT WORKS ════════ -->
+  <section class="steps-section">
+    <div class="container">
+      <div class="steps-header">
+        <span class="section-label reveal">Workflow</span>
+        <h2 class="section-title reveal">Three steps to intelligence</h2>
+        <p class="section-subtitle reveal">No browser automation scripts. No fragile selectors. Just ask.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step reveal reveal-delay-1">
+          <div class="step-number">1</div>
+          <h3>Connect</h3>
+          <p>Add tapsite as an MCP server to your AI agent. Works with Claude, Cursor, Windsurf, and any MCP-compatible client.</p>
+        </div>
+        <div class="step reveal reveal-delay-2">
+          <div class="step-number">2</div>
+          <h3>Navigate</h3>
+          <p>Browse to any URL, including sites behind login walls. Manual login with MFA support keeps credentials off the wire.</p>
+        </div>
+        <div class="step reveal reveal-delay-3">
+          <div class="step-number">3</div>
+          <h3>Extract</h3>
+          <p>Run any of 43 specialized tools. Get structured JSON intelligence on design systems, content, accessibility, performance, and more.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ════════ TOOL CATEGORIES ════════ -->
+  <section class="tools-section">
+    <div class="container">
+      <div class="tools-header">
+        <span class="section-label reveal">Arsenal</span>
+        <h2 class="section-title reveal">43 specialized tools</h2>
+        <p class="section-subtitle reveal">Nine categories, from session management to compound workflows.</p>
+      </div>
+
+      <div class="tools-grid">
+        <div class="tool-category reveal reveal-delay-1">
+          <div class="tool-category-name">Session</div>
+          <div class="tool-tags">
+            <span class="tool-tag">login</span>
+            <span class="tool-tag">login_manual</span>
+            <span class="tool-tag">login_check</span>
+            <span class="tool-tag">inspect</span>
+            <span class="tool-tag">screenshot</span>
+            <span class="tool-tag">interact</span>
+            <span class="tool-tag">scroll</span>
+            <span class="tool-tag">close</span>
+            <span class="tool-tag">run_js</span>
+          </div>
+        </div>
+        <div class="tool-category reveal reveal-delay-2">
+          <div class="tool-category-name">Visual</div>
+          <div class="tool-tags">
+            <span class="tool-tag">images</span>
+            <span class="tool-tag">svgs</span>
+            <span class="tool-tag">favicon</span>
+            <span class="tool-tag">download_images</span>
+          </div>
+        </div>
+        <div class="tool-category reveal reveal-delay-3">
+          <div class="tool-category-name">Design System</div>
+          <div class="tool-tags">
+            <span class="tool-tag">colors</span>
+            <span class="tool-tag">fonts</span>
+            <span class="tool-tag">spacing</span>
+            <span class="tool-tag">breakpoints</span>
+            <span class="tool-tag">shadows</span>
+            <span class="tool-tag">icons</span>
+            <span class="tool-tag">css_vars</span>
+            <span class="tool-tag">animations</span>
+          </div>
+        </div>
+        <div class="tool-category reveal reveal-delay-1">
+          <div class="tool-category-name">Content</div>
+          <div class="tool-tags">
+            <span class="tool-tag">content</span>
+            <span class="tool-tag">metadata</span>
+            <span class="tool-tag">forms</span>
+            <span class="tool-tag">links</span>
+            <span class="tool-tag">extract_table</span>
+          </div>
+        </div>
+        <div class="tool-category reveal reveal-delay-2">
+          <div class="tool-category-name">Network</div>
+          <div class="tool-tags">
+            <span class="tool-tag">capture_network</span>
+            <span class="tool-tag">crawl</span>
+            <span class="tool-tag">api_schema</span>
+          </div>
+        </div>
+        <div class="tool-category reveal reveal-delay-3">
+          <div class="tool-category-name">Analysis</div>
+          <div class="tool-tags">
+            <span class="tool-tag">a11y</span>
+            <span class="tool-tag">perf</span>
+            <span class="tool-tag">contrast</span>
+            <span class="tool-tag">darkmode</span>
+            <span class="tool-tag">stack</span>
+            <span class="tool-tag">layout</span>
+          </div>
+        </div>
+        <div class="tool-category reveal reveal-delay-1">
+          <div class="tool-category-name">Multi-Page</div>
+          <div class="tool-tags">
+            <span class="tool-tag">diff_pages</span>
+            <span class="tool-tag">components</span>
+          </div>
+        </div>
+        <div class="tool-category reveal reveal-delay-2">
+          <div class="tool-category-name">Export</div>
+          <div class="tool-tags">
+            <span class="tool-tag">export</span>
+            <span class="tool-tag">export_design_report</span>
+          </div>
+        </div>
+        <div class="tool-category reveal reveal-delay-3">
+          <div class="tool-category-name">Workflows</div>
+          <div class="tool-tags">
+            <span class="tool-tag">audit</span>
+            <span class="tool-tag">designsystem</span>
+            <span class="tool-tag">teardown</span>
+            <span class="tool-tag">harvest</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ════════ DIFFERENTIATOR ════════ -->
+  <section class="diff-section">
+    <div class="container">
+      <div class="diff-content">
+        <span class="section-label reveal">Why tapsite</span>
+        <p class="diff-quote reveal">
+          Other MCP browser tools drive browsers.<br>
+          tapsite <span class="highlight">extracts intelligence</span>.
+        </p>
+        <div class="diff-features">
+          <div class="diff-feature reveal reveal-delay-1">Persistent authenticated sessions</div>
+          <div class="diff-feature reveal reveal-delay-2">43 specialized extractors</div>
+          <div class="diff-feature reveal reveal-delay-1">Structured JSON output</div>
+          <div class="diff-feature reveal reveal-delay-2">Temporal and cross-site diffs</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ════════ CTA / INSTALL ════════ -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <span class="section-label reveal">Get started</span>
+        <h2 class="section-title reveal">One command. Zero config.</h2>
+        <p class="section-subtitle reveal" style="margin: 0 auto;">
+          Add tapsite to your MCP-compatible agent and start extracting intelligence in seconds.
+        </p>
+
+        <div class="install-block reveal">
+          <div class="install-cmd">
+            <span class="prompt">$</span>
+            <span class="command">npx -y tapsite</span>
+          </div>
+        </div>
+
+        <div class="cta-links reveal">
+          <a href="https://github.com/mgriffen/tapsite" class="cta-link">GitHub</a>
+          <span class="cta-link-sep">/</span>
+          <a href="https://www.npmjs.com/package/tapsite" class="cta-link">npm</a>
+          <span class="cta-link-sep">/</span>
+          <a href="https://mgriffen.github.io/tapsite/" class="cta-link">Docs</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ FOOTER ════════ -->
+  <footer class="footer">
+    <div class="container">
+      <p>Open source. MIT licensed. Works with any MCP-compatible AI agent, including LangChain and LangGraph.</p>
+    </div>
+  </footer>
+
+  <!-- ════════ SCROLL REVEAL ════════ -->
+  <script>
+    (function() {
+      const els = document.querySelectorAll('.reveal');
+      const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+      els.forEach(function(el) { observer.observe(el); });
+    })();
+  </script>
+
+</body>
+</html>
