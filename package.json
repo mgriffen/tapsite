@@ -51,7 +51,9 @@
   "homepage": "https://github.com/mgriffen/tapsite#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "playwright": "^1.58.2"
+    "playwright": "^1.58.2",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
     "vitest": "^4.1.0"

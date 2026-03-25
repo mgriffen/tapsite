@@ -1,6 +1,9 @@
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-extra');
+const stealth = require('puppeteer-extra-plugin-stealth');
 const config = require('./config');
 const fs = require('fs');
+
+chromium.use(stealth());
 
 let context = null;
 let page = null;
@@ -8,9 +11,6 @@ let isHeadless = null;
 let elementMap = [];
 
 async function ensureBrowser(headless = true) {
-  if (context && isHeadless !== headless) {
-    await closeBrowser();
-  }
   if (context) return;
   fs.mkdirSync(config.PROFILE_DIR, { recursive: true });
   context = await chromium.launchPersistentContext(config.PROFILE_DIR, {
@@ -44,6 +44,8 @@ async function launchPersistent({ headless = false } = {}) {
   });
   return ctx;
 }
+
+function isStealthEnabled() { return true; }
 
 module.exports = {
   get context() { return context; },

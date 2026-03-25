@@ -46,12 +46,18 @@ async function navigateIfNeeded(url, waitMs = 1500) {
   if (!url) return;
   requireSafeUrl(url);
   try {
-    const response = await browser.page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+    const response = await browser.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (response && response.status() >= 400) {
       console.error(`[tapsite] Navigation warning: ${url} returned HTTP ${response.status()}`);
     }
   } catch (err) {
     console.error(`[tapsite] Navigation error for ${url}: ${err.message}`);
+    throw err;
+  }
+  try {
+    await browser.page.waitForLoadState('networkidle', { timeout: 15000 });
+  } catch {
+    // networkidle is best-effort — page is still usable after domcontentloaded
   }
   await browser.page.waitForTimeout(waitMs);
 }
@@ -124,17 +130,29 @@ function formatIndexResult(result) {
 
 async function safeEvaluate(page, fn, arg, timeoutMs) {
   const timeout = timeoutMs || config.EVAL_TIMEOUT_MS;
-  let timer;
-  const timeoutPromise = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`page.evaluate() timed out after ${timeout}ms`)), timeout);
-  });
-  try {
-    return await Promise.race([
-      page.evaluate(fn, arg),
-      timeoutPromise,
-    ]);
-  } finally {
-    clearTimeout(timer);
+  const maxRetries = 2;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let timer;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`page.evaluate() timed out after ${timeout}ms`)), timeout);
+    });
+    try {
+      return await Promise.race([
+        page.evaluate(fn, arg),
+        timeoutPromise,
+      ]);
+    } catch (err) {
+      clearTimeout(timer);
+      const retryable = /execution context|destroyed|navigating|target closed/i.test(err.message);
+      if (retryable && attempt < maxRetries) {
+        await page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
+        await page.waitForTimeout(500);
+        continue;
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }
 
