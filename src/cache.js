@@ -120,6 +120,7 @@ class CrawlCache {
    * @param {string} contentHash - A hash of the page content (used for change detection).
    */
   set(url, data, contentHash) {
+    this._manifest = this._readManifest();
     const key = this._normalizeUrl(url);
     const fileHash = this._hashString(key);
     const filePath = this._pageFilePath(fileHash);
