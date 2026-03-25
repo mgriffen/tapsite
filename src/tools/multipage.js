@@ -27,10 +27,17 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
       filterPath: z.string().optional().describe("Path prefix filter (e.g. '/blog/')"),
       sameDomain: z.boolean().default(true).describe('Same domain only'),
       concurrency: z.number().min(1).max(8).default(4).describe('Parallel pages (1-8, limited by pool size)'),
+      cache: z.enum(['use', 'bypass', 'only']).default('use').describe('Cache mode: use (default), bypass (ignore cache), only (no network)'),
+      resume: z.boolean().default(false).describe('Resume interrupted crawl from saved queue state'),
     },
-    async ({ url, maxPages, maxDepth, extract, filterPath, sameDomain, concurrency }) => {
+    async ({ url, maxPages, maxDepth, extract, filterPath, sameDomain, concurrency, cache, resume }) => {
       await browser.ensureBrowser();
       requireSafeUrl(url);
+
+      const CrawlCache = require('../cache');
+      const crypto = require('crypto');
+      const domain = new URL(url).hostname;
+      const crawlCache = cache !== 'bypass' ? new CrawlCache({ domain }) : null;
 
       const normalizeUrl = (u) => {
         try {
@@ -54,9 +61,36 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
 
       const effectiveConcurrency = browser.pool ? Math.min(concurrency, browser.pool.size) : 1;
 
+      if (resume && crawlCache) {
+        const savedQueue = crawlCache.loadQueue();
+        if (savedQueue) {
+          queue.length = 0;
+          queue.push(...savedQueue.pending);
+          // Mark completed URLs as visited
+          for (const completedUrl of crawlCache.completedUrls()) {
+            visited.add(completedUrl);
+          }
+        }
+      }
+
       async function processPage(poolPage, pageUrl, depth) {
         const pageResult = { url: pageUrl, depth, extractions: {} };
         try {
+          // Check cache before network request
+          if (crawlCache && cache === 'use') {
+            const cached = crawlCache.get(pageUrl);
+            if (cached) {
+              return { pageResult: cached, links: cached._discoveredLinks || [] };
+            }
+          }
+          if (cache === 'only' && crawlCache) {
+            const cached = crawlCache.get(pageUrl);
+            return {
+              pageResult: cached || { url: pageUrl, depth, extractions: {}, error: 'not in cache' },
+              links: cached?._discoveredLinks || [],
+            };
+          }
+
           try { await poolPage.goto(pageUrl, { waitUntil: 'networkidle', timeout: 30000 }); } catch (navErr) {
             pageResult.error = `Navigation failed: ${navErr.message}`;
             return { pageResult, links: [] };
@@ -102,6 +136,19 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
               [...document.querySelectorAll('a[href]')].map(a => a.href).filter(h => h.startsWith('http'))
             );
           }
+
+          if (crawlCache) {
+            const contentHash = crypto.createHash('sha256')
+              .update(JSON.stringify(pageResult.extractions))
+              .digest('hex');
+            // Check if content actually changed (incremental mode)
+            if (!crawlCache.hasChanged(pageUrl, contentHash)) {
+              pageResult._unchanged = true;
+            }
+            pageResult._discoveredLinks = discoveredLinks;
+            crawlCache.set(pageUrl, pageResult, contentHash);
+          }
+
           return { pageResult, links: discoveredLinks };
         } catch (e) {
           // Re-throw context-death errors for retry handling in outer scope
@@ -170,8 +217,18 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
             } catch {}
           }
         }
+        if (crawlCache) {
+          crawlCache.saveQueue({
+            pending: queue.map(item => ({ url: item.url, depth: item.depth })),
+            startUrl: url,
+            config: { maxPages, maxDepth, extract },
+          });
+        }
+
         if (totalBytes > MAX_OUTPUT_BYTES) break;
       }
+
+      if (crawlCache) crawlCache.clearQueue();
 
       const summary = {
         startUrl: url,
