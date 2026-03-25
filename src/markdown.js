@@ -157,7 +157,13 @@ function walkTokens(tokens, mode, citations) {
   const linkStack = [];
 
   function emit(text) {
-    out.push(text);
+    // When inside a blockquote, prefix lines after newlines with '> '
+    if (blockquoteDepth > 0 && text.includes('\n')) {
+      const prefix = '> '.repeat(blockquoteDepth);
+      out.push(text.replace(/\n(?!$)/g, '\n' + prefix));
+    } else {
+      out.push(text);
+    }
   }
 
   // Emit text, routing to the right place based on context
