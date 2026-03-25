@@ -27,7 +27,7 @@
 
     :root, [data-theme="light"] {
       --bg-primary: #ffffff;
-      --bg-secondary: #f8f9fa;
+      --bg-secondary: #f5f7fa;
       --bg-card: #ffffff;
       --bg-code: #f1f5f9;
       --text-primary: #1a1a2a;
@@ -41,6 +41,8 @@
       --link-hover: #004080;
       --card-hover-border: #0066cc;
       --card-hover-shadow: rgba(0, 102, 204, 0.1);
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --card-shadow-hover: 0 10px 30px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
     }
 
     [data-theme="dark"] {
@@ -59,6 +61,8 @@
       --link-hover: #22ecdb;
       --card-hover-border: rgba(0, 212, 255, 0.3);
       --card-hover-shadow: rgba(0, 212, 255, 0.06);
+      --card-shadow: none;
+      --card-shadow-hover: 0 0 30px rgba(0, 212, 255, 0.06);
     }
 
     body {
@@ -158,7 +162,7 @@
     }
     .hero-lead {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       letter-spacing: 0.3em;
       text-transform: uppercase;
       color: var(--text-muted);
@@ -167,17 +171,17 @@
     .hero-title {
       font-family: 'Exo 2', sans-serif;
       font-weight: 600;
-      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-size: clamp(2rem, 4.5vw, 3rem);
       line-height: 1.25;
       color: var(--text-primary);
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
       letter-spacing: -0.01em;
     }
     .hero-subtitle {
-      font-size: 1.05rem;
+      font-size: 1.2rem;
       color: var(--text-secondary);
       line-height: 1.65;
-      max-width: 580px;
+      max-width: 620px;
       margin: 0 auto 2rem;
     }
 
@@ -191,14 +195,14 @@
     }
     .install-label {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       letter-spacing: 0.25em;
       text-transform: uppercase;
       color: var(--text-muted);
     }
     .install-cmd {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 0.95rem;
+      font-size: 1.05rem;
       background: var(--bg-code);
       color: var(--accent-primary);
       padding: 0.55rem 1.25rem;
@@ -229,9 +233,9 @@
     }
     .compat-badge {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       letter-spacing: 0.1em;
-      padding: 0.25rem 0.7rem;
+      padding: 0.3rem 0.85rem;
       border: 1px solid var(--border);
       border-radius: 2rem;
       color: var(--text-secondary);
@@ -273,10 +277,12 @@
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
+      box-shadow: var(--card-shadow);
       padding: 2rem;
       text-decoration: none;
       color: var(--text-primary);
       position: relative;
+      border-radius: 8px;
       overflow: hidden;
       transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
     }
@@ -293,12 +299,12 @@
     .card:hover {
       border-color: var(--card-hover-border);
       transform: translateY(-4px);
-      box-shadow: 0 0 30px var(--card-hover-shadow);
+      box-shadow: var(--card-shadow-hover);
     }
 
     .card-label {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       letter-spacing: 0.3em;
       text-transform: uppercase;
       margin-bottom: 0.8rem;
@@ -306,19 +312,19 @@
     .card-title {
       font-family: 'Exo 2', sans-serif;
       font-weight: 600;
-      font-size: 1.1rem;
+      font-size: 1.3rem;
       letter-spacing: 0.02em;
       margin-bottom: 0.8rem;
       color: var(--text-primary);
     }
     .card-desc {
-      font-size: 0.95rem;
+      font-size: 1.1rem;
       color: var(--text-secondary);
-      line-height: 1.6;
+      line-height: 1.65;
     }
     .card-arrow {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       color: var(--accent-secondary);
       margin-top: 1.2rem;
       display: block;
@@ -329,7 +335,7 @@
       margin-top: 4rem;
       text-align: center;
       font-family: 'Share Tech Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
       letter-spacing: 0.1em;
       line-height: 2;
@@ -342,7 +348,7 @@
 
     @media (max-width: 600px) {
       .hero { padding: 2rem 0 2rem; }
-      .hero-title { font-size: 1.5rem; }
+      .hero-title { font-size: 1.75rem; }
       .install-cmd { font-size: 0.85rem; padding: 0.45rem 1rem; }
       body { padding: 2rem 1.25rem 3rem; }
     }
