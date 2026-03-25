@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Web Components Fixture</title></head>
+<body>
+<my-card title="Card 1" variant="primary">Content 1</my-card>
+<my-card title="Card 2" variant="secondary">Content 2</my-card>
+<my-card title="Card 3">Content 3</my-card>
+<my-button>Click me</my-button>
+<my-button>Submit</my-button>
+<div id="control">Not a custom element</div>
+<template id="tmpl1"><p>Template content</p></template>
+<template id="tmpl2"><span>Another template</span></template>
+<script>
+class MyCard extends HTMLElement {
+  static get observedAttributes() { return ['title', 'variant']; }
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: 'open' });
+    shadow.innerHTML = '<style>:host { display: block; }</style><slot></slot>';
+  }
+}
+customElements.define('my-card', MyCard);
+
+class MyButton extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'closed' });
+  }
+}
+customElements.define('my-button', MyButton);
+</script>
+</body>
+</html>

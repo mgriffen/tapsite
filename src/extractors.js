@@ -1914,6 +1914,76 @@ function extractContrastInBrowser({ sampleSize, standard }) {
   };
 }
 
+function extractWebComponentsInBrowser() {
+  const componentMap = new Map();
+
+  document.querySelectorAll('*').forEach(el => {
+    const tag = el.tagName.toLowerCase();
+    if (!tag.includes('-')) return;
+
+    if (!componentMap.has(tag)) {
+      const shadowRoot = el.shadowRoot;
+      componentMap.set(tag, {
+        tag,
+        count: 0,
+        hasShadowRoot: shadowRoot !== null,
+        shadowMode: shadowRoot ? 'open' : 'closed-or-none',
+        observedAttributes: [],
+        attributes: new Set(),
+        hasSlots: shadowRoot ? shadowRoot.querySelectorAll('slot').length > 0 : false,
+        hasStyles: shadowRoot ? shadowRoot.querySelectorAll('style').length > 0 : false,
+        childElementCounts: [],
+      });
+      try {
+        const obs = el.constructor.observedAttributes;
+        if (Array.isArray(obs)) componentMap.get(tag).observedAttributes = [...obs];
+      } catch {}
+    }
+
+    const entry = componentMap.get(tag);
+    entry.count++;
+    entry.childElementCounts.push(el.children.length);
+
+    const skip = new Set(['class', 'id', 'style', 'slot']);
+    for (const attr of el.attributes) {
+      if (!skip.has(attr.name)) entry.attributes.add(attr.name);
+    }
+  });
+
+  const libraries = [];
+  if (window.Lit || window.litElementVersions) libraries.push('Lit');
+  if (window.Stencil || document.querySelector('script[data-stencil]')) libraries.push('Stencil');
+  if (window.Polymer) libraries.push('Polymer');
+  if (window.FAST || document.querySelector('[data-fast]')) libraries.push('FAST');
+  const tags = [...componentMap.keys()];
+  if (window.shoelace || tags.some(t => t.startsWith('sl-'))) libraries.push('Shoelace');
+  if (tags.some(t => t.startsWith('ion-'))) libraries.push('Ionic');
+  if (tags.some(t => t.startsWith('vaadin-'))) libraries.push('Vaadin');
+  if (tags.some(t => t.startsWith('mwc-') || t.startsWith('md-'))) libraries.push('Material Web');
+
+  const components = [...componentMap.values()].map(c => ({
+    tag: c.tag,
+    count: c.count,
+    hasShadowRoot: c.hasShadowRoot,
+    shadowMode: c.shadowMode,
+    observedAttributes: c.observedAttributes,
+    attributes: [...c.attributes],
+    hasSlots: c.hasSlots,
+    hasStyles: c.hasStyles,
+    childElementCount: c.childElementCounts.length
+      ? Math.round(c.childElementCounts.reduce((a, b) => a + b, 0) / c.childElementCounts.length)
+      : 0,
+  }));
+
+  return {
+    components,
+    totalCustomElements: components.length,
+    totalInstances: components.reduce((sum, c) => sum + c.count, 0),
+    libraries,
+    templateElements: document.querySelectorAll('template').length,
+  };
+}
+
 module.exports = {
   extractColorsInBrowser,
   extractFontsInBrowser,
@@ -1936,4 +2006,5 @@ module.exports = {
   extractShadowsInBrowser,
   extractIconsInBrowser,
   extractContrastInBrowser,
+  extractWebComponentsInBrowser,
 };

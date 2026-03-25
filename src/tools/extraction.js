@@ -22,6 +22,7 @@ const {
   extractShadowsInBrowser,
   extractIconsInBrowser,
   extractContrastInBrowser,
+  extractWebComponentsInBrowser,
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
@@ -710,5 +711,22 @@ module.exports = function registerExtractionTools(server, allowTool = () => true
       return summarizeResult('contrast', result, summary, { tool: 'tapsite_extract_contrast', description: 'WCAG contrast ratio audit for text/background color pairs' });
     }
   );
+
+  if (allowTool('tapsite_extract_web_components')) {
+    server.tool(
+      'tapsite_extract_web_components',
+      'Inventory custom elements, shadow DOM, exposed attributes, and web component libraries.',
+      { url: z.string().optional().describe('URL (omit for current page)') },
+      async ({ url }) => {
+        await browser.ensureBrowser();
+        await navigateIfNeeded(url);
+        const data = await safeEvaluate(browser.page, extractWebComponentsInBrowser);
+        const libs = data.libraries.length ? data.libraries.join(', ') : 'none';
+        const shadowCount = data.components.filter(c => c.hasShadowRoot).length;
+        const summary = `Web Components: ${data.totalCustomElements} custom elements (${data.totalInstances} total instances) | Libraries: ${libs} | Shadow roots: ${shadowCount}`;
+        return summarizeResult('web-components', data, summary, { tool: 'tapsite_extract_web_components', description: 'Inventory custom elements and shadow DOM' });
+      }
+    );
+  }
 
 };

@@ -10,6 +10,7 @@ import {
   extractMetadataInBrowser,
   extractA11yInBrowser,
   extractCssVarsInBrowser,
+  extractWebComponentsInBrowser,
 } from '../src/extractors.js';
 import { inspectPage, inspectPageV2 } from '../src/inspector.js';
 
@@ -356,5 +357,44 @@ describe('metadata extraction', () => {
   it('extracts keywords', async () => {
     const result = await page.evaluate(extractMetadataInBrowser);
     expect(result.meta.keywords).toContain('test');
+  });
+});
+
+describe('extractWebComponentsInBrowser', () => {
+  beforeAll(async () => {
+    await page.goto(fixtureUrl('web-components.html'));
+  });
+
+  it('detects custom elements with correct counts', async () => {
+    const result = await page.evaluate(extractWebComponentsInBrowser);
+    expect(result.totalCustomElements).toBe(2);
+    expect(result.totalInstances).toBe(5);
+    const card = result.components.find(c => c.tag === 'my-card');
+    expect(card).toBeDefined();
+    expect(card.count).toBe(3);
+    expect(card.hasShadowRoot).toBe(true);
+    expect(card.shadowMode).toBe('open');
+    expect(card.observedAttributes).toEqual(['title', 'variant']);
+    expect(card.hasSlots).toBe(true);
+    expect(card.hasStyles).toBe(true);
+  });
+
+  it('detects closed shadow roots', async () => {
+    const result = await page.evaluate(extractWebComponentsInBrowser);
+    const btn = result.components.find(c => c.tag === 'my-button');
+    expect(btn).toBeDefined();
+    expect(btn.count).toBe(2);
+    expect(btn.hasShadowRoot).toBe(false);
+    expect(btn.shadowMode).toBe('closed-or-none');
+  });
+
+  it('counts template elements', async () => {
+    const result = await page.evaluate(extractWebComponentsInBrowser);
+    expect(result.templateElements).toBe(2);
+  });
+
+  it('returns empty libraries array when none detected', async () => {
+    const result = await page.evaluate(extractWebComponentsInBrowser);
+    expect(result.libraries).toEqual([]);
   });
 });
