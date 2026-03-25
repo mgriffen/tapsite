@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tapsite — TCGplayer Extraction Demo</title>
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png"/>
+  <meta property="og:title" content="tapsite — TCGplayer Extraction Demo">
+  <meta property="og:description" content="Authenticated login, card search, image download, and full design system extraction from TCGplayer — a real tapsite workflow.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep: #0a0a0f;
+      --bg-surface: #12121a;
+      --bg-elevated: #1a1a28;
+      --bg-card: #16162266;
+      --border: #ffffff0d;
+      --border-hover: #ffffff1a;
+      --text-primary: #f0f0f5;
+      --text-secondary: #9090a8;
+      --text-muted: #606078;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-purple: #8b5cf6;
+      --accent-green: #34d399;
+      --accent-amber: #f59e0b;
+      --accent-blue-dim: #3b82f633;
+      --accent-cyan-dim: #06b6d433;
+      --accent-purple-dim: #8b5cf633;
+      --glow-blue: #3b82f620;
+      --glow-cyan: #06b6d418;
+      --glow-purple: #8b5cf618;
+      --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 10000;
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── SECTION HEADER ── */
+    .demo-section {
+      padding: 100px 0 120px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .demo-section::before {
+      content: '';
+      position: absolute;
+      top: -300px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1200px;
+      height: 1200px;
+      background: radial-gradient(ellipse at center,
+        #06b6d408 0%,
+        #3b82f606 30%,
+        transparent 60%);
+      pointer-events: none;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      margin-bottom: 16px;
+      display: block;
+      text-align: center;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      text-align: center;
+      letter-spacing: -0.03em;
+    }
+
+    .section-subtitle {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      line-height: 1.7;
+      margin: 0 auto 72px;
+      text-align: center;
+    }
+
+    /* ── WORKFLOW TIMELINE ── */
+    .workflow {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 64px;
+    }
+
+    /* Vertical scan line */
+    .workflow::before {
+      content: '';
+      position: absolute;
+      left: 31px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg,
+        var(--accent-cyan) 0%,
+        var(--accent-blue) 40%,
+        var(--accent-purple) 80%,
+        transparent 100%);
+      opacity: 0.3;
+    }
+
+    .workflow-step {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 32px;
+      align-items: start;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: step-in 0.6s ease forwards;
+    }
+
+    .workflow-step:nth-child(1) { animation-delay: 0.2s; }
+    .workflow-step:nth-child(2) { animation-delay: 0.6s; }
+    .workflow-step:nth-child(3) { animation-delay: 1.0s; }
+    .workflow-step:nth-child(4) { animation-delay: 1.4s; }
+    .workflow-step:nth-child(5) { animation-delay: 1.8s; }
+
+    @keyframes step-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-marker {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hover);
+      position: relative;
+      z-index: 2;
+      flex-shrink: 0;
+    }
+
+    .step-marker-icon {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .workflow-step:nth-child(1) .step-marker { color: var(--accent-green); box-shadow: 0 0 24px #34d39918; }
+    .workflow-step:nth-child(2) .step-marker { color: var(--accent-blue); box-shadow: 0 0 24px var(--glow-blue); }
+    .workflow-step:nth-child(3) .step-marker { color: var(--accent-cyan); box-shadow: 0 0 24px var(--glow-cyan); }
+    .workflow-step:nth-child(4) .step-marker { color: var(--accent-purple); box-shadow: 0 0 24px var(--glow-purple); }
+    .workflow-step:nth-child(5) .step-marker { color: var(--accent-amber); box-shadow: 0 0 24px #f59e0b18; }
+
+    .step-content {
+      min-width: 0;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .step-tool {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-hover);
+    }
+
+    .workflow-step:nth-child(1) .step-tool { color: var(--accent-green); border-color: #34d39933; }
+    .workflow-step:nth-child(2) .step-tool { color: var(--accent-blue); border-color: #3b82f633; }
+    .workflow-step:nth-child(3) .step-tool { color: var(--accent-cyan); border-color: #06b6d433; }
+    .workflow-step:nth-child(4) .step-tool { color: var(--accent-purple); border-color: #8b5cf633; }
+    .workflow-step:nth-child(5) .step-tool { color: var(--accent-amber); border-color: #f59e0b33; }
+
+    .step-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* ── TERMINAL BLOCK ── */
+    .terminal {
+      background: #0c0c14;
+      border: 1px solid var(--border-hover);
+      border-radius: 12px;
+      overflow: hidden;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #0f0f18;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .terminal-dot:nth-child(1) { background: #ff5f57; }
+    .terminal-dot:nth-child(2) { background: #febc2e; }
+    .terminal-dot:nth-child(3) { background: #28c840; }
+
+    .terminal-title {
+      margin-left: 8px;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .terminal-body {
+      padding: 16px 20px;
+      overflow-x: auto;
+    }
+
+    .terminal-body .prompt { color: var(--accent-cyan); }
+    .terminal-body .cmd { color: var(--text-primary); }
+    .terminal-body .output { color: var(--text-muted); }
+    .terminal-body .success { color: var(--accent-green); }
+    .terminal-body .value { color: var(--accent-blue); }
+    .terminal-body .key { color: var(--accent-purple); }
+    .terminal-body .warn { color: var(--accent-amber); }
+
+    .terminal-line {
+      white-space: nowrap;
+      opacity: 0;
+      animation: type-in 0.3s ease forwards;
+    }
+
+    /* ── CARD SCAN VISUALIZATION ── */
+    .scan-container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 32px;
+      align-items: start;
+      margin-top: 8px;
+    }
+
+    .card-frame {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #0c0c14;
+      border: 1px solid var(--border-hover);
+      padding: 16px;
+    }
+
+    .card-frame::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple)) border-box;
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      animation: border-glow 2s ease 1.2s forwards;
+    }
+
+    @keyframes border-glow {
+      to { opacity: 0.6; }
+    }
+
+    .card-frame img {
+      width: 100%;
+      border-radius: 8px;
+      display: block;
+    }
+
+    /* Scan line effect */
+    .card-frame::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+      box-shadow: 0 0 20px var(--accent-cyan), 0 0 60px var(--accent-cyan);
+      animation: scan-line 2.5s ease-in-out 1s;
+      opacity: 0;
+    }
+
+    @keyframes scan-line {
+      0% { top: 16px; opacity: 0; }
+      10% { opacity: 0.8; }
+      90% { opacity: 0.8; }
+      100% { top: calc(100% - 16px); opacity: 0; }
+    }
+
+    .card-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    .card-label strong {
+      color: var(--accent-amber);
+      font-weight: 500;
+    }
+
+    /* ── EXTRACTED DATA PANELS ── */
+    .extracted-panels {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .data-panel {
+      background: #0c0c14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      opacity: 0;
+      transform: translateX(12px);
+      animation: panel-in 0.4s ease forwards;
+    }
+
+    .data-panel:nth-child(1) { animation-delay: 1.6s; }
+    .data-panel:nth-child(2) { animation-delay: 2.0s; }
+    .data-panel:nth-child(3) { animation-delay: 2.4s; }
+
+    @keyframes panel-in {
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .data-panel-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .data-panel-label::before {
+      content: '';
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 6px var(--accent-cyan);
+    }
+
+    /* ── COLOR SWATCHES ── */
+    .color-grid {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .color-swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      position: relative;
+      cursor: default;
+      transition: transform 0.2s;
+      border: 1px solid #ffffff0a;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.15);
+      z-index: 2;
+    }
+
+    .color-swatch::after {
+      content: attr(data-hex);
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .color-swatch:hover::after {
+      opacity: 1;
+    }
+
+    /* ── PRICE TABLE ── */
+    .price-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .price-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 16px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      background: #ffffff04;
+      align-items: center;
+    }
+
+    .price-row:hover {
+      background: #ffffff08;
+    }
+
+    .price-condition {
+      color: var(--text-secondary);
+    }
+
+    .price-seller {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .price-value {
+      color: var(--accent-green);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* ── COMPONENT TAGS ── */
+    .component-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .component-chip {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 100px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .component-chip .count {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 100px;
+      background: var(--accent-blue-dim);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    /* ── DESIGN SYSTEM RESULTS ── */
+    .ds-results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .ds-stat {
+      background: #0c0c14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ds-stat::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+    }
+
+    .ds-stat:nth-child(1)::before { background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent); }
+    .ds-stat:nth-child(2)::before { background: linear-gradient(90deg, transparent, var(--accent-blue), transparent); }
+    .ds-stat:nth-child(3)::before { background: linear-gradient(90deg, transparent, var(--accent-purple), transparent); }
+    .ds-stat:nth-child(4)::before { background: linear-gradient(90deg, transparent, var(--accent-green), transparent); }
+    .ds-stat:nth-child(5)::before { background: linear-gradient(90deg, transparent, var(--accent-amber), transparent); }
+
+    .ds-stat-value {
+      font-family: var(--mono);
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 4px;
+    }
+
+    .ds-stat:nth-child(1) .ds-stat-value { color: var(--accent-cyan); }
+    .ds-stat:nth-child(2) .ds-stat-value { color: var(--accent-blue); }
+    .ds-stat:nth-child(3) .ds-stat-value { color: var(--accent-purple); }
+    .ds-stat:nth-child(4) .ds-stat-value { color: var(--accent-green); }
+    .ds-stat:nth-child(5) .ds-stat-value { color: var(--accent-amber); }
+
+    .ds-stat-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── FONT PREVIEW ── */
+    .font-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .font-row {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #ffffff04;
+    }
+
+    .font-name {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent-blue);
+      min-width: 120px;
+    }
+
+    .font-sample {
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+
+    .font-sizes {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    /* ── DOWNLOAD RESULT ── */
+    .download-result {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .download-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid var(--border-hover);
+    }
+
+    .download-files {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .download-file {
+      font-family: var(--mono);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .download-file .filename { color: var(--text-secondary); }
+    .download-file .filesize { color: var(--text-muted); font-size: 11px; }
+    .download-file .check { color: var(--accent-green); }
+
+    /* ── BOTTOM CTA ── */
+    .demo-cta {
+      text-align: center;
+      margin-top: 80px;
+      padding-top: 64px;
+      border-top: 1px solid var(--border);
+    }
+
+    .demo-cta-text {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      font-family: var(--mono);
+    }
+
+    .demo-cta-text strong {
+      color: var(--text-secondary);
+    }
+
+    .demo-cta-links {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-install {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: white;
+      box-shadow: 0 0 24px var(--glow-blue), 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .btn-install:hover {
+      box-shadow: 0 0 40px var(--glow-blue), 0 6px 20px rgba(0,0,0,0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-hover);
+      backdrop-filter: blur(8px);
+    }
+
+    .btn-secondary:hover {
+      color: var(--text-primary);
+      border-color: var(--accent-blue);
+      background: var(--bg-elevated);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .demo-section { padding: 72px 0 80px; }
+
+      .workflow::before { left: 23px; }
+
+      .workflow-step {
+        grid-template-columns: 48px 1fr;
+        gap: 20px;
+      }
+
+      .step-marker {
+        width: 48px;
+        height: 48px;
+      }
+
+      .step-marker-icon { font-size: 18px; }
+
+      .scan-container {
+        grid-template-columns: 1fr;
+      }
+
+      .card-frame {
+        max-width: 240px;
+        margin: 0 auto;
+      }
+
+      .ds-results {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 0 16px; }
+
+      .ds-results {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-cta-links {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+
+    /* ── SPLIT PANE (Step 1) ── */
+    .split-pane {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-hover);
+      background: var(--border-hover);
+    }
+
+    .split-left, .split-right {
+      background: #0c0c14;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pane-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #0f0f18;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .pane-bar .terminal-dot { width: 8px; height: 8px; }
+    .pane-bar-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+
+    /* Claude Code pane */
+    .claude-pane {
+      padding: 16px 18px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .claude-line {
+      opacity: 0;
+      animation: claude-type 0.3s ease forwards;
+      white-space: nowrap;
+    }
+
+    .claude-line:nth-child(1) { animation-delay: 0.5s; }
+    .claude-line:nth-child(2) { animation-delay: 1.2s; }
+    .claude-line:nth-child(3) { animation-delay: 1.8s; }
+    .claude-line:nth-child(4) { animation-delay: 2.6s; }
+    .claude-line:nth-child(5) { animation-delay: 3.2s; }
+    .claude-line:nth-child(6) { animation-delay: 3.6s; }
+    .claude-line:nth-child(7) { animation-delay: 4.0s; }
+    .claude-line:nth-child(8) { animation-delay: 4.4s; }
+
+    @keyframes claude-type {
+      to { opacity: 1; }
+    }
+
+    .claude-user {
+      color: var(--accent-cyan);
+      font-weight: 500;
+    }
+
+    .claude-agent {
+      color: var(--accent-purple);
+      font-weight: 500;
+    }
+
+    .claude-tool-badge {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 4px;
+      background: var(--accent-purple-dim);
+      color: var(--accent-purple);
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    .claude-status-badge {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    .claude-status-badge.ok {
+      background: #34d39920;
+      color: var(--accent-green);
+    }
+
+    /* TCGplayer login mockup */
+    .tcg-login-mock {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      background: #f8f8f8;
+      position: relative;
+    }
+
+    .tcg-topbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: #ffffff;
+      border-bottom: 2px solid #0835db;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+    }
+
+    .tcg-logo-text {
+      font-family: var(--sans);
+      font-size: 16px;
+      font-weight: 800;
+      color: #121212;
+      letter-spacing: -0.03em;
+    }
+
+    .tcg-logo-text span {
+      color: #0835db;
+    }
+
+    .tcg-login-card {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 280px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-top: 16px;
+    }
+
+    .tcg-login-title {
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 700;
+      color: #121212;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .tcg-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1dce4;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 13px;
+      color: #374047;
+      background: #f8f8f8;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .tcg-input.filled {
+      background: #fff;
+      border-color: #0835db;
+      color: #121212;
+    }
+
+    .tcg-input.password {
+      letter-spacing: 0.2em;
+    }
+
+    .tcg-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #0835db;
+      color: #ffffff;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: default;
+      margin-top: 4px;
+    }
+
+    .tcg-captcha {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid #d1dce4;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      background: #fff;
+      font-family: var(--sans);
+      font-size: 12px;
+      color: #767676;
+    }
+
+    .tcg-captcha-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 2px solid #d1dce4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .tcg-captcha-check.checked {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+
+    .tcg-captcha-check.checked::after {
+      content: '\2713';
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tcg-success-banner {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      background: #05772d;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: banner-in 0.4s ease 4.6s forwards;
+    }
+
+    @keyframes banner-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Animated fill for login fields */
+    .tcg-input.anim-fill {
+      animation: field-fill 0.3s ease forwards;
+    }
+
+    .tcg-input.email-fill { animation-delay: 1.4s; }
+    .tcg-input.pass-fill { animation-delay: 2.0s; }
+    .tcg-captcha-check.anim-check { animation: captcha-check 0.3s ease 3.0s forwards; }
+    .tcg-btn.anim-click { animation: btn-press 0.3s ease 3.6s forwards; }
+
+    @keyframes field-fill {
+      0% { border-color: #d1dce4; background: #f8f8f8; }
+      100% { border-color: #0835db; background: #fff; }
+    }
+
+    @keyframes captcha-check {
+      0% { border-color: #d1dce4; background: transparent; }
+      100% { border-color: #34d399; background: #34d399; }
+    }
+
+    @keyframes btn-press {
+      0% { transform: scale(1); }
+      50% { transform: scale(0.97); background: #0628a8; }
+      100% { transform: scale(1); background: #0835db; }
+    }
+
+    @media (max-width: 768px) {
+      .split-pane {
+        grid-template-columns: 1fr;
+      }
+      .split-left, .split-right { min-height: 260px; }
+    }
+
+    /* ── SEARCH ANIMATION (Step 2) ── */
+    .search-demo {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-hover);
+      background: #0c0c14;
+    }
+
+    .search-browser-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #0f0f18;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-url-bar {
+      flex: 1;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #0c0c14;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .search-url-bar .url-domain { color: var(--text-secondary); }
+
+    .search-body {
+      padding: 24px;
+      min-height: 300px;
+      position: relative;
+    }
+
+    /* TCGplayer-style search bar */
+    .tcg-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      max-width: 480px;
+      margin: 0 auto 32px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #0835db;
+      background: #fff;
+    }
+
+    .tcg-search-cat {
+      padding: 10px 14px;
+      background: #f0f0f2;
+      border-right: 1px solid #d1dce4;
+      font-family: var(--sans);
+      font-size: 12px;
+      color: #374047;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tcg-search-input-wrap {
+      flex: 1;
+      position: relative;
+      padding: 10px 14px;
+    }
+
+    .tcg-search-typed {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: #121212;
+      white-space: nowrap;
+    }
+
+    .tcg-search-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 18px;
+      background: #0835db;
+      vertical-align: text-bottom;
+      animation: blink-cursor 0.8s step-end infinite;
+    }
+
+    @keyframes blink-cursor {
+      50% { opacity: 0; }
+    }
+
+    .tcg-search-go {
+      padding: 10px 16px;
+      background: #0835db;
+      border: none;
+      cursor: default;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .tcg-search-go::after {
+      content: '\1F50D';
+      font-size: 16px;
+      filter: brightness(10);
+    }
+
+    /* Search results grid */
+    .search-results-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    .search-results-grid.show {
+      animation: results-in 0.5s ease forwards;
+    }
+
+    @keyframes results-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .search-result-card {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #e8e8ec;
+      transition: box-shadow 0.2s;
+    }
+
+    .search-result-card:first-child {
+      border-color: #0835db;
+      box-shadow: 0 0 0 1px #0835db;
+    }
+
+    .search-result-img {
+      width: 80px;
+      height: 112px;
+      margin: 0 auto 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-result-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .search-result-img.placeholder {
+      background: linear-gradient(135deg, #e8e8ec, #d1dce4);
+    }
+
+    .search-result-name {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 600;
+      color: #121212;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-result-set {
+      font-family: var(--sans);
+      font-size: 9px;
+      color: #767676;
+      margin-bottom: 4px;
+    }
+
+    .search-result-price {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: #05772d;
+    }
+
+    .search-results-header {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: #374047;
+      margin-bottom: 16px;
+      opacity: 0;
+    }
+
+    .search-results-header.show {
+      animation: results-in 0.3s ease forwards;
+    }
+
+    .search-results-header strong {
+      color: #121212;
+    }
+
+    @media (max-width: 768px) {
+      .search-results-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Minimal nav -->
+  <nav style="position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.05);">
+    <a href="index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text-primary);font-family:var(--sans);font-weight:700;font-size:15px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style="color:var(--accent-cyan);"><path fill="currentColor" d="M19 14v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5 9h5V7l5.36-1.79a.932.932 0 1 0-.61-1.76L5 7z"/></svg>
+      tapsite
+    </a>
+    <a href="https://github.com/mgriffen/tapsite" style="font-family:var(--mono);font-size:12px;color:var(--text-muted);text-decoration:none;">GitHub</a>
+  </nav>
+
+  <section class="demo-section" style="padding-top:140px;">
+    <div class="container">
+      <span class="section-label reveal">Live Demo</span>
+      <h2 class="section-title reveal">Extracting TCGplayer in 5 steps</h2>
+      <p class="section-subtitle reveal">
+        Authenticated login, stealth browsing, card search, image download, and full design system extraction &mdash; from a real session.
+      </p>
+
+      <div class="workflow">
+
+        <!-- ── STEP 1: LOGIN ── -->
+        <div class="workflow-step reveal">
+          <div class="step-marker">
+            <span class="step-marker-icon">&#x1f513;</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <span class="step-tool">tapsite_login_manual</span>
+            </div>
+            <p class="step-desc">
+              Opens a headed browser for manual login. You handle MFA and captchas yourself &mdash; credentials never touch the wire.
+            </p>
+
+            <div class="split-pane">
+              <!-- Left: Claude Code session -->
+              <div class="split-left">
+                <div class="pane-bar">
+                  <span class="terminal-dot"></span>
+                  <span class="terminal-dot"></span>
+                  <span class="terminal-dot"></span>
+                  <span class="pane-bar-title">Claude Code</span>
+                </div>
+                <div class="claude-pane">
+                  <div class="claude-line"><span class="claude-user">you:</span> log into tcgplayer for me</div>
+                  <div class="claude-line">&nbsp;</div>
+                  <div class="claude-line"><span class="claude-agent">claude:</span> Opening headed browser&hellip;</div>
+                  <div class="claude-line" style="margin-left:12px;"><span class="claude-tool-badge">tapsite_login_manual</span></div>
+                  <div class="claude-line" style="margin-left:12px;"><span class="output">url: tcgplayer.com/login</span></div>
+                  <div class="claude-line">&nbsp;</div>
+                  <div class="claude-line"><span class="claude-agent">claude:</span> Session verified <span class="claude-status-badge ok">&#x2713; authenticated</span></div>
+                  <div class="claude-line" style="margin-left:12px;"><span class="output">Welcome back,</span> <span class="value">collector@mtg.gg</span></div>
+                </div>
+              </div>
+
+              <!-- Right: TCGplayer login page mockup -->
+              <div class="split-right">
+                <div class="pane-bar" style="background:#ffffff; border-color:#e8e8ec;">
+                  <span class="terminal-dot"></span>
+                  <span class="terminal-dot"></span>
+                  <span class="terminal-dot"></span>
+                  <span class="pane-bar-title" style="color:#767676;">tcgplayer.com/login</span>
+                </div>
+                <div class="tcg-login-mock">
+                  <div class="tcg-topbar">
+                    <span class="tcg-logo-text">TCG<span>player</span></span>
+                  </div>
+                  <div class="tcg-login-card">
+                    <div class="tcg-login-title">Sign In</div>
+                    <input class="tcg-input anim-fill email-fill" type="text" value="collector@mtg.gg" readonly tabindex="-1">
+                    <input class="tcg-input password anim-fill pass-fill" type="text" value="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" readonly tabindex="-1">
+                    <div class="tcg-captcha">
+                      <div class="tcg-captcha-check anim-check"></div>
+                      <span>I am human</span>
+                      <span style="margin-left:auto; font-size:10px; color:#b6b6b6;">hCaptcha</span>
+                    </div>
+                    <button class="tcg-btn anim-click" tabindex="-1">Sign In</button>
+                  </div>
+                  <div class="tcg-success-banner">&#x2713; Manual login complete &mdash; session persisted across tools</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── STEP 2: NAVIGATE ── -->
+        <div class="workflow-step reveal">
+          <div class="step-marker">
+            <span class="step-marker-icon">&#x1f50d;</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <span class="step-tool">tapsite_inspect + tapsite_interact</span>
+            </div>
+            <p class="step-desc">
+              Navigate to search results, click into a product page. The authenticated session survives every tool call &mdash; no re-login needed.
+            </p>
+
+            <div class="search-demo">
+              <div class="search-browser-bar">
+                <span class="terminal-dot"></span>
+                <span class="terminal-dot"></span>
+                <span class="terminal-dot"></span>
+                <div class="search-url-bar">
+                  <span class="url-domain">tcgplayer.com</span>/search/magic/product?q=<span id="url-query"></span>
+                </div>
+              </div>
+              <div class="search-body">
+                <div class="tcg-search-bar">
+                  <div class="tcg-search-cat">Magic: The Gathering</div>
+                  <div class="tcg-search-input-wrap">
+                    <span class="tcg-search-typed" id="search-typed"></span><span class="tcg-search-cursor" id="search-cursor"></span>
+                  </div>
+                  <div class="tcg-search-go"></div>
+                </div>
+
+                <div class="search-results-header" id="results-header">
+                  <strong>20 results</strong> for "black lotus" in Magic: The Gathering
+                </div>
+
+                <div class="search-results-grid" id="results-grid">
+                  <div class="search-result-card">
+                    <div class="search-result-img">
+                      <img src="assets/black-lotus.jpg" alt="Black Lotus">
+                    </div>
+                    <div class="search-result-name">Black Lotus</div>
+                    <div class="search-result-set">Beta Edition</div>
+                    <div class="search-result-price">from $18,950</div>
+                  </div>
+                  <div class="search-result-card">
+                    <div class="search-result-img">
+                      <img src="assets/black-lotus.jpg" alt="Black Lotus" style="filter:hue-rotate(15deg) brightness(1.1);">
+                    </div>
+                    <div class="search-result-name">Black Lotus</div>
+                    <div class="search-result-set">Unlimited Edition</div>
+                    <div class="search-result-price">from $12,500</div>
+                  </div>
+                  <div class="search-result-card">
+                    <div class="search-result-img">
+                      <img src="assets/black-lotus.jpg" alt="Black Lotus" style="filter:sepia(0.3) brightness(0.95);">
+                    </div>
+                    <div class="search-result-name">Black Lotus</div>
+                    <div class="search-result-set">Alpha Edition</div>
+                    <div class="search-result-price">from $45,000</div>
+                  </div>
+                  <div class="search-result-card">
+                    <div class="search-result-img">
+                      <img src="assets/black-lotus.jpg" alt="Black Lotus" style="filter:brightness(1.2) contrast(0.9);">
+                    </div>
+                    <div class="search-result-name">Black Lotus</div>
+                    <div class="search-result-set">Collector's Edition</div>
+                    <div class="search-result-price">from $2,800</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── STEP 3: EXTRACT + DOWNLOAD ── -->
+        <div class="workflow-step reveal">
+          <div class="step-marker">
+            <span class="step-marker-icon">&#x1f4f7;</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <span class="step-tool">tapsite_extract_images + tapsite_download_images</span>
+            </div>
+            <p class="step-desc">
+              Extract all images from the page, then download the card art using the authenticated session's cookies.
+            </p>
+
+            <div class="scan-container">
+              <div>
+                <div class="card-frame">
+                  <img src="assets/black-lotus.jpg" alt="Black Lotus - Beta Edition" loading="lazy">
+                </div>
+                <div class="card-label">
+                  Black Lotus &mdash; Beta &bull; <strong>$18,950+</strong>
+                </div>
+              </div>
+
+              <div class="extracted-panels">
+                <div class="data-panel">
+                  <div class="data-panel-label">Downloaded Assets</div>
+                  <div class="download-files">
+                    <div class="download-file">
+                      <span class="check">&#x2713;</span>
+                      <span class="filename">8687_in_1000x1000.jpg</span>
+                      <span class="filesize">126.4 KB</span>
+                    </div>
+                    <div class="download-file">
+                      <span class="check">&#x2713;</span>
+                      <span class="filename">8687_in_200x200.jpg</span>
+                      <span class="filesize">6.5 KB</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="data-panel">
+                  <div class="data-panel-label">Extracted Pricing</div>
+                  <div class="price-rows">
+                    <div class="price-row">
+                      <span class="price-condition">Heavily Played</span>
+                      <span class="price-seller">AncestralMTG</span>
+                      <span class="price-value">$18,950</span>
+                    </div>
+                    <div class="price-row">
+                      <span class="price-condition">Moderately Played</span>
+                      <span class="price-seller">TOAMagic</span>
+                      <span class="price-value">$28,000</span>
+                    </div>
+                    <div class="price-row">
+                      <span class="price-condition">Near Mint</span>
+                      <span class="price-seller">LastSavePoint</span>
+                      <span class="price-value">$30,953</span>
+                    </div>
+                    <div class="price-row">
+                      <span class="price-condition">Near Mint (BGS 7.5)</span>
+                      <span class="price-seller">AncestralMTG</span>
+                      <span class="price-value">$37,500</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="data-panel">
+                  <div class="data-panel-label">Card Metadata</div>
+                  <div class="terminal-body" style="padding: 4px 0 0;">
+                    <div class="terminal-line" style="opacity:1"><span class="key">rarity</span><span class="output">:</span> <span class="value">R</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">type</span><span class="output">:</span> <span class="value">Mono Artifact</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">artist</span><span class="output">:</span> <span class="value">Christopher Rush</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">set</span><span class="output">:</span> <span class="value">Beta Edition (LEB)</span></div>
+                    <div class="terminal-line" style="opacity:1"><span class="key">lastSale</span><span class="output">:</span> <span class="warn">$25,000.00</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STEP 4: DESIGN SYSTEM ── -->
+        <div class="workflow-step reveal">
+          <div class="step-marker">
+            <span class="step-marker-icon">&#x1f3a8;</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <span class="step-tool">tapsite_designsystem</span>
+            </div>
+            <p class="step-desc">
+              One command extracts the complete design system &mdash; colors, fonts, spacing, shadows, animations, icons, and components. Exports W3C design tokens.
+            </p>
+
+            <div class="ds-results">
+              <div class="ds-stat">
+                <div class="ds-stat-value">49</div>
+                <div class="ds-stat-label">Colors</div>
+              </div>
+              <div class="ds-stat">
+                <div class="ds-stat-value">16</div>
+                <div class="ds-stat-label">Font Sizes</div>
+              </div>
+              <div class="ds-stat">
+                <div class="ds-stat-value">50</div>
+                <div class="ds-stat-label">Animations</div>
+              </div>
+              <div class="ds-stat">
+                <div class="ds-stat-value">40</div>
+                <div class="ds-stat-label">Components</div>
+              </div>
+              <div class="ds-stat">
+                <div class="ds-stat-value">23</div>
+                <div class="ds-stat-label">Icons</div>
+              </div>
+            </div>
+
+            <div class="extracted-panels" style="margin-top: 16px;">
+              <div class="data-panel" style="opacity:1; transform:none; animation:none;">
+                <div class="data-panel-label">Extracted Color Palette</div>
+                <div class="color-grid">
+                  <div class="color-swatch" style="background:#0835db" data-hex="#0835db"></div>
+                  <div class="color-swatch" style="background:#145488" data-hex="#145488"></div>
+                  <div class="color-swatch" style="background:#5ca4ff" data-hex="#5ca4ff"></div>
+                  <div class="color-swatch" style="background:#0968f6" data-hex="#0968f6"></div>
+                  <div class="color-swatch" style="background:#13725b" data-hex="#13725b"></div>
+                  <div class="color-swatch" style="background:#05772d" data-hex="#05772d"></div>
+                  <div class="color-swatch" style="background:#008352" data-hex="#008352"></div>
+                  <div class="color-swatch" style="background:#026602" data-hex="#026602"></div>
+                  <div class="color-swatch" style="background:#3cc14e" data-hex="#3cc14e"></div>
+                  <div class="color-swatch" style="background:#ffbd14" data-hex="#ffbd14"></div>
+                  <div class="color-swatch" style="background:#ffc382" data-hex="#ffc382"></div>
+                  <div class="color-swatch" style="background:#ffe58a" data-hex="#ffe58a"></div>
+                  <div class="color-swatch" style="background:#374047" data-hex="#374047"></div>
+                  <div class="color-swatch" style="background:#424850" data-hex="#424850"></div>
+                  <div class="color-swatch" style="background:#5e616c" data-hex="#5e616c"></div>
+                  <div class="color-swatch" style="background:#767676" data-hex="#767676"></div>
+                  <div class="color-swatch" style="background:#d1dce4" data-hex="#d1dce4"></div>
+                  <div class="color-swatch" style="background:#f8f8f8" data-hex="#f8f8f8"></div>
+                  <div class="color-swatch" style="background:#121212" data-hex="#121212"></div>
+                  <div class="color-swatch" style="background:#04070e" data-hex="#04070e"></div>
+                </div>
+              </div>
+
+              <div class="data-panel" style="opacity:1; transform:none; animation:none;">
+                <div class="data-panel-label">Typography &amp; Stack</div>
+                <div class="font-preview">
+                  <div class="font-row">
+                    <span class="font-name">Barlow</span>
+                    <span class="font-sample">The quick brown fox</span>
+                    <span class="font-sizes">16 sizes</span>
+                  </div>
+                  <div class="font-row">
+                    <span class="font-name">Font Awesome</span>
+                    <span class="font-sample" style="font-size:13px; color: var(--text-muted);">23 icons detected</span>
+                    <span class="font-sizes">icon font</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="data-panel" style="opacity:1; transform:none; animation:none;">
+                <div class="data-panel-label">Component Patterns</div>
+                <div class="component-list">
+                  <span class="component-chip">search-result <span class="count">20x</span></span>
+                  <span class="component-chip">footer-links <span class="count">38x</span></span>
+                  <span class="component-chip">account-menu <span class="count">21x</span></span>
+                  <span class="component-chip">swiper-slide <span class="count">14x</span></span>
+                  <span class="component-chip">svg-icon <span class="count">10x</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STEP 5: STACK ── -->
+        <div class="workflow-step reveal">
+          <div class="step-marker">
+            <span class="step-marker-icon">&#x26a1;</span>
+          </div>
+          <div class="step-content">
+            <div class="step-header">
+              <span class="step-tool">tapsite_extract_stack</span>
+            </div>
+            <p class="step-desc">
+              Fingerprint the tech stack in one call. Know what you're building against before you write a line of code.
+            </p>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <span class="terminal-dot"></span>
+                <span class="terminal-dot"></span>
+                <span class="terminal-dot"></span>
+                <span class="terminal-title">tapsite &mdash; stack detection</span>
+              </div>
+              <div class="terminal-body">
+                <div class="terminal-line" style="opacity:1"><span class="key">framework</span><span class="output">:</span>  <span class="value">Vue.js</span></div>
+                <div class="terminal-line" style="opacity:1"><span class="key">modules</span><span class="output">:</span>   <span class="value">ES Modules (bundled)</span></div>
+                <div class="terminal-line" style="opacity:1"><span class="key">hosting</span><span class="output">:</span>   <span class="value">AWS</span></div>
+                <div class="terminal-line" style="opacity:1"><span class="key">icons</span><span class="output">:</span>     <span class="value">Font Awesome 6</span></div>
+                <div class="terminal-line" style="opacity:1"><span class="key">carousel</span><span class="output">:</span>  <span class="value">Swiper.js</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── BOTTOM CTA ── -->
+      <div class="demo-cta reveal">
+        <p class="demo-cta-text">
+          <strong>5 steps. 7 tools. 1 authenticated session. Complete site intelligence.</strong><br>
+          Design tokens, component patterns, pricing data, card images, tech stack &mdash; all structured JSON.
+        </p>
+        <div class="demo-cta-links">
+          <a href="https://www.npmjs.com/package/tapsite" class="btn-primary btn-install">
+            npx -y tapsite
+          </a>
+          <a href="https://github.com/mgriffen/tapsite" class="btn-primary btn-secondary">
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    (function() {
+      // Scroll reveal
+      var els = document.querySelectorAll('.reveal');
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+      els.forEach(function(el) { observer.observe(el); });
+
+      // Search typing animation
+      var searchText = 'black lotus';
+      var typed = document.getElementById('search-typed');
+      var urlQuery = document.getElementById('url-query');
+      var cursor = document.getElementById('search-cursor');
+      var resultsHeader = document.getElementById('results-header');
+      var resultsGrid = document.getElementById('results-grid');
+      var charIndex = 0;
+      var searchStarted = false;
+
+      var searchObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting && !searchStarted) {
+            searchStarted = true;
+            searchObserver.unobserve(entry.target);
+            setTimeout(startTyping, 600);
+          }
+        });
+      }, { threshold: 0.3 });
+
+      var searchDemo = document.querySelector('.search-demo');
+      if (searchDemo) searchObserver.observe(searchDemo);
+
+      function startTyping() {
+        if (charIndex < searchText.length) {
+          var current = searchText.slice(0, charIndex + 1);
+          typed.textContent = current;
+          urlQuery.textContent = current.replace(/ /g, '+');
+          charIndex++;
+          setTimeout(startTyping, 80 + Math.random() * 60);
+        } else {
+          // Done typing — show results
+          setTimeout(function() {
+            cursor.style.display = 'none';
+            resultsHeader.classList.add('show');
+            resultsGrid.classList.add('show');
+          }, 400);
+        }
+      }
+    })();
+  </script>
+
+</body>
+</html>
