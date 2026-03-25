@@ -37,9 +37,9 @@ describe('MCP Server Integration', () => {
     await server?.close();
   });
 
-  it('lists all 53 tools', async () => {
+  it('lists all 55 tools', async () => {
     const result = await client.listTools();
-    expect(result.tools.length).toBe(53);
+    expect(result.tools.length).toBe(55);
   });
 
   it('all tools have descriptions', async () => {
