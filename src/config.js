@@ -17,4 +17,7 @@ module.exports = {
   POOL_HEALTH_CHECK_TIMEOUT_MS: 5000,
   CACHE_DIR: path.join(ROOT_DIR, 'output', 'cache'),
   CACHE_TTL_MS: 3600000, // 1 hour
+  PROXY_LIST: JSON.parse(process.env.TAPSITE_PROXIES || '[]'),
+  ANTI_BOT_MAX_TIER: 3,
+  ANTI_BOT_RETRY_DELAY: 2000,
 };
