@@ -9,7 +9,9 @@ vi.mock('../src/stealth-setup.js', () => ({
 
 vi.mock('../src/browser-pool.js', () => {
   class MockBrowserPool {
-    constructor() {
+    constructor(opts = {}) {
+      this._opts = opts;
+      this._headless = opts.headless ?? true;
       this._primaryContext = { id: 'mock-context' };
       this._primaryPage = { id: 'mock-page', goto: vi.fn() };
     }
@@ -75,6 +77,20 @@ describe('browser.js facade', () => {
     const poolRef = browser.pool;
     await browser.ensureBrowser(); // second call should be a no-op
     expect(browser.pool).toBe(poolRef);
+    await browser.closeBrowser();
+  });
+
+  it('should forward headless=false to BrowserPool constructor', async () => {
+    await browser.ensureBrowser(false);
+    expect(browser.pool).toBeTruthy();
+    expect(browser.pool._headless).toBe(false);
+    await browser.closeBrowser();
+  });
+
+  it('should forward headless=true (default) to BrowserPool constructor', async () => {
+    await browser.ensureBrowser();
+    expect(browser.pool).toBeTruthy();
+    expect(browser.pool._headless).toBe(true);
     await browser.closeBrowser();
   });
 });

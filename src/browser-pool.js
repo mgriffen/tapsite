@@ -13,6 +13,7 @@ class BrowserPool {
   constructor(opts = {}) {
     this._chromium = opts.chromium ?? defaultChromium;
     this._poolSize = opts.poolSize ?? config.POOL_SIZE;
+    this._headless = opts.headless ?? true;
     this._healthCheckTimeout = opts.healthCheckTimeout ?? config.POOL_HEALTH_CHECK_TIMEOUT_MS;
     this._acquireTimeout = opts.acquireTimeout ?? 30000;
     this._browser = null;
@@ -43,14 +44,14 @@ class BrowserPool {
   async init() {
     // Launch shared browser
     this._browser = await this._chromium.launch({
-      headless: true,
+      headless: this._headless,
       args: ['--disable-blink-features=AutomationControlled'],
     });
 
     // Launch persistent context for auth/session data
     fs.mkdirSync(config.PROFILE_DIR, { recursive: true });
     this._primaryContext = await this._chromium.launchPersistentContext(config.PROFILE_DIR, {
-      headless: true,
+      headless: this._headless,
       viewport: config.VIEWPORT,
       ignoreHTTPSErrors: false,
       acceptDownloads: false,

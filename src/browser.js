@@ -7,15 +7,16 @@ let elementMap = [];
 
 async function ensureBrowser(headless = true) {
   if (pool) return;
-  pool = new BrowserPool({ poolSize: config.POOL_SIZE });
+  pool = new BrowserPool({ poolSize: config.POOL_SIZE, headless });
   await pool.init();
 }
 
 async function closeBrowser() {
   if (pool) {
-    await pool.drain();
+    const draining = pool;
     pool = null;
     elementMap = [];
+    await draining.drain();
   }
 }
 
