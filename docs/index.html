@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png"/>
+<title>Tapsite | Total Web Intelligence</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#00465b",
+              "surface-variant": "#25252d",
+              "on-tertiary-container": "#001160",
+              "error": "#ff716c",
+              "on-tertiary": "#001a81",
+              "on-secondary-fixed-variant": "#004ea5",
+              "surface-container-low": "#131319",
+              "surface-bright": "#2c2b33",
+              "on-secondary-container": "#ebefff",
+              "on-secondary-fixed": "#00326f",
+              "on-primary-fixed": "#002431",
+              "tertiary": "#93a2ff",
+              "secondary-container": "#0557b5",
+              "on-tertiary-fixed": "#000d53",
+              "on-surface-variant": "#acaab1",
+              "background": "#151520",
+              "tertiary-fixed": "#9eabff",
+              "on-secondary": "#001f49",
+              "error-container": "#9f0519",
+              "surface-container-lowest": "#0a0a12",
+              "secondary-fixed": "#bed2ff",
+              "secondary-dim": "#669dff",
+              "on-primary-fixed-variant": "#00455a",
+              "tertiary-dim": "#8596ff",
+              "on-error": "#490006",
+              "surface-tint": "#68d3ff",
+              "tertiary-container": "#8293fd",
+              "secondary": "#669dff",
+              "surface-container-high": "#1f1f26",
+              "on-primary-container": "#003c4f",
+              "on-background": "#f9f5fd",
+              "inverse-on-surface": "#55545b",
+              "primary-container": "#00c8fe",
+              "primary": "#68d3ff",
+              "primary-dim": "#00b9ec",
+              "outline": "#76747b",
+              "inverse-surface": "#fcf8ff",
+              "outline-variant": "#48474d",
+              "primary-fixed-dim": "#00b9ec",
+              "on-tertiary-fixed-variant": "#172c94",
+              "on-error-container": "#ffa8a3",
+              "surface": "#151520",
+              "surface-container": "#1e1e28",
+              "on-surface": "#f9f5fd",
+              "inverse-primary": "#006785",
+              "error-dim": "#d7383b",
+              "primary-fixed": "#00c8fe",
+              "surface-dim": "#151520",
+              "surface-container-highest": "#25252d",
+              "tertiary-fixed-dim": "#8c9cff",
+              "secondary-fixed-dim": "#a8c4ff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Space Grotesk"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #151520; color: #f9f5fd; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(37, 37, 45, 0.6); backdrop-filter: blur(20px); }
+        .mono { font-family: 'Space Grotesk', monospace; }
+        .ghost-border { border: 1px solid rgba(72, 71, 77, 0.15); }
+    </style>
+</head>
+<body class="selection:bg-primary/30">
+<!-- Top Navigation -->
+<nav class="fixed top-0 w-full z-50 bg-slate-950/60 backdrop-blur-xl border-b border-white/5">
+<div class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-2">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" class="text-primary"><path fill="currentColor" d="M19 14v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5 9h5V7l5.36-1.79a.932.932 0 1 0-.61-1.76L5 7z"/></svg>
+<span class="text-2xl font-black tracking-tighter text-on-surface font-headline">tapsite</span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant font-medium hover:text-on-surface transition-colors font-label text-sm tracking-wide" href="#capabilities">Features</a>
+<a class="text-on-surface-variant font-medium hover:text-on-surface transition-colors font-label text-sm tracking-wide" href="demo.html">Demo</a>
+<a class="text-on-surface-variant font-medium hover:text-on-surface transition-colors font-label text-sm tracking-wide" href="https://github.com/mgriffen/tapsite">GitHub</a>
+</div>
+<div class="flex items-center gap-4">
+<a href="https://github.com/mgriffen/tapsite#installation" class="px-5 py-2 bg-primary text-on-primary font-bold rounded-md hover:shadow-[0_0_20px_rgba(104,211,255,0.4)] transition-all active:scale-95 font-label text-sm">Get Started</a>
+</div>
+</div>
+</nav>
+<main class="pt-24">
+<!-- Hero Section -->
+<section class="max-w-7xl mx-auto px-6 py-20 md:py-32 flex flex-col md:flex-row items-start gap-16">
+<div class="w-full md:w-1/2 space-y-8">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary font-label text-xs tracking-widest uppercase">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+                    Open Source · MIT License
+                </div>
+<h1 class="text-5xl md:text-7xl font-extrabold font-headline leading-[1.1] tracking-tighter text-on-background">
+                    55 Tools. <br/>One MCP Server. <br/><span class="text-primary-container">Total Web Intelligence.</span>
+</h1>
+<p class="text-lg md:text-xl text-on-surface-variant leading-relaxed max-w-xl font-body">
+                    Tap into any website's DNA — design tokens, accessibility scores, tech stacks, security headers — all returned as structured JSON your AI agent can act on. Your agent decides which tools to call, combines the results, and presents them however you ask — a competitive teardown deck, an accessibility audit report, a design token file ready to drop into your codebase. 55 extraction tools with custom CSS, XPath, and regex selectors. Anti-bot resilience with automatic proxy rotation. Persistent caching across sessions. Runs locally. Supports authenticated sessions behind MFA and SSO. Zero config.
+                </p>
+<div class="flex flex-wrap gap-4 pt-4">
+<a href="https://github.com/mgriffen/tapsite#installation" class="px-8 py-4 bg-primary text-on-primary font-bold rounded-md shadow-[0_0_30px_rgba(104,211,255,0.2)] hover:scale-[1.02] transition-transform font-label">Get Started</a>
+<a href="https://www.npmjs.com/package/tapsite" class="px-8 py-4 bg-white/5 text-on-surface font-bold rounded-md hover:bg-white/10 transition-colors font-label">View on npm</a>
+</div>
+<!-- MCP Config Snippet -->
+<div class="mt-12 max-w-lg">
+<div class="bg-surface-container-lowest rounded-xl p-5 font-mono text-sm border border-primary/30 text-secondary-dim shadow-[0_0_30px_rgba(104,211,255,0.15),0_0_60px_rgba(104,211,255,0.05)]">
+<div class="flex items-center justify-between mb-3">
+<span class="text-[10px] uppercase tracking-[0.15em] text-outline font-label">MCP Config</span>
+<button onclick="navigator.clipboard.writeText(JSON.stringify({mcpServers:{tapsite:{command:'npx',args:['-y','tapsite']}}},null,2))" class="text-[10px] text-primary hover:text-primary-container transition-colors font-label cursor-pointer flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+</button>
+</div>
+<div>{</div>
+<div class="pl-5">"mcpServers": {</div>
+<div class="pl-10 text-primary-dim">"tapsite": {</div>
+<div class="pl-14">"command": "npx",</div>
+<div class="pl-14">"args": ["-y", "tapsite"]</div>
+<div class="pl-10">}</div>
+<div class="pl-5">}</div>
+<div>}</div>
+</div>
+</div>
+</div>
+<div class="w-full md:w-1/2 relative">
+<div class="relative z-10 rounded-xl overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] ghost-border bg-[#1a1a24]">
+<!-- Minimal Chrome -->
+<div class="flex items-center px-4 py-2.5 bg-surface-container-high border-b border-white/5">
+<div class="flex gap-1.5">
+<div class="w-2.5 h-2.5 rounded-full bg-[#ff5f57]/40"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-[#febc2e]/40"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-[#28c840]/40"></div>
+</div>
+</div>
+<!-- Report Content -->
+<div class="overflow-hidden relative">
+<!-- Report Header -->
+<div class="flex justify-between items-start px-5 py-4 border-b border-white/5">
+<div class="flex items-center gap-2">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" class="text-primary"><path fill="currentColor" d="M19 14v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5 9h5V7l5.36-1.79a.932.932 0 1 0-.61-1.76L5 7z"/></svg>
+<span class="font-headline font-extrabold text-sm tracking-tight">tapsite</span>
+</div>
+<div class="text-right font-label text-[8px] text-outline leading-relaxed">
+<span class="text-on-surface-variant">TSR-2026-0847</span><br/>
+Mar 24, 2026 · 14:32 UTC<br/>
+3.2s · 55 tools executed
+</div>
+</div>
+<!-- Title Bar -->
+<div class="px-5 py-3 border-b border-white/5" style="background: linear-gradient(135deg, rgba(0,200,254,0.06) 0%, rgba(5,87,181,0.04) 100%);">
+<div class="font-headline font-extrabold text-base tracking-tight mb-0.5">Web Intelligence Report</div>
+<div class="font-label text-[10px] text-primary">https://acme.com</div>
+</div>
+<!-- Score Strip -->
+<div class="grid grid-cols-5 border-b border-white/5">
+<div class="py-3 text-center border-r border-white/5">
+<div class="font-headline font-extrabold text-xl text-[#00d4aa]">A+</div>
+<div class="font-label text-[7px] uppercase tracking-[0.15em] text-outline mt-0.5">Security</div>
+</div>
+<div class="py-3 text-center border-r border-white/5">
+<div class="font-headline font-extrabold text-xl text-primary">98</div>
+<div class="font-label text-[7px] uppercase tracking-[0.15em] text-outline mt-0.5">Accessibility</div>
+</div>
+<div class="py-3 text-center border-r border-white/5">
+<div class="font-headline font-extrabold text-xl text-tertiary">94</div>
+<div class="font-label text-[7px] uppercase tracking-[0.15em] text-outline mt-0.5">Performance</div>
+</div>
+<div class="py-3 text-center border-r border-white/5">
+<div class="font-headline font-extrabold text-xl text-secondary">42</div>
+<div class="font-label text-[7px] uppercase tracking-[0.15em] text-outline mt-0.5">Design Tokens</div>
+</div>
+<div class="py-3 text-center">
+<div class="font-headline font-extrabold text-xl text-on-surface">7</div>
+<div class="font-label text-[7px] uppercase tracking-[0.15em] text-outline mt-0.5">Frameworks</div>
+</div>
+</div>
+<!-- Color Palette Section -->
+<div class="px-5 py-4">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<span class="font-headline text-[9px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Color Palette</span>
+</div>
+<span class="font-label text-[8px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">14 colors extracted</span>
+</div>
+<div class="grid grid-cols-8 gap-1.5 mb-1.5">
+<div>
+<div class="rounded h-6" style="background:#635bff"></div>
+<div class="font-label text-[6px] text-outline text-center mt-1">#635BFF</div>
+</div>
+<div>
+<div class="rounded h-6" style="background:#0a2540"></div>
+<div class="font-label text-[6px] text-outline text-center mt-1">#0A2540</div>
+</div>
+<div>
+<div class="rounded h-6" style="background:#00d4aa"></div>
+<div class="font-label text-[6px] text-outline text-center mt-1">#00D4AA</div>
+</div>
+<div>
+<div class="rounded h-6" style="background:#425466"></div>
+<div class="font-label text-[6px] text-outline text-center mt-1">#425466</div>
+</div>
+<div>
+<div class="rounded h-6" style="background:#7a73ff"></div>
+<div class="font-label text-[6px] text-outline text-center mt-1">#7A73FF</div>
+</div>
+<div>
+<div class="rounded h-6" style="background:#adbdcc"></div>
+<div class="font-label text-[6px] text-outline text-center mt-1">#ADBDCC</div>
+</div>
+<div>
+<div class="rounded h-6" style="background:#f6f9fc"></div>
+<div class="font-label text-[6px] text-outline text-center mt-1">#F6F9FC</div>
+</div>
+<div>
+<div class="rounded h-6" style="background:#ff6059"></div>
+<div class="font-label text-[6px] text-outline text-center mt-1">#FF6059</div>
+</div>
+</div>
+</div>
+<!-- Typography Section -->
+<div class="px-5 py-4 border-t border-white/5">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-tertiary"></div>
+<span class="font-headline text-[9px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Typography</span>
+</div>
+<span class="font-label text-[8px] px-1.5 py-0.5 rounded bg-tertiary/10 text-tertiary border border-tertiary/20">3 font families</span>
+</div>
+<div class="flex gap-2">
+<div class="flex-1 bg-surface-container-lowest rounded-lg p-3">
+<div class="font-headline text-lg font-bold mb-1">Aa Bb Cc</div>
+<div class="font-label text-[7px] text-outline leading-relaxed">sohne-var · 400, 500, 700</div>
+</div>
+<div class="flex-1 bg-surface-container-lowest rounded-lg p-3">
+<div class="font-label text-base font-medium mb-1">01 { } =&gt;</div>
+<div class="font-label text-[7px] text-outline leading-relaxed">sohne-mono · 400</div>
+</div>
+</div>
+</div>
+<!-- Performance Metrics Section -->
+<div class="px-5 py-4 border-t border-white/5">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+<span class="font-headline text-[9px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Performance Metrics</span>
+</div>
+<span class="font-label text-[8px] px-1.5 py-0.5 rounded bg-secondary/10 text-secondary border border-secondary/20">Core Web Vitals</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="font-label text-[8px] text-on-surface-variant w-8 text-right">LCP</span>
+<div class="flex-1 h-3 bg-surface-container-lowest rounded-sm overflow-hidden"><div class="h-full rounded-sm" style="width:85%;background:linear-gradient(90deg,#00d4aa,#68d3ff)"></div></div>
+<span class="font-label text-[8px] text-on-surface w-7 text-right">1.2s</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label text-[8px] text-on-surface-variant w-8 text-right">FID</span>
+<div class="flex-1 h-3 bg-surface-container-lowest rounded-sm overflow-hidden"><div class="h-full rounded-sm" style="width:95%;background:linear-gradient(90deg,#00d4aa,#68d3ff)"></div></div>
+<span class="font-label text-[8px] text-on-surface w-7 text-right">12ms</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label text-[8px] text-on-surface-variant w-8 text-right">CLS</span>
+<div class="flex-1 h-3 bg-surface-container-lowest rounded-sm overflow-hidden"><div class="h-full rounded-sm" style="width:90%;background:linear-gradient(90deg,#00d4aa,#68d3ff)"></div></div>
+<span class="font-label text-[8px] text-on-surface w-7 text-right">0.03</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label text-[8px] text-on-surface-variant w-8 text-right">TTFB</span>
+<div class="flex-1 h-3 bg-surface-container-lowest rounded-sm overflow-hidden"><div class="h-full rounded-sm" style="width:78%;background:linear-gradient(90deg,#93a2ff,#669dff)"></div></div>
+<span class="font-label text-[8px] text-on-surface w-7 text-right">180ms</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label text-[8px] text-on-surface-variant w-8 text-right">INP</span>
+<div class="flex-1 h-3 bg-surface-container-lowest rounded-sm overflow-hidden"><div class="h-full rounded-sm" style="width:88%;background:linear-gradient(90deg,#00d4aa,#68d3ff)"></div></div>
+<span class="font-label text-[8px] text-on-surface w-7 text-right">52ms</span>
+</div>
+</div>
+</div>
+<!-- Tech Stack Section -->
+<div class="px-5 py-4 border-t border-white/5">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-[#00d4aa]"></div>
+<span class="font-headline text-[9px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Technology Stack</span>
+</div>
+<span class="font-label text-[8px] px-1.5 py-0.5 rounded bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/20">7 detected</span>
+</div>
+<div class="w-full text-[9px]">
+<div class="grid grid-cols-4 gap-1 font-label text-[7px] uppercase tracking-[0.1em] text-outline pb-1.5 border-b border-white/5 mb-1">
+<div>Technology</div><div>Version</div><div>Category</div><div>Confidence</div>
+</div>
+<div class="grid grid-cols-4 gap-1 py-1 border-b border-white/[0.03] items-center">
+<div class="text-on-surface font-medium text-[9px]">React</div><div class="text-on-surface-variant text-[9px]">18.2.0</div>
+<div><span class="px-1 py-0.5 rounded text-[7px] bg-primary/10 text-primary">Framework</span></div>
+<div class="text-[#00d4aa] text-[8px]">●●●●○</div>
+</div>
+<div class="grid grid-cols-4 gap-1 py-1 border-b border-white/[0.03] items-center">
+<div class="text-on-surface font-medium text-[9px]">Next.js</div><div class="text-on-surface-variant text-[9px]">14.1.2</div>
+<div><span class="px-1 py-0.5 rounded text-[7px] bg-tertiary/10 text-tertiary">Meta-framework</span></div>
+<div class="text-[#00d4aa] text-[8px]">●●●●●</div>
+</div>
+<div class="grid grid-cols-4 gap-1 py-1 border-b border-white/[0.03] items-center">
+<div class="text-on-surface font-medium text-[9px]">TypeScript</div><div class="text-on-surface-variant text-[9px]">5.3</div>
+<div><span class="px-1 py-0.5 rounded text-[7px] bg-secondary/10 text-secondary">Language</span></div>
+<div class="text-[#00d4aa] text-[8px]">●●●●○</div>
+</div>
+<div class="grid grid-cols-4 gap-1 py-1 border-b border-white/[0.03] items-center">
+<div class="text-on-surface font-medium text-[9px]">Vercel</div><div class="text-on-surface-variant text-[9px]">—</div>
+<div><span class="px-1 py-0.5 rounded text-[7px] bg-[#00d4aa]/10 text-[#00d4aa]">Hosting</span></div>
+<div class="text-[#00d4aa] text-[8px]">●●●●●</div>
+</div>
+<div class="grid grid-cols-4 gap-1 py-1 border-b border-white/[0.03] items-center">
+<div class="text-on-surface font-medium text-[9px]">Stripe.js</div><div class="text-on-surface-variant text-[9px]">3.x</div>
+<div><span class="px-1 py-0.5 rounded text-[7px] bg-[#7a73ff]/10 text-[#7a73ff]">Payments</span></div>
+<div class="text-primary text-[8px]">●●●○○</div>
+</div>
+<div class="grid grid-cols-4 gap-1 py-1 items-center">
+<div class="text-on-surface font-medium text-[9px]">Cloudflare</div><div class="text-on-surface-variant text-[9px]">—</div>
+<div><span class="px-1 py-0.5 rounded text-[7px] bg-[#ff6059]/10 text-[#ff6059]">CDN</span></div>
+<div class="text-[#00d4aa] text-[8px]">●●●●●</div>
+</div>
+</div>
+</div>
+<!-- Security Posture Section -->
+<div class="px-5 py-4 border-t border-white/5">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-[#00d4aa]"></div>
+<span class="font-headline text-[9px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">Security Posture</span>
+</div>
+<span class="font-label text-[8px] px-1.5 py-0.5 rounded bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/20">Grade: A+</span>
+</div>
+<div class="grid grid-cols-2 gap-1.5">
+<div class="flex items-center gap-2 bg-surface-container-lowest rounded p-2">
+<div class="w-4 h-4 rounded-full bg-[#00d4aa]/15 flex items-center justify-center text-[#00d4aa] text-[8px] font-bold flex-shrink-0">✓</div>
+<div><div class="text-[8px] text-on-surface font-medium">CSP</div><div class="text-[6px] text-outline">Strict with nonces</div></div>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest rounded p-2">
+<div class="w-4 h-4 rounded-full bg-[#00d4aa]/15 flex items-center justify-center text-[#00d4aa] text-[8px] font-bold flex-shrink-0">✓</div>
+<div><div class="text-[8px] text-on-surface font-medium">HSTS</div><div class="text-[6px] text-outline">max-age=31536000</div></div>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest rounded p-2">
+<div class="w-4 h-4 rounded-full bg-[#00d4aa]/15 flex items-center justify-center text-[#00d4aa] text-[8px] font-bold flex-shrink-0">✓</div>
+<div><div class="text-[8px] text-on-surface font-medium">SRI</div><div class="text-[6px] text-outline">All scripts verified</div></div>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest rounded p-2">
+<div class="w-4 h-4 rounded-full bg-[#ffa83f]/15 flex items-center justify-center text-[#ffa83f] text-[8px] font-bold flex-shrink-0">!</div>
+<div><div class="text-[8px] text-on-surface font-medium">Permissions</div><div class="text-[6px] text-outline">Camera unrestricted</div></div>
+</div>
+</div>
+</div>
+<!-- Report Footer -->
+<div class="px-5 py-3 bg-[#0a0a0f] border-t border-white/5 flex justify-between">
+<span class="font-label text-[7px] text-outline">Generated by tapsite · 55 tools · MIT License</span>
+<span class="font-label text-[7px] text-outline">TSR-2026-0847</span>
+</div>
+</div>
+</div>
+<!-- Backdrop Decoration -->
+<div class="absolute -top-10 -right-10 w-64 h-64 bg-primary/20 blur-[120px] rounded-full"></div>
+<div class="absolute -bottom-10 -left-10 w-64 h-64 bg-secondary/10 blur-[100px] rounded-full"></div>
+</div>
+</section>
+<!-- Stats Strip -->
+<section class="max-w-7xl mx-auto px-6 py-12">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-0 divide-x divide-white/5 border-y border-white/5 py-12">
+<div class="px-8 text-center md:text-left">
+<div class="text-3xl font-bold font-headline text-on-background">55</div>
+<div class="text-xs font-label text-primary mt-1 uppercase tracking-widest">MCP Tools</div>
+</div>
+<div class="px-8 text-center md:text-left">
+<div class="text-3xl font-bold font-headline text-on-background">11</div>
+<div class="text-xs font-label text-primary mt-1 uppercase tracking-widest">Categories</div>
+</div>
+<div class="px-8 text-center md:text-left">
+<div class="text-3xl font-bold font-headline text-on-background">4</div>
+<div class="text-xs font-label text-primary mt-1 uppercase tracking-widest">Workflows</div>
+</div>
+<div class="px-8 text-center md:text-left">
+<div class="text-3xl font-bold font-headline text-on-background">Zero</div>
+<div class="text-xs font-label text-primary mt-1 uppercase tracking-widest">Config Required</div>
+</div>
+</div>
+</section>
+<!-- Key Capabilities -->
+<section id="capabilities" class="max-w-7xl mx-auto px-6 py-24">
+<div class="flex items-center gap-6 mb-12">
+<h2 class="text-3xl font-bold font-headline tracking-tight">Key Capabilities</h2>
+<div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Featured Card: Design System Extraction -->
+<div class="md:col-span-2 relative group overflow-hidden rounded-xl ghost-border bg-surface-container p-8 h-[400px] flex flex-col justify-between">
+<div class="absolute -right-20 -top-20 w-80 h-80 bg-primary/10 blur-[100px] rounded-full"></div>
+<div class="relative z-10">
+<span class="material-symbols-outlined text-primary text-4xl mb-6">palette</span>
+<h3 class="text-4xl font-black font-headline mb-4">Design System Extraction</h3>
+<p class="text-on-surface-variant max-w-md font-body text-lg leading-relaxed">Extract color palettes, typography rules, spacing scales, CSS variables, shadows, and component patterns from any website. Get the complete design DNA as structured JSON.</p>
+</div>
+<div class="relative z-10 flex gap-2 flex-wrap">
+<span class="px-2 py-1 bg-surface-container-lowest rounded text-[10px] font-label border border-outline-variant/20">COLORS</span>
+<span class="px-2 py-1 bg-surface-container-lowest rounded text-[10px] font-label border border-outline-variant/20">FONTS</span>
+<span class="px-2 py-1 bg-surface-container-lowest rounded text-[10px] font-label border border-outline-variant/20">CSS-VARS</span>
+<span class="px-2 py-1 bg-surface-container-lowest rounded text-[10px] font-label border border-outline-variant/20">SPACING</span>
+<span class="px-2 py-1 bg-surface-container-lowest rounded text-[10px] font-label border border-outline-variant/20">SHADOWS</span>
+<span class="px-2 py-1 bg-surface-container-lowest rounded text-[10px] font-label border border-outline-variant/20">COMPONENTS</span>
+</div>
+</div>
+<!-- Stacked Cards -->
+<div class="grid grid-rows-2 gap-6">
+<div class="rounded-xl ghost-border bg-surface-container-high p-6 flex flex-col justify-between group hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary text-4xl">lock_open</span>
+<div>
+<h4 class="text-xl font-bold font-headline mb-1">Authenticated Browsing</h4>
+<p class="text-sm text-outline font-body">Log in once through a headed browser — MFA, SSO, whatever the site requires. Session persists across all tool calls. Credentials never touch the wire.</p>
+</div>
+</div>
+<div class="rounded-xl ghost-border bg-surface-container-high p-6 flex flex-col justify-between group hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-secondary text-4xl">shield</span>
+<div>
+<h4 class="text-xl font-bold font-headline mb-1">Prompt Injection Defense</h4>
+<p class="text-sm text-outline font-body">Hidden element filtering at extraction time plus output sanitization before anything reaches your LLM. Two layers, zero trust.</p>
+</div>
+</div>
+</div>
+<!-- Engine Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+<div class="rounded-xl ghost-border bg-surface-container-high p-6 flex items-center gap-6 group hover:bg-surface-container-highest transition-colors">
+<div class="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">speed</span>
+</div>
+<div>
+<h4 class="text-xl font-bold font-headline mb-1">Parallel Browser Pooling</h4>
+<p class="text-sm text-outline font-body">Multiple browser contexts for concurrent page extraction. Crawl entire sites faster with managed pool slots.</p>
+</div>
+</div>
+<div class="rounded-xl ghost-border bg-surface-container-high p-6 flex items-center gap-6 group hover:bg-surface-container-highest transition-colors">
+<div class="w-16 h-16 rounded-lg bg-tertiary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-3xl">cached</span>
+</div>
+<div>
+<h4 class="text-xl font-bold font-headline mb-1">Persistent Disk Caching</h4>
+<p class="text-sm text-outline font-body">Crawl results cached with TTL. Interrupted crawls resume automatically. Results reused across sessions.</p>
+</div>
+</div>
+<div class="rounded-xl ghost-border bg-surface-container-high p-6 flex items-center gap-6 group hover:bg-surface-container-highest transition-colors">
+<div class="w-16 h-16 rounded-lg bg-[#ff6059]/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-[#ff6059] text-3xl">security</span>
+</div>
+<div>
+<h4 class="text-xl font-bold font-headline mb-1">Anti-Bot Escalation</h4>
+<p class="text-sm text-outline font-body">3-tier system: default browser, stealth scripts, isolated contexts with proxy rotation. Automatic per-domain escalation.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+<div class="rounded-xl ghost-border bg-surface-container-high p-6 flex items-center gap-6 group hover:bg-surface-container-highest transition-colors">
+<div class="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">verified_user</span>
+</div>
+<div>
+<h4 class="text-xl font-bold font-headline mb-1">Security &amp; Accessibility Audits</h4>
+<p class="text-sm text-outline font-body">CSP scoring, SRI checks, WCAG compliance, contrast ratios — actionable letter grades, not just raw data.</p>
+</div>
+</div>
+<div class="rounded-xl ghost-border bg-surface-container-high p-6 flex items-center gap-6 group hover:bg-surface-container-highest transition-colors">
+<div class="w-16 h-16 rounded-lg bg-secondary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-3xl">dns</span>
+</div>
+<div>
+<h4 class="text-xl font-bold font-headline mb-1">Tech Stack Intelligence</h4>
+<p class="text-sm text-outline font-body">Framework detection, third-party script classification, storage profiling, WASM analysis — know what's under the hood.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Tool Modules -->
+<section class="max-w-7xl mx-auto px-6 py-24 bg-surface-container-lowest rounded-[2rem] border border-white/5">
+<div class="text-center mb-16">
+<h2 class="text-4xl md:text-5xl font-black font-headline tracking-tighter mb-4">55 Tools, 11 Categories</h2>
+<p class="text-on-surface-variant font-body">Every tool returns structured JSON designed for LLM context windows. One MCP server, modular by design.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-primary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">open_in_browser</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-primary/10 text-primary border border-primary/20 rounded">8 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Session</h3>
+<p class="text-sm text-on-surface-variant font-body">Navigate, authenticate, interact, screenshot — persistent browser context across calls.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-[#00d4aa]/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[#00d4aa]">article</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/20 rounded">6 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Content Extraction</h3>
+<p class="text-sm text-on-surface-variant font-body">Tables, links, metadata, forms, and clean Markdown with relevance filtering and chunking.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-[#ff6059]/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[#ff6059]">code</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-[#ff6059]/10 text-[#ff6059] border border-[#ff6059]/20 rounded">2 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Custom Extraction</h3>
+<p class="text-sm text-on-surface-variant font-body">Bring your own CSS, XPath, or regex selectors — plus auto-schema suggestion from page structure.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-tertiary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">palette</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-tertiary/10 text-tertiary border border-tertiary/20 rounded">5 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Design Tokens</h3>
+<p class="text-sm text-on-surface-variant font-body">Colors, fonts, CSS variables, spacing scales, and shadow patterns as structured JSON or W3C tokens.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-[#ffa83f]/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[#ffa83f]">image</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-[#ffa83f]/10 text-[#ffa83f] border border-[#ffa83f]/20 rounded">4 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Visual Assets</h3>
+<p class="text-sm text-on-surface-variant font-body">Images, SVGs, favicons — inventory with dimensions, formats, and bulk download.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-secondary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">dashboard</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-secondary/10 text-secondary border border-secondary/20 rounded">3 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Layout Intelligence</h3>
+<p class="text-sm text-on-surface-variant font-body">Layout trees, component detection, responsive breakpoints and framework detection.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-primary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">verified_user</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-primary/10 text-primary border border-primary/20 rounded">7 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Quality &amp; Compliance</h3>
+<p class="text-sm text-on-surface-variant font-body">Accessibility, contrast, performance, security headers, dark mode, PWA readiness, i18n.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-[#7a73ff]/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[#7a73ff]">dns</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-[#7a73ff]/10 text-[#7a73ff] border border-[#7a73ff]/20 rounded">10 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Technology Detection</h3>
+<p class="text-sm text-on-surface-variant font-body">Frameworks, animations, icons, GraphQL, AI/ML, canvas, WASM, web components, third-party scripts, storage.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-secondary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">cell_tower</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-secondary/10 text-secondary border border-secondary/20 rounded">2 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Network &amp; API</h3>
+<p class="text-sm text-on-surface-variant font-body">Capture traffic and infer API schemas from observed requests.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-tertiary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">compare</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-tertiary/10 text-tertiary border border-tertiary/20 rounded">2 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Multi-page</h3>
+<p class="text-sm text-on-surface-variant font-body">Crawl sites with parallel browser pooling and diff pages over time with cached snapshots.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-[#ffa83f]/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[#ffa83f]">download</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-[#ffa83f]/10 text-[#ffa83f] border border-[#ffa83f]/20 rounded">2 TOOLS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Export</h3>
+<p class="text-sm text-on-surface-variant font-body">JSON, Markdown, HTML reports, CSV tables, screenshots, and W3C design tokens.</p>
+</div>
+<div class="rounded-2xl bg-surface-container border border-white/5 p-6 flex flex-col justify-between hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-primary/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">bolt</span>
+</div>
+<span class="font-label text-[10px] py-1 px-2 bg-primary/10 text-primary border border-primary/20 rounded">4 PRESETS</span>
+</div>
+<h3 class="text-lg font-bold font-headline mb-1">Workflows</h3>
+<p class="text-sm text-on-surface-variant font-body">One-command presets — full audit, harvest, design system, teardown.</p>
+</div>
+</div>
+</section>
+<!-- How It Works -->
+<section class="max-w-7xl mx-auto px-6 py-32 relative">
+<div class="mb-20">
+<h2 class="text-4xl font-black font-headline tracking-tighter">Get Started in 60 Seconds</h2>
+<p class="text-on-surface-variant font-body mt-2">Three steps to web intelligence in your AI workflow.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+<!-- Step 1 -->
+<div class="relative z-10 space-y-6">
+<div class="text-7xl font-black font-headline text-white/5 absolute -top-12 -left-4 pointer-events-none select-none">01</div>
+<div class="space-y-4">
+<h3 class="text-2xl font-bold font-headline flex items-center gap-3">
+<span class="w-8 h-8 rounded bg-primary text-on-primary text-sm flex items-center justify-center">1</span>
+                            Install
+                        </h3>
+<p class="text-on-surface-variant font-body leading-relaxed">That's it. No API keys, no accounts, no config files.</p>
+<div class="bg-surface-container-lowest rounded-lg p-4 font-mono text-[11px] border border-white/10 text-primary-dim">
+npx -y tapsite
+</div>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="relative z-10 space-y-6">
+<div class="text-7xl font-black font-headline text-white/5 absolute -top-12 -left-4 pointer-events-none select-none">02</div>
+<div class="space-y-4">
+<h3 class="text-2xl font-bold font-headline flex items-center gap-3">
+<span class="w-8 h-8 rounded bg-primary text-on-primary text-sm flex items-center justify-center">2</span>
+                            Add to your MCP client
+                        </h3>
+<p class="text-on-surface-variant font-body leading-relaxed">Works with Claude Code, Cursor, Windsurf, or any MCP-compatible client.</p>
+<div class="bg-surface-container-lowest rounded-lg p-4 font-mono text-[11px] border border-white/10 text-secondary-dim">
+<div>{</div>
+<div class="pl-4">"mcpServers": {</div>
+<div class="pl-8 text-primary-dim">"tapsite": {</div>
+<div class="pl-12">"command": "npx",</div>
+<div class="pl-12">"args": ["-y", "tapsite"]</div>
+<div class="pl-8">}</div>
+<div class="pl-4">}</div>
+<div>}</div>
+</div>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="relative z-10 space-y-6">
+<div class="text-7xl font-black font-headline text-white/5 absolute -top-12 -left-4 pointer-events-none select-none">03</div>
+<div class="space-y-4">
+<h3 class="text-2xl font-bold font-headline flex items-center gap-3">
+<span class="w-8 h-8 rounded bg-primary text-on-primary text-sm flex items-center justify-center">3</span>
+                            Ask your agent
+                        </h3>
+<p class="text-on-surface-variant font-body leading-relaxed">Your agent calls the right tools and returns structured JSON. You decide what to do with it.</p>
+<div class="bg-surface-container-high rounded-lg p-5 border border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
+<div class="flex items-start gap-3">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[12px] text-primary">person</span>
+</div>
+<p class="text-[12px] font-body text-on-surface italic">"Extract the design system from stripe.com"</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Connecting Lines (Desktop only) -->
+<div class="hidden md:block absolute top-16 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent -z-0"></div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-dim w-full py-12 border-t border-white/5">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto gap-8">
+<div class="flex items-center gap-2">
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="text-primary"><path fill="currentColor" d="M19 14v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5 9h5V7l5.36-1.79a.932.932 0 1 0-.61-1.76L5 7z"/></svg>
+<span class="text-xl font-bold text-on-surface font-headline tracking-tighter">tapsite</span>
+</div>
+<div class="flex flex-wrap justify-center gap-8 items-center">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label text-xs uppercase tracking-widest" href="https://github.com/mgriffen/tapsite">GitHub</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label text-xs uppercase tracking-widest" href="https://www.npmjs.com/package/tapsite">npm</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label text-xs uppercase tracking-widest" href="https://mgriffen.github.io/tapsite/">Documentation</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label text-xs uppercase tracking-widest" href="https://github.com/mgriffen/tapsite/blob/main/LICENSE">MIT License</a>
+</div>
+<p class="text-outline text-[11px] font-label uppercase tracking-widest">&copy; 2025–2026 mgriffen. MIT License.</p>
+</div>
+</footer>
+</body></html>

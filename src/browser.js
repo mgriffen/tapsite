@@ -1,40 +1,29 @@
-const { chromium } = require('playwright-extra');
-const stealth = require('puppeteer-extra-plugin-stealth');
+const { BrowserPool } = require('./browser-pool');
 const config = require('./config');
 const fs = require('fs');
 
-chromium.use(stealth());
-
-let context = null;
-let page = null;
-let isHeadless = null;
+let pool = null;
 let elementMap = [];
 
 async function ensureBrowser(headless = true) {
-  if (context) return;
-  fs.mkdirSync(config.PROFILE_DIR, { recursive: true });
-  context = await chromium.launchPersistentContext(config.PROFILE_DIR, {
-    headless,
-    viewport: config.VIEWPORT,
-    ignoreHTTPSErrors: false,
-    acceptDownloads: false,
-  });
-  isHeadless = headless;
-  page = context.pages()[0] || (await context.newPage());
+  if (pool) return;
+  pool = new BrowserPool({ poolSize: config.POOL_SIZE, headless });
+  await pool.init();
 }
 
 async function closeBrowser() {
-  if (context) {
-    await context.close();
-    context = null;
-    page = null;
-    isHeadless = null;
+  if (pool) {
+    const draining = pool;
+    pool = null;
     elementMap = [];
+    await draining.drain();
   }
 }
 
-// Used by cli.js
+// Used by cli.js — standalone persistent context, not pool-managed
+// NOTE: stealth plugin already registered globally via stealth-setup.js
 async function launchPersistent({ headless = false } = {}) {
+  const { chromium } = require('./stealth-setup');
   fs.mkdirSync(config.PROFILE_DIR, { recursive: true });
   const ctx = await chromium.launchPersistentContext(config.PROFILE_DIR, {
     headless,
@@ -45,11 +34,10 @@ async function launchPersistent({ headless = false } = {}) {
   return ctx;
 }
 
-function isStealthEnabled() { return true; }
-
 module.exports = {
-  get context() { return context; },
-  get page() { return page; },
+  get context() { return pool ? pool.primaryContext : null; },
+  get page() { return pool ? pool.primaryPage : null; },
+  get pool() { return pool; },
   get elementMap() { return elementMap; },
   set elementMap(v) { elementMap = v; },
   ensureBrowser,

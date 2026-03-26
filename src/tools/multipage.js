@@ -1,7 +1,7 @@
 const { z } = require('zod');
 const path = require('path');
 const fs = require('fs');
-const { summarizeResult, requireSafeUrl, navigateIfNeeded, safeEvaluate } = require('../helpers');
+const { summarizeResult, requireSafeUrl, navigateIfNeeded, safeEvaluate, safeNavigate } = require('../helpers');
 const {
   extractContentInBrowser,
   extractMetadataInBrowser,
@@ -23,13 +23,21 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
       url: z.string().describe('Start URL'),
       maxPages: z.number().min(1).max(100).default(10).describe('Max pages (1-100)'),
       maxDepth: z.number().min(0).max(10).default(2).describe('Max link depth (0-10)'),
-      extract: z.array(z.enum(['content', 'metadata', 'links', 'colors', 'fonts', 'css_vars', 'components', 'forms'])).default(['content']).describe('Extractions per page'),
+      extract: z.array(z.enum(['content', 'metadata', 'links', 'colors', 'fonts', 'css_vars', 'components', 'forms', 'markdown'])).default(['content']).describe('Extractions per page'),
       filterPath: z.string().optional().describe("Path prefix filter (e.g. '/blog/')"),
       sameDomain: z.boolean().default(true).describe('Same domain only'),
+      concurrency: z.number().min(1).max(8).default(4).describe('Parallel pages (1-8, limited by pool size)'),
+      cache: z.enum(['use', 'bypass', 'only']).default('use').describe('Cache mode: use (default), bypass (ignore cache), only (no network)'),
+      resume: z.boolean().default(false).describe('Resume interrupted crawl from saved queue state'),
     },
-    async ({ url, maxPages, maxDepth, extract, filterPath, sameDomain }) => {
+    async ({ url, maxPages, maxDepth, extract, filterPath, sameDomain, concurrency, cache, resume }) => {
       await browser.ensureBrowser();
       requireSafeUrl(url);
+
+      const CrawlCache = require('../cache');
+      const crypto = require('crypto');
+      const domain = new URL(url).hostname;
+      const crawlCache = cache !== 'bypass' ? new CrawlCache({ domain }) : null;
 
       const normalizeUrl = (u) => {
         try {
@@ -51,22 +59,48 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
       const MAX_OUTPUT_BYTES = 50 * 1024 * 1024; // 50 MB
       let totalBytes = 0;
 
-      while (queue.length > 0 && visited.size < maxPages) {
-        if (Date.now() - crawlStart > CRAWL_TIMEOUT_MS) break;
-        const { url: currentUrl, depth } = queue.shift();
-        if (visited.has(currentUrl)) continue;
-        visited.add(currentUrl);
+      const effectiveConcurrency = browser.pool ? Math.min(concurrency, browser.pool.size) : 1;
 
-        const pageResult = { url: currentUrl, depth, extractions: {} };
+      if (resume && crawlCache) {
+        const savedQueue = crawlCache.loadQueue();
+        if (savedQueue) {
+          queue.length = 0;
+          queue.push(...savedQueue.pending);
+          // Mark completed URLs as visited
+          for (const completedUrl of crawlCache.completedUrls()) {
+            visited.add(completedUrl);
+          }
+        }
+      }
+
+      async function processPage(poolPage, pageUrl, depth) {
+        const pageResult = { url: pageUrl, depth, extractions: {} };
         try {
-          try { await browser.page.goto(currentUrl, { waitUntil: 'networkidle', timeout: 30000 }); } catch {}
-          await browser.page.waitForTimeout(1000);
+          // Check cache before network request
+          if (crawlCache && cache === 'use') {
+            const cached = crawlCache.get(pageUrl);
+            if (cached) {
+              return { pageResult: cached, links: cached._discoveredLinks || [] };
+            }
+          }
+          if (cache === 'only' && crawlCache) {
+            const cached = crawlCache.get(pageUrl);
+            return {
+              pageResult: cached || { url: pageUrl, depth, extractions: {}, error: 'not in cache' },
+              links: cached?._discoveredLinks || [],
+            };
+          }
+
+          try { await safeNavigate(poolPage, pageUrl, { waitMs: 1000 }); } catch (navErr) {
+            pageResult.error = `Navigation failed: ${navErr.message}`;
+            return { pageResult, links: [] };
+          }
 
           for (const type of extract) {
             try {
-              if (type === 'content') pageResult.extractions.content = (await safeEvaluate(browser.page, extractContentInBrowser, { selector: null, includeImages: false })).content;
-              else if (type === 'metadata') pageResult.extractions.metadata = await safeEvaluate(browser.page, extractMetadataInBrowser);
-              else if (type === 'links') pageResult.extractions.links = await safeEvaluate(browser.page, () => {
+              if (type === 'content') pageResult.extractions.content = (await safeEvaluate(poolPage, extractContentInBrowser, { selector: null, includeImages: false })).content;
+              else if (type === 'metadata') pageResult.extractions.metadata = await safeEvaluate(poolPage, extractMetadataInBrowser);
+              else if (type === 'links') pageResult.extractions.links = await safeEvaluate(poolPage, () => {
                 function isHiddenElement(el) {
                   if (!el || el.nodeType !== 1) return false;
                   const cs = getComputedStyle(el);
@@ -85,42 +119,120 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
                 }
                 return [...document.querySelectorAll('a[href]')].filter(a => !isHiddenElement(a)).map(a => ({ text: a.textContent.trim().slice(0, 100), href: a.href }));
               });
-              else if (type === 'colors') pageResult.extractions.colors = await safeEvaluate(browser.page, extractColorsInBrowser, { limit: 50 });
-              else if (type === 'fonts') pageResult.extractions.fonts = await safeEvaluate(browser.page, extractFontsInBrowser);
-              else if (type === 'css_vars') pageResult.extractions.css_vars = await safeEvaluate(browser.page, extractCssVarsInBrowser, { includeAll: false });
-              else if (type === 'components') pageResult.extractions.components = await safeEvaluate(browser.page, extractComponentsInBrowser, { minOccurrences: 2 });
-              else if (type === 'forms') pageResult.extractions.forms = await safeEvaluate(browser.page, extractFormsInBrowser);
+              else if (type === 'colors') pageResult.extractions.colors = await safeEvaluate(poolPage, extractColorsInBrowser, { limit: 50 });
+              else if (type === 'fonts') pageResult.extractions.fonts = await safeEvaluate(poolPage, extractFontsInBrowser);
+              else if (type === 'css_vars') pageResult.extractions.css_vars = await safeEvaluate(poolPage, extractCssVarsInBrowser, { includeAll: false });
+              else if (type === 'components') pageResult.extractions.components = await safeEvaluate(poolPage, extractComponentsInBrowser, { minOccurrences: 2 });
+              else if (type === 'forms') pageResult.extractions.forms = await safeEvaluate(poolPage, extractFormsInBrowser);
+              else if (type === 'markdown') {
+                const { generateMarkdown } = require('../markdown');
+                const html = await poolPage.content();
+                pageResult.extractions.markdown = generateMarkdown(html, { mode: 'fit' });
+              }
             } catch (e) {
               pageResult.extractions[type] = { error: e.message };
             }
           }
 
+          let discoveredLinks = [];
           if (depth < maxDepth) {
-            const links = await safeEvaluate(browser.page, () =>
+            discoveredLinks = await safeEvaluate(poolPage, () =>
               [...document.querySelectorAll('a[href]')].map(a => a.href).filter(h => h.startsWith('http'))
             );
-            for (const link of links) {
-              try {
-                const linkUrl = new URL(link);
-                const normLink = `${linkUrl.origin}${linkUrl.pathname}`;
-                if (visited.has(normLink)) continue;
-                if (sameDomain && linkUrl.hostname !== startUrl.hostname) continue;
-                if (filterPath && !linkUrl.pathname.startsWith(filterPath)) continue;
-                queue.push({ url: normLink, depth: depth + 1 });
-              } catch {}
-            }
           }
+
+          if (crawlCache) {
+            const contentHash = crypto.createHash('sha256')
+              .update(JSON.stringify(pageResult.extractions))
+              .digest('hex');
+            // Check if content actually changed (incremental mode)
+            if (!crawlCache.hasChanged(pageUrl, contentHash)) {
+              pageResult._unchanged = true;
+            }
+            pageResult._discoveredLinks = discoveredLinks;
+            crawlCache.set(pageUrl, pageResult, contentHash);
+          }
+
+          return { pageResult, links: discoveredLinks };
         } catch (e) {
+          // Re-throw context-death errors for retry handling in outer scope
+          if (e.message && (e.message.includes('Target closed') || e.message.includes('destroyed') || e.message.includes('execution context'))) {
+            throw e;
+          }
           pageResult.error = e.message;
+          return { pageResult, links: [] };
+        }
+      }
+
+      while (queue.length > 0 && visited.size < maxPages) {
+        if (Date.now() - crawlStart > CRAWL_TIMEOUT_MS) break;
+
+        // Take batch from queue
+        const batch = [];
+        while (batch.length < effectiveConcurrency && queue.length > 0 && visited.size + batch.length < maxPages) {
+          const item = queue.shift();
+          if (visited.has(item.url)) continue;
+          visited.add(item.url);
+          batch.push(item);
+        }
+        if (batch.length === 0) break;
+
+        // Process batch concurrently
+        const batchPromises = batch.map(async ({ url: pageUrl, depth, retried }) => {
+          if (effectiveConcurrency <= 1 || !browser.pool) {
+            return processPage(browser.page, pageUrl, depth);
+          }
+          const lease = await browser.pool.acquire();
+          try {
+            return await processPage(lease.page, pageUrl, depth);
+          } catch (err) {
+            // Re-enqueue on context death (max 1 retry)
+            if (!retried && (err.message.includes('Target closed') || err.message.includes('destroyed'))) {
+              queue.unshift({ url: pageUrl, depth, retried: true });
+              // Remove from visited so retry can process it
+              visited.delete(pageUrl);
+              return null; // Signal: no result for this attempt
+            }
+            return { pageResult: { url: pageUrl, depth, error: err.message, extractions: {} }, links: [] };
+          } finally {
+            await lease.release();
+          }
+        });
+
+        const batchResults = (await Promise.all(batchPromises)).filter(Boolean);
+
+        // Process results + enqueue discovered links
+        for (const { pageResult, links } of batchResults) {
+          results.push(pageResult);
+          const filename = `page-${String(results.length).padStart(3, '0')}.json`;
+          const json = JSON.stringify(pageResult, null, 2);
+          totalBytes += Buffer.byteLength(json);
+          if (totalBytes > MAX_OUTPUT_BYTES) break;
+          fs.writeFileSync(path.join(runDir, filename), json);
+
+          for (const link of links) {
+            try {
+              const linkUrl = new URL(link);
+              const normLink = `${linkUrl.origin}${linkUrl.pathname}`;
+              if (visited.has(normLink)) continue;
+              if (sameDomain && linkUrl.hostname !== startUrl.hostname) continue;
+              if (filterPath && !linkUrl.pathname.startsWith(filterPath)) continue;
+              queue.push({ url: normLink, depth: pageResult.depth + 1 });
+            } catch {}
+          }
+        }
+        if (crawlCache) {
+          crawlCache.saveQueue({
+            pending: queue.map(item => ({ url: item.url, depth: item.depth })),
+            startUrl: url,
+            config: { maxPages, maxDepth, extract },
+          });
         }
 
-        results.push(pageResult);
-        const filename = `page-${String(results.length).padStart(3, '0')}.json`;
-        const json = JSON.stringify(pageResult, null, 2);
-        totalBytes += Buffer.byteLength(json);
         if (totalBytes > MAX_OUTPUT_BYTES) break;
-        fs.writeFileSync(path.join(runDir, filename), json);
       }
+
+      if (crawlCache) crawlCache.clearQueue();
 
       const summary = {
         startUrl: url,
@@ -178,10 +290,9 @@ module.exports = function registerMultipageTools(server, allowTool = () => true)
 
       if (mode === 'cross-site') {
         // Navigate to url2 — force navigation even if same domain
-        try { await browser.page.goto(url2, { waitUntil: 'networkidle', timeout: 30000 }); } catch (err) {
+        try { await safeNavigate(browser.page, url2, { waitMs: 1500 }); } catch (err) {
           console.error(`[tapsite] Navigation error for ${url2}: ${err.message}`);
         }
-        await browser.page.waitForTimeout(1500);
 
         for (const name of names) {
           try {

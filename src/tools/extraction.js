@@ -919,4 +919,128 @@ module.exports = function registerExtractionTools(server, allowTool = () => true
     );
   }
 
+  if (allowTool('tapsite_extract_markdown')) server.tool(
+    'tapsite_extract_markdown',
+    'Extract page content as clean Markdown. Modes: raw (full page), fit (noise filtered), citations (numbered refs). Optional BM25 query filtering and chunking.',
+    {
+      url: z.string().describe('URL to extract'),
+      mode: z.enum(['raw', 'fit', 'citations']).default('fit').describe('Markdown mode'),
+      query: z.string().optional().describe('BM25 query to filter content by relevance'),
+      chunk: z.enum(['none', 'fixed', 'semantic', 'sentence']).default('none').describe('Chunking strategy'),
+      chunkSize: z.number().default(750).describe('Chunk size in words (fixed/sentence modes)'),
+    },
+    async ({ url, mode, query, chunk, chunkSize }) => {
+      const { generateMarkdown } = require('../markdown');
+      const { bm25Filter } = require('../content-filter');
+      const { chunkMarkdown } = require('../chunker');
+
+      await browser.ensureBrowser();
+      requireSafeUrl(url);
+      await navigateIfNeeded(url);
+
+      const html = await browser.page.content();
+      let md = generateMarkdown(html, { mode });
+
+      // Apply BM25 filter if query provided
+      if (query) {
+        const blocks = md.split(/\n\n+/);
+        const filtered = bm25Filter(blocks, query);
+        md = filtered.join('\n\n');
+      }
+
+      // Apply chunking
+      let result;
+      if (chunk && chunk !== 'none') {
+        result = chunkMarkdown(md, { strategy: chunk, chunkSize });
+      } else {
+        result = md;
+      }
+
+      return summarizeResult('markdown', { url, mode, chunks: Array.isArray(result) ? result.length : 1 },
+        typeof result === 'string' ? result : JSON.stringify(result, null, 2));
+    }
+  );
+
+  if (allowTool('tapsite_extract_custom')) server.tool(
+    'tapsite_extract_custom',
+    'Extract structured data using a custom schema (CSS selectors, XPath, or regex patterns). Define your own extraction shape.',
+    {
+      url: z.string().describe('URL to extract from'),
+      schema: z.object({
+        strategy: z.enum(['css', 'xpath', 'regex']),
+        baseSelector: z.string().optional().describe('CSS: base element selector'),
+        baseXPath: z.string().optional().describe('XPath: base node expression'),
+        fields: z.record(z.string(), z.union([
+          z.string(),
+          z.object({
+            selector: z.string().optional(),
+            xpath: z.string().optional(),
+            attribute: z.string().optional(),
+          }),
+        ])).optional().describe('Field name to selector mapping'),
+        source: z.enum(['html', 'text']).optional().describe('Regex: match against HTML or visible text'),
+        patterns: z.record(z.string(), z.string()).optional().describe('Regex: field name to pattern mapping'),
+      }).describe('Extraction schema'),
+      multiple: z.boolean().default(true).describe('Return all matches (true) or first only'),
+    },
+    async ({ url, schema, multiple }) => {
+      await browser.ensureBrowser();
+      requireSafeUrl(url);
+      await navigateIfNeeded(url);
+
+      const { cssExtract, xpathExtract, regexExtract } = require('../extraction-strategies');
+
+      let result;
+
+      if (schema.strategy === 'css') {
+        const fn = cssExtract(schema);
+        result = await safeEvaluate(browser.page, fn, schema);
+      } else if (schema.strategy === 'xpath') {
+        const fn = xpathExtract(schema);
+        result = await safeEvaluate(browser.page, fn, schema);
+      } else if (schema.strategy === 'regex') {
+        const source = schema.source === 'text'
+          ? await browser.page.evaluate(() => document.body.innerText)
+          : await browser.page.content();
+        result = regexExtract(schema, source);
+      }
+
+      if (!multiple && Array.isArray(result)) {
+        result = result[0] || null;
+      }
+
+      return summarizeResult('custom-extraction', { url, strategy: schema.strategy, count: Array.isArray(result) ? result.length : 1 },
+        JSON.stringify(result, null, 2));
+    }
+  );
+
+  if (allowTool('tapsite_extract_schema_suggest')) server.tool(
+    'tapsite_extract_schema_suggest',
+    'Analyze page DOM for repeated patterns and suggest a CSS extraction schema. Returns a schema you can refine and pass to tapsite_extract_custom.',
+    {
+      url: z.string().describe('URL to analyze'),
+      description: z.string().describe('What you want to extract (e.g. "product listings", "job postings")'),
+    },
+    async ({ url, description }) => {
+      await browser.ensureBrowser();
+      requireSafeUrl(url);
+      await navigateIfNeeded(url);
+
+      const { buildSchemaSuggestion } = require('../extraction-strategies');
+
+      const componentData = await safeEvaluate(browser.page, extractComponentsInBrowser);
+      const suggestion = buildSchemaSuggestion(componentData);
+
+      if (!suggestion) {
+        return summarizeResult('schema-suggest', { url },
+          'No repeated patterns detected on this page. Try tapsite_extract_custom with a manually defined schema.');
+      }
+
+      return summarizeResult('schema-suggest', { url, confidence: suggestion.confidence },
+        `Suggested extraction schema (${suggestion.instanceCount} instances, ${suggestion.confidence} confidence):\n\n` +
+        '```json\n' + JSON.stringify(suggestion, null, 2) + '\n```\n\n' +
+        `Description requested: "${description}"\nReview and adjust the field names and selectors before using with tapsite_extract_custom.`);
+    }
+  );
+
 };

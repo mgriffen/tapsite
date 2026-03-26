@@ -30,7 +30,7 @@ const {
 } = require('../extractors');
 const config = require('../config');
 const browser = require('../browser');
-const { navigateIfNeeded, requireSafeUrl, summarizeResult, safeEvaluate } = require('../helpers');
+const { navigateIfNeeded, requireSafeUrl, summarizeResult, safeEvaluate, safeNavigate } = require('../helpers');
 
 module.exports = function registerWorkflowTools(server, allowTool = () => true) {
 
@@ -225,8 +225,7 @@ module.exports = function registerWorkflowTools(server, allowTool = () => true) 
 
         const pageResult = { url: currentUrl, depth };
         try {
-          try { await browser.page.goto(currentUrl, { waitUntil: 'networkidle', timeout: 30000 }); } catch {}
-          await browser.page.waitForTimeout(1000);
+          await safeNavigate(browser.page, currentUrl, { waitMs: 1000 });
 
           // Content
           const content = await safeEvaluate(browser.page, extractContentInBrowser, { selector: null, includeImages: false });
