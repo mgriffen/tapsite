@@ -1,0 +1,111 @@
+<h2 style="margin-top:0">tapsite</h2>
+<p>The MCP server for <strong>web intelligence extraction</strong>. 55 tools that give AI agents the ability to <em>understand</em> websites &mdash; not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.</p>
+
+<p>Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, detect tech stacks, or pull structured data with custom CSS/XPath/regex selectors &mdash; all as structured JSON that agents can reason about.</p>
+
+<hr>
+
+<h3>55 Tools across 11 Categories</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th align="left">Category</th>
+      <th align="right">Tools</th>
+      <th align="left">What it does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Session</strong></td>
+      <td align="right">8</td>
+      <td>Browser control &mdash; login with MFA, inspect, screenshot, interact, run JS</td>
+    </tr>
+    <tr>
+      <td><strong>Content Extraction</strong></td>
+      <td align="right">6</td>
+      <td>Tables, links, metadata, forms, and clean Markdown with chunking</td>
+    </tr>
+    <tr>
+      <td><strong>Custom Extraction</strong></td>
+      <td align="right">2</td>
+      <td>Bring your own CSS, XPath, or regex selectors &mdash; plus auto-schema suggestion</td>
+    </tr>
+    <tr>
+      <td><strong>Design Tokens</strong></td>
+      <td align="right">5</td>
+      <td>Colors, fonts, CSS variables, spacing, shadows</td>
+    </tr>
+    <tr>
+      <td><strong>Visual Assets</strong></td>
+      <td align="right">4</td>
+      <td>Images, SVGs, favicons &mdash; inventory and download</td>
+    </tr>
+    <tr>
+      <td><strong>Layout Intelligence</strong></td>
+      <td align="right">3</td>
+      <td>Layout trees, component detection, responsive breakpoints</td>
+    </tr>
+    <tr>
+      <td><strong>Quality &amp; Compliance</strong></td>
+      <td align="right">7</td>
+      <td>Accessibility, contrast, performance, security headers, dark mode, PWA, i18n</td>
+    </tr>
+    <tr>
+      <td><strong>Technology Detection</strong></td>
+      <td align="right">10</td>
+      <td>Frameworks, animations, icons, GraphQL, AI/ML, canvas, WASM, web components, third-party scripts, storage</td>
+    </tr>
+    <tr>
+      <td><strong>Network &amp; API</strong></td>
+      <td align="right">2</td>
+      <td>Traffic capture and API schema inference</td>
+    </tr>
+    <tr>
+      <td><strong>Multi-page</strong></td>
+      <td align="right">2</td>
+      <td>BFS crawl with per-page extraction, cross-site and temporal diffs</td>
+    </tr>
+    <tr>
+      <td><strong>Export</strong></td>
+      <td align="right">2</td>
+      <td>Multi-format output: JSON, Markdown, HTML reports, CSV, screenshots, W3C design tokens</td>
+    </tr>
+    <tr>
+      <td><strong>Workflows</strong></td>
+      <td align="right">4</td>
+      <td>Single-call presets &mdash; teardown, audit, harvest, designsystem</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h3>One-Call Workflows</h3>
+<ul>
+  <li><strong>tapsite_teardown</strong> &mdash; Full competitive design teardown</li>
+  <li><strong>tapsite_audit</strong> &mdash; Pre-launch quality audit (a11y, contrast, perf, SEO, dark mode, security)</li>
+  <li><strong>tapsite_harvest</strong> &mdash; Complete asset inventory (images, SVGs, fonts, forms, links)</li>
+  <li><strong>tapsite_designsystem</strong> &mdash; W3C design tokens JSON + CSS custom properties export</li>
+</ul>
+
+<hr>
+
+<h3>Engine</h3>
+<p>Parallel browser pooling for concurrent extraction. Persistent disk caching &mdash; crawls resume where they left off and results are reused across sessions. 3-tier anti-bot escalation automatically handles protected sites with stealth scripts and proxy rotation.</p>
+
+<h3>Security</h3>
+<p>Prompt injection defense (hidden element filtering + output sanitization), HTTPS enforced, private IPs blocked, auth headers redacted. Credentials never enter the chat &mdash; log in manually with full MFA support.</p>
+
+<hr>
+
+<h3>Install</h3>
+<pre><code>{
+  "mcpServers": {
+    "tapsite": {
+      "command": "npx",
+      "args": ["-y", "tapsite"]
+    }
+  }
+}</code></pre>
+<p>Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent.</p>
