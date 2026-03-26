@@ -4,6 +4,17 @@ The MCP server for web intelligence extraction. 55 tools that give AI agents the
 
 Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, detect tech stacks, or pull structured data with custom CSS/XPath/regex selectors — all as structured JSON that agents can reason about.
 
+## What makes tapsite different
+
+| Other browser MCPs | tapsite |
+|---|---|
+| Click buttons | Extract full design systems |
+| Fill forms | Audit WCAG accessibility |
+| Take screenshots | Diff sites over time |
+| Read raw HTML | Detect tech stacks & APIs |
+| | Custom CSS / XPath / regex extraction |
+| | Anti-bot resilience & proxy rotation |
+
 ## 55 Tools across 11 Categories
 
 | Category | Tools | What it does |

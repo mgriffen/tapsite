@@ -62,12 +62,6 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 
 **Work behind login walls** — persistent browser sessions with full MFA support. A 3-tier anti-bot escalation system handles protected sites automatically — from stealth scripts to proxy rotation. Log in once manually, then extract across tool calls without re-authenticating. Credentials never enter the chat.
 
-## Showcase
-
-[![tapsite Landing Page](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/landing-v3.png)](https://mgriffen.github.io/tapsite/)
-
-[![TCGplayer Extraction Demo](https://raw.githubusercontent.com/mgriffen/tapsite/gh-pages/docs/screenshots/demo-v3.png)](https://mgriffen.github.io/tapsite/demo.html)
-
 ## Tools (55)
 
 ### Session (8)
