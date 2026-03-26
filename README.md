@@ -4,9 +4,9 @@
 [![npm downloads](https://img.shields.io/npm/dm/tapsite?style=flat-square&color=00727d)](https://www.npmjs.com/package/tapsite)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-The MCP server for web intelligence extraction. 55 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
+The MCP server for **web intelligence extraction**. 55 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
 
-Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or track accessibility regressions over time — all as structured JSON that agents can reason about.
+Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, detect tech stacks, or pull structured data with custom CSS/XPath/regex selectors — all as structured JSON that agents can reason about.
 
 **55 Tools · 11 Categories · 4 Workflows · Multi-Format Export**
 
@@ -43,7 +43,16 @@ Add to your AI agent's MCP config:
 
 Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.mgriffen/tapsite) and [Glama](https://glama.ai/mcp/servers/mgriffen/tapsite).
 
-## What tapsite does
+## What makes tapsite different
+
+| Other browser MCPs | tapsite |
+|---|---|
+| Click buttons | Extract full design systems |
+| Fill forms | Audit WCAG accessibility |
+| Take screenshots | Diff sites over time |
+| Read raw HTML | Detect tech stacks & APIs |
+| | Custom CSS / XPath / regex extraction |
+| | Anti-bot resilience & proxy rotation |
 
 **Extract design systems** — colors, fonts, spacing scales, breakpoints, components, shadows, icons, CSS variables, and contrast ratios from any website. Output as structured JSON or W3C design tokens.
 
@@ -158,7 +167,7 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 
 ### Engine
 
-Parallel browser pooling for concurrent multi-page extraction. Persistent disk caching with TTL — crawl results are reused across sessions and interrupted crawls resume automatically. A 3-tier anti-bot escalation system detects blocks and retries with progressively stealthier strategies, from stealth scripts to isolated browser contexts with proxy rotation.
+Resilient extraction engine. Parallel browser pooling for concurrent page extraction. Persistent disk caching — crawls resume where they left off and results are reused across sessions. 3-tier anti-bot escalation with automatic proxy rotation for protected sites.
 
 ### Workflows (4)
 | Tool | Description |
@@ -174,13 +183,11 @@ Native LangChain and LangGraph integration is on the roadmap. When released, it 
 
 ## Security
 
+Prompt injection defense (hidden element filtering + output sanitization), HTTPS enforced, private IPs blocked, auth headers redacted. Credentials never enter the chat — log in manually with full MFA support.
+
 ### Prompt injection defense
 
-When extracting content from untrusted web pages, tapsite applies two layers of protection:
-
-1. **Hidden element filtering** — Extractors skip elements with `display:none`, `visibility:hidden`, `opacity:0`, zero-size, and clip-hidden styling. This prevents invisible text (a common prompt injection vector) from entering extraction results.
-
-2. **Output sanitization** — All text returned to the LLM is scanned for prompt injection patterns: instruction overrides, role hijacking, exfiltration attempts, and tool manipulation. Matches are flagged inline as `[INJECTION_DETECTED]` rather than silently dropped.
+Extractors skip hidden elements (`display:none`, `visibility:hidden`, `opacity:0`, zero-size, clip-hidden) to prevent invisible text injection. All output is scanned for prompt injection patterns — instruction overrides, role hijacking, exfiltration attempts, and tool manipulation are flagged inline as `[INJECTION_DETECTED]`.
 
 ### Credential safety
 
