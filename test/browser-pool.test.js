@@ -20,6 +20,8 @@ function makeMockContext() {
       { name: 'sid', value: '123', domain: '.example.com', path: '/' },
     ]),
     addCookies: vi.fn().mockResolvedValue(undefined),
+    route: vi.fn().mockResolvedValue(undefined),
+    addInitScript: vi.fn().mockResolvedValue(undefined),
     close: vi.fn().mockResolvedValue(undefined),
   };
 }
