@@ -20,4 +20,5 @@ module.exports = {
   PROXY_LIST: JSON.parse(process.env.TAPSITE_PROXIES || '[]'),
   ANTI_BOT_MAX_TIER: 3,
   ANTI_BOT_RETRY_DELAY: 2000,
+  USER_AGENT: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
 };

@@ -53,16 +53,22 @@ class BrowserPool {
     this._primaryContext = await this._chromium.launchPersistentContext(config.PROFILE_DIR, {
       headless: this._headless,
       viewport: config.VIEWPORT,
+      userAgent: config.USER_AGENT,
       ignoreHTTPSErrors: false,
       acceptDownloads: false,
     });
+    // Override User-Agent at both HTTP and JS levels (persistent contexts may ignore the launch option)
+    await this._primaryContext.route('**/*', (route) => {
+      route.continue({ headers: { ...route.request().headers(), 'user-agent': config.USER_AGENT } });
+    });
+    await this._primaryContext.addInitScript(`Object.defineProperty(navigator, 'userAgent', { get: () => '${config.USER_AGENT}' })`);
     const pages = this._primaryContext.pages();
     this._primaryPage = pages[0] || (await this._primaryContext.newPage());
 
     // Create pool slot contexts from the shared browser
     this._slots = [];
     for (let i = 0; i < this._poolSize; i++) {
-      const context = await this._browser.newContext();
+      const context = await this._browser.newContext({ userAgent: config.USER_AGENT });
       this._slots.push({ context, available: true });
     }
   }
@@ -183,7 +189,7 @@ class BrowserPool {
     const old = this._slots[index];
     try { await old.context.close(); } catch { /* ignore */ }
 
-    const context = await this._browser.newContext();
+    const context = await this._browser.newContext({ userAgent: config.USER_AGENT });
     this._slots[index] = { context, available: false };
   }
 

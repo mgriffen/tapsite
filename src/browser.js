@@ -28,6 +28,7 @@ async function launchPersistent({ headless = false } = {}) {
   const ctx = await chromium.launchPersistentContext(config.PROFILE_DIR, {
     headless,
     viewport: config.VIEWPORT,
+    userAgent: config.USER_AGENT,
     ignoreHTTPSErrors: false,
     acceptDownloads: false,
   });
