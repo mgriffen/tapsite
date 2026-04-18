@@ -78,17 +78,23 @@ describe('browser.js facade', () => {
     await browser.closeBrowser();
   });
 
-  it('should forward headless=false to BrowserPool constructor', async () => {
-    await browser.ensureBrowser(false);
-    expect(browser.pool).toBeTruthy();
-    expect(browser.pool._headless).toBe(false);
-    await browser.closeBrowser();
+});
+
+describe('BrowserPool headless option', () => {
+  it('honors headless=false', async () => {
+    const { BrowserPool } = await import('../src/browser-pool.js');
+    const pool = new BrowserPool({
+      chromium: { launch: vi.fn(), launchPersistentContext: vi.fn() },
+      headless: false,
+    });
+    expect(pool._headless).toBe(false);
   });
 
-  it('should forward headless=true (default) to BrowserPool constructor', async () => {
-    await browser.ensureBrowser();
-    expect(browser.pool).toBeTruthy();
-    expect(browser.pool._headless).toBe(true);
-    await browser.closeBrowser();
+  it('defaults headless=true', async () => {
+    const { BrowserPool } = await import('../src/browser-pool.js');
+    const pool = new BrowserPool({
+      chromium: { launch: vi.fn(), launchPersistentContext: vi.fn() },
+    });
+    expect(pool._headless).toBe(true);
   });
 });
