@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createRequire } from 'module';
 
 // ── Module mocks (prevent real playwright / pool from loading) ───────────────
 
@@ -34,8 +33,7 @@ describe('browser.js facade', () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    const req = createRequire(import.meta.url);
-    browser = req('../src/browser.js');
+    browser = (await import('../src/browser.js')).default;
   });
 
   afterEach(async () => {
