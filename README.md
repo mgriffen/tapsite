@@ -171,7 +171,7 @@ Nothing is removed from the package by a profile; this only changes what your ag
 | `tapsite_extract_third_party` | Inventory third-party scripts, trackers, and services |
 | `tapsite_extract_storage` | Audit client-side storage (cookies, localStorage, sessionStorage, IndexedDB) |
 
-### Network & API (2)
+### Network & API (4)
 | Tool | Description |
 |------|-------------|
 | `tapsite_capture_network` | Capture network requests during a page load |
