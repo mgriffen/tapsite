@@ -8,7 +8,7 @@
 
 The MCP server for **web intelligence extraction**. 55 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
 
-Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, detect tech stacks, or pull structured data with custom CSS/XPath/regex selectors — all as structured JSON that agents can reason about.
+Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or pull structured data with custom CSS/XPath/regex selectors — all as structured JSON that agents can reason about.
 
 **55 Tools · 11 Categories · 4 Workflows · Multi-Format Export**
 
@@ -45,6 +45,35 @@ Add to your AI agent's MCP config:
 
 Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.mgriffen/tapsite) and [Glama](https://glama.ai/mcp/servers/mgriffen/tapsite).
 
+## Tool profiles
+
+tapsite ships 55 tools. Registering all of them puts a large menu in your agent's context for what is usually one job, so **the default profile is `core`** — the browser primitives plus the most-used reads and the composite workflows. Everything else is one flag away.
+
+```json
+{
+  "mcpServers": {
+    "tapsite": {
+      "command": "npx",
+      "args": ["-y", "tapsite", "--profile", "design"]
+    }
+  }
+}
+```
+
+| Profile | Registers |
+|---|---|
+| `core` *(default)* | Common reads (`content`, `markdown`, `links`, `metadata`), `extract_custom`, and the composite workflows (`teardown`, `audit`, `export`, `diff_pages`) |
+| `design` | Colors, fonts, spacing, shadows, icons, SVGs, components, breakpoints, dark mode, layout, animations, design tokens |
+| `content` | Metadata, content, links, forms, a11y, tables, i18n, PWA, crawl, harvest |
+| `security` | Third-party scripts, storage, security headers, contrast, network capture, API schema, stack detection, audit |
+| `recon` | **All 55 tools** — the escape hatch |
+
+Profiles combine: `--profile design,content`.
+
+**The 8 session tools are always registered** in every profile — `inspect`, `screenshot`, `scroll`, `interact`, `run_js`, `login_manual`, `login_check`, `close`. You can never lose the ability to drive the browser or get past a login.
+
+Nothing is removed from the package by a profile; this only changes what your agent is handed by default.
+
 ## What makes tapsite different
 
 | Other browser MCPs | tapsite |
@@ -52,17 +81,16 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 | Click buttons | Extract full design systems |
 | Fill forms | Audit WCAG accessibility |
 | Take screenshots | Diff sites over time |
-| Read raw HTML | Detect tech stacks & APIs |
+| Read raw HTML | Extract structured content as JSON |
 | | Custom CSS / XPath / regex extraction |
-| | Anti-bot resilience & proxy rotation |
 
 **Extract design systems** — colors, fonts, spacing scales, breakpoints, components, shadows, icons, CSS variables, and contrast ratios from any website. Output as structured JSON or W3C design tokens.
 
-**Audit quality** — accessibility scoring with WCAG contrast analysis, performance timing (Core Web Vitals), tech stack detection, dark mode support, and animation inventory.
+**Audit quality** — accessibility scoring with WCAG contrast analysis measured on rendered pixels, dark mode support, animation inventory, and page timing from the Navigation Timing API.
 
 **Compare and track** — diff two sites side by side, or track a single site over time with snapshot-based temporal diffs. Regressions and improvements are flagged automatically. Disk caching means crawls resume where they left off, and results are reused across sessions.
 
-**Work behind login walls** — persistent browser sessions with full MFA support. A 3-tier anti-bot escalation system handles protected sites automatically — from stealth scripts to proxy rotation. Log in once manually, then extract across tool calls without re-authenticating. Credentials never enter the chat.
+**Work behind login walls** — persistent browser sessions with full MFA support. Log in once manually, then extract across tool calls without re-authenticating. Credentials never enter the chat.
 
 ## Tools (55)
 
@@ -163,7 +191,7 @@ Also available on the [MCP Registry](https://registry.modelcontextprotocol.io/se
 
 ### Engine
 
-Resilient extraction engine. Parallel browser pooling for concurrent page extraction. Persistent disk caching — crawls resume where they left off and results are reused across sessions. 3-tier anti-bot escalation with automatic proxy rotation for protected sites.
+Parallel browser pooling for concurrent page extraction. Persistent disk caching — crawls resume where they left off and results are reused across sessions.
 
 ### Workflows (4)
 | Tool | Description |

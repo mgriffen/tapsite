@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.mgriffen/tapsite",
-  "description": "MCP server for web intelligence extraction — design systems, audits, competitive analysis, and structured data extraction",
+  "description": "MCP server for web intelligence extraction \u2014 design systems, audits, competitive analysis, and structured data extraction",
   "repository": {
     "url": "https://github.com/mgriffen/tapsite",
     "source": "github"
   },
-  "version": "4.0.1",
+  "version": "5.2.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "tapsite",
-      "version": "4.0.1",
+      "version": "5.2.0",
       "transport": {
         "type": "stdio"
       }

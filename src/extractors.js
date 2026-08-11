@@ -2128,7 +2128,9 @@ function extractStorageInBrowser() {
     if (classification === 'unknown' && sessionPatterns.some(p => name.toLowerCase().includes(p))) {
       classification = 'session';
     }
-    return { name, valueLength: value.length, valuePreview: value.slice(0, 50), classification };
+    // No valuePreview: cookie values are credentials. Length + classification
+    // answer "what is stored here" without handing the model session material.
+    return { name, valueLength: value.length, classification };
   });
 
   const cookiesByClass = {};
@@ -2152,7 +2154,10 @@ function extractStorageInBrowser() {
             inferredType = Array.isArray(parsed) ? 'json-array' : typeof parsed === 'object' ? 'json-object' : 'string';
           } catch {}
         }
-        items.push({ key, valueLength: len, valuePreview: (value || '').slice(0, 100), inferredType });
+        // No valuePreview — see the cookie extractor above. localStorage
+        // routinely holds JWTs and API tokens; inferredType is derived from the
+        // value without reproducing it.
+        items.push({ key, valueLength: len, inferredType });
       }
     } catch {}
     const totalSizeEstimate = totalSize < 1024 ? totalSize + ' B' : (totalSize / 1024).toFixed(1) + ' KB';
