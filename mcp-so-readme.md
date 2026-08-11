@@ -14,7 +14,7 @@ Other MCP browser tools let agents click buttons. tapsite lets agents extract a 
 | Read raw HTML | Extract structured content as JSON |
 | | Custom CSS / XPath / regex extraction |
 
-## 55 Tools across 11 Categories
+## 55 Tools across 12 Categories
 
 | Category | Tools | What it does |
 |----------|-------|-------------|

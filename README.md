@@ -10,7 +10,7 @@ The MCP server for **web intelligence extraction**. 55 tools that give AI agents
 
 Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or pull structured data with custom CSS/XPath/regex selectors — all as structured JSON that agents can reason about.
 
-**55 Tools · 11 Categories · 4 Workflows · Multi-Format Export**
+**55 Tools · 12 Categories · 4 Workflows · Multi-Format Export**
 
 Works with Claude, Cursor, Windsurf, and any MCP-compatible AI agent. LangChain/LangGraph integration coming soon.
 
@@ -171,7 +171,7 @@ Nothing is removed from the package by a profile; this only changes what your ag
 | `tapsite_extract_third_party` | Inventory third-party scripts, trackers, and services |
 | `tapsite_extract_storage` | Audit client-side storage (cookies, localStorage, sessionStorage, IndexedDB) |
 
-### Network & API (4)
+### Network & API (2)
 | Tool | Description |
 |------|-------------|
 | `tapsite_capture_network` | Capture network requests during a page load |
