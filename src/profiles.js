@@ -1,5 +1,27 @@
 const PROFILES = {
-  core: [],
+  // The default. Registering all ~53 tools hands an agent a huge menu for what
+  // is usually one of a few jobs — the surface-area problem profiles exist to
+  // solve. `core` is the smallest set that handles the common cases without
+  // forcing a profile switch; everything else is one flag away
+  // (`--profile design|content|security|recon`, and `recon` is still all tools).
+  //
+  // Nothing is deleted and no capability is lost — this only changes what is
+  // *registered by default*.
+  // NOTE: only tools guarded by allowTool() are filtered. The session/browser
+  // primitives in src/tools/session.js — inspect, screenshot, scroll, interact,
+  // run_js, login_manual, login_check, close — are registered unconditionally
+  // and are available in EVERY profile. Listing them here would imply they can
+  // be filtered out; they cannot.
+  core: [
+    // The most-asked-for reads
+    'tapsite_extract_content', 'tapsite_extract_markdown',
+    'tapsite_extract_links', 'tapsite_extract_metadata',
+    // Escape hatch when no named extractor fits (CSS/XPath/regex)
+    'tapsite_extract_custom',
+    // Composite workflows — the documented entry points, and cheaper than
+    // chaining single extractors
+    'tapsite_teardown', 'tapsite_audit', 'tapsite_export', 'tapsite_diff_pages',
+  ],
   design: [
     'tapsite_extract_colors', 'tapsite_extract_fonts', 'tapsite_extract_css_vars',
     'tapsite_extract_spacing', 'tapsite_extract_shadows', 'tapsite_extract_icons',
@@ -29,7 +51,9 @@ const PROFILES = {
 
 function getProfileFilter(argv) {
   const idx = argv.indexOf('--profile');
-  const value = idx !== -1 && argv[idx + 1] ? argv[idx + 1] : 'recon';
+  // Default is `core`, not `recon` — see PROFILES.core. `--profile recon`
+  // restores every tool.
+  const value = idx !== -1 && argv[idx + 1] ? argv[idx + 1] : 'core';
 
   if (value === 'recon') return () => true;
 
