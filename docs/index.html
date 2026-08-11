@@ -71,10 +71,9 @@ nav.top a{text-decoration:none;border-bottom:1px solid var(--rule)}
 
 section{padding:3rem 0;border-bottom:1px solid var(--rule)}
 h2{
-  font-family:var(--mono);font-size:1.0625rem;font-weight:700;
+  font-family:var(--mono);font-size:1.3125rem;font-weight:700;
   margin:0 0 1.25rem;letter-spacing:.01em;
 }
-h2 .n{color:var(--mark);margin-right:.6rem}
 h3{font-family:var(--mono);font-size:.9375rem;margin:2rem 0 .5rem;font-weight:700}
 
 table{border-collapse:collapse;width:100%;font-size:.9375rem;margin:1rem 0}
@@ -105,8 +104,7 @@ td.k{font-family:var(--mono);white-space:nowrap}
 
 .slab{background:var(--slab);color:var(--paper);border:0;margin:0 -1.5rem;padding-left:1.5rem;padding-right:1.5rem}
 .slab h2{color:var(--paper)}
-.slab h2 .n{color:var(--mark-light)}
-.slab a{color:var(--mark-light)}
+.slab .slab a{color:var(--mark-light)}
 .slab th{color:#b8b2a0}
 .slab td,.slab th{border-bottom-color:#3b382e}
 .slab .note{color:#b8b2a0}
@@ -116,6 +114,19 @@ footer a{color:var(--muted)}
 ul.tight{padding-left:1.1rem;max-width:var(--measure)}
 ul.tight li{margin:.35rem 0}
 @media (max-width:34rem){ .mastmeta{gap:.25rem 1rem} }
+
+/* faucet tile — the mark at low contrast, large enough to read as texture
+   rather than pattern. Inline data URI: still nothing fetched. */
+body{
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cpath%20fill%3D%27%2317150f%27%20fill-opacity%3D%270.028%27%20d%3D%27M19%2014v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5%209h5V7l5.36-1.79a.932.932%200%201%200-.61-1.76L5%207z%27%2F%3E%3C%2Fsvg%3E");
+  background-size:168px 168px;
+  background-repeat:repeat;
+}
+.slab{
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cpath%20fill%3D%27%23f7f4ec%27%20fill-opacity%3D%270.03%27%20d%3D%27M19%2014v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5%209h5V7l5.36-1.79a.932.932%200%201%200-.61-1.76L5%207z%27%2F%3E%3C%2Fsvg%3E");
+  background-size:168px 168px;
+  background-repeat:repeat;
+}
 </style>
 </head>
 <body>
@@ -151,7 +162,7 @@ ul.tight li{margin:.35rem 0}
 </section>
 
 <section id="argument">
-  <h2><span class="n">01</span>Why this and not a hosted scraper</h2>
+  <h2>Why this and not a hosted scraper</h2>
   <p>Firecrawl, Browserbase and Apify are good at what they do, and what they do is run a browser <em>somewhere else</em>. That difference decides three things.</p>
   <div class="scroll">
   <table class="vs">
@@ -187,7 +198,7 @@ ul.tight li{margin:.35rem 0}
 </section>
 
 <section id="only">
-  <h2><span class="n">02</span>Three things it does that a text scraper structurally cannot</h2>
+  <h2>Three things it does that a text scraper structurally cannot</h2>
 
   <h3>Design tokens, from computed styles</h3>
   <p>Not a guess from the stylesheet — the values the browser resolved, counted by how often they are actually used. Colours with usage counts, the real type scale, the spacing rhythm, shadows, breakpoints. Exports as W3C design tokens or a paste-ready <code>:root</code> block.</p>
@@ -201,7 +212,7 @@ ul.tight li{margin:.35rem 0}
 </section>
 
 <section id="profiles">
-  <h2><span class="n">03</span>55 tools, 17 of them by default</h2>
+  <h2>55 tools, 17 of them by default</h2>
   <p>Registering every tool puts a large menu in your agent's context for what is usually one job. So the default profile is <code>core</code>, and the rest are one flag away.</p>
   <div class="install"><span class="p">$</span> npx -y tapsite --profile design</div>
   <div class="scroll">
@@ -218,7 +229,7 @@ ul.tight li{margin:.35rem 0}
 </section>
 
 <section id="specimen">
-  <h2><span class="n">04</span>This page, measured</h2>
+  <h2>This page, measured</h2>
   <p>A tool that reports on websites should survive its own report. Every number below was measured on this page, and the palette is the one you are looking at.</p>
 
   <h3>Palette</h3>
@@ -246,14 +257,14 @@ ul.tight li{margin:.35rem 0}
 </section>
 
 <section class="slab" id="withdesign">
-  <h2><span class="n">05</span>Hand the result to Claude Design</h2>
+  <h2>Hand the result to Claude Design</h2>
   <p>tapsite <em>extracts</em> a design system. <a href="https://www.anthropic.com/news/claude-design-anthropic-labs">Claude Design</a> <em>applies</em> one. They compose.</p>
   <p>Point tapsite at a site you need to match — a client's, a competitor's, your own before a rebuild — and get W3C design tokens out. Hand those to Claude Design and every deck, prototype and one-pager it makes comes back on-brand, without anyone eyedropping a screenshot.</p>
   <p class="note">Walked through end to end in the <a href="demo.html">demo</a>.</p>
 </section>
 
 <section id="tools">
-  <h2><span class="n">06</span>The catalogue</h2>
+  <h2>The catalogue</h2>
   <p>55 tools across 12 categories. Full descriptions in the <a href="https://github.com/mgriffen/tapsite#tools-55">README</a>.</p>
   <div class="scroll">
   <table>
@@ -275,7 +286,7 @@ ul.tight li{margin:.35rem 0}
 </section>
 
 <section>
-  <h2><span class="n">07</span>Get started</h2>
+  <h2>Get started</h2>
   <p>Add it to any MCP client. Claude Code, Claude Desktop, Cursor, Windsurf.</p>
   <div class="install" style="white-space:pre">{
   "mcpServers": {

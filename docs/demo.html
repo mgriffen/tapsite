@@ -39,9 +39,8 @@ nav.top a{text-decoration:none;border-bottom:1px solid var(--rule)}
 .mastmeta b{color:var(--ink);font-weight:600}
 
 .step{padding:3rem 0;border-bottom:1px solid var(--rule)}
-.step h2{font-family:var(--mono);font-size:1.0625rem;font-weight:700;margin:0 0 1rem}
-.step h2 .n{color:var(--mark);margin-right:.6rem}
-h3{font-family:var(--mono);font-size:.9375rem;margin:1.75rem 0 .5rem;font-weight:700}
+.step h2{font-family:var(--mono);font-size:1.3125rem;font-weight:700;margin:0 0 1rem}
+.step h3{font-family:var(--mono);font-size:.9375rem;margin:1.75rem 0 .5rem;font-weight:700}
 
 .cmd{background:var(--slab);color:var(--paper);font-family:var(--mono);font-size:.9375rem;padding:.85rem 1rem;margin:1.1rem 0;overflow-x:auto;white-space:pre}
 .cmd .p{color:var(--mark-light)}
@@ -63,12 +62,24 @@ td.num{font-family:var(--mono);text-align:right;white-space:nowrap}
 .note{color:var(--muted);font-size:.9375rem;font-style:italic;max-width:var(--measure)}
 .lead{font-size:1.1875rem}
 .slab{background:var(--slab);color:var(--paper);border:0;margin:0 -1.5rem;padding-left:1.5rem;padding-right:1.5rem}
-.slab h2{color:var(--paper)} .slab h2 .n{color:var(--mark-light)}
-.slab a{color:var(--mark-light)} .slab .note{color:#b8b2a0}
+.slab h2{color:var(--paper)} .slab .slab a{color:var(--mark-light)} .slab .note{color:#b8b2a0}
 .slab .out{background:#2b2921;border-color:#3b382e;border-left-color:var(--mark-light);color:var(--paper)}
 footer{padding:2.5rem 0 3.5rem;font-family:var(--mono);font-size:.8125rem;color:var(--muted)}
 footer a{color:var(--muted)}
 ul.tight{padding-left:1.1rem;max-width:var(--measure)} ul.tight li{margin:.4rem 0}
+
+/* faucet tile — the mark at low contrast, large enough to read as texture
+   rather than pattern. Inline data URI: still nothing fetched. */
+body{
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cpath%20fill%3D%27%2317150f%27%20fill-opacity%3D%270.028%27%20d%3D%27M19%2014v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5%209h5V7l5.36-1.79a.932.932%200%201%200-.61-1.76L5%207z%27%2F%3E%3C%2Fsvg%3E");
+  background-size:168px 168px;
+  background-repeat:repeat;
+}
+.slab{
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cpath%20fill%3D%27%23f7f4ec%27%20fill-opacity%3D%270.03%27%20d%3D%27M19%2014v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5%209h5V7l5.36-1.79a.932.932%200%201%200-.61-1.76L5%207z%27%2F%3E%3C%2Fsvg%3E");
+  background-size:168px 168px;
+  background-repeat:repeat;
+}
 </style>
 </head>
 <body>
@@ -100,7 +111,7 @@ ul.tight{padding-left:1.1rem;max-width:var(--measure)} ul.tight li{margin:.4rem 
 </section>
 
 <section class="step" id="s1">
-  <h2><span class="n">01</span>Extract the design system</h2>
+  <h2>Extract the design system</h2>
   <p>Point tapsite at the URL. It renders the page in Chromium and reads <em>computed</em> styles — the values the browser actually resolved, not what the stylesheet hoped for.</p>
   <div class="cmd"><span class="p">$</span> npx -y tapsite --profile design
 <span class="c"># then, from your agent:</span>
@@ -128,7 +139,7 @@ ul.tight{padding-left:1.1rem;max-width:var(--measure)} ul.tight li{margin:.4rem 
 </section>
 
 <section class="step" id="s2">
-  <h2><span class="n">02</span>Read what came back</h2>
+  <h2>Read what came back</h2>
   <p>Twelve unique colours, sorted by how often the browser resolved them. Counts are the useful part: they separate the brand from the incidental.</p>
   <div class="scroll">
   <table>
@@ -157,7 +168,7 @@ ul.tight{padding-left:1.1rem;max-width:var(--measure)} ul.tight li{margin:.4rem 
 </section>
 
 <section class="step" id="s3">
-  <h2><span class="n">03</span>Audit it before you propagate it</h2>
+  <h2>Audit it before you propagate it</h2>
   <p>You are about to copy this palette into everything your team produces. Worth ten seconds to check it first.</p>
   <div class="out">Contrast (WCAG AA): 13 passing, 3 failing out of 16 pairs
 Worst: #ffffff/#ffffff = 1:1, #81b81a/#ffffff = 2.39:1, #ff6118/#ffe0d1 = 2.41:1</div>
@@ -171,7 +182,7 @@ Worst: #ffffff/#ffffff = 1:1, #81b81a/#ffffff = 2.39:1, #ff6118/#ffe0d1 = 2.41:1
 </section>
 
 <section class="step slab" id="s4">
-  <h2><span class="n">04</span>Hand it to Claude Design</h2>
+  <h2>Hand it to Claude Design</h2>
   <p>tapsite <em>extracts</em> a design system. <a href="https://www.anthropic.com/news/claude-design-anthropic-labs">Claude Design</a> <em>applies</em> one to everything it makes. That is the whole composition.</p>
   <div class="cmd"><span class="c"># tapsite writes W3C design tokens</span>
 <span class="p">$</span> npx -y tapsite --profile design
@@ -194,7 +205,7 @@ Worst: #ffffff/#ffffff = 1:1, #81b81a/#ffffff = 2.39:1, #ff6118/#ffe0d1 = 2.41:1
 </section>
 
 <section class="step" id="s5">
-  <h2><span class="n">05</span>Re-run it when the brand moves</h2>
+  <h2>Re-run it when the brand moves</h2>
   <p>Brands change without telling their vendors. Snapshot the extraction now and diff it later; drift shows up as a list rather than a vague sense that the deck looks off.</p>
   <div class="cmd"><span class="c"># same URL, two points in time</span>
 <span class="p">$</span> npx -y tapsite
@@ -203,7 +214,7 @@ Worst: #ffffff/#ffffff = 1:1, #81b81a/#ffffff = 2.39:1, #ff6118/#ffe0d1 = 2.41:1
 </section>
 
 <section class="step">
-  <h2><span class="n">06</span>Reproduce this page</h2>
+  <h2>Reproduce this page</h2>
   <p>Nothing above was hand-written. Run it yourself:</p>
   <div class="cmd"><span class="p">$</span> npx -y tapsite --profile design</div>
   <p>Then ask your agent for the colour palette, the fonts, and a contrast audit of any URL. Output lands as JSON on disk with a <code>_meta</code> block recording the tool, the URL, the timestamp and the version — so a number in a document can always be traced back to the run that produced it.</p>
