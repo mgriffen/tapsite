@@ -1,1725 +1,224 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>tapsite — MTGPlayer Price Tracking Demo</title>
-  <link rel="icon" type="image/x-icon" href="assets/favicon.ico"/>
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png"/>
-  <meta property="og:title" content="tapsite — MTGPlayer Price Tracking Demo">
-  <meta property="og:description" content="Track card prices, download art, and extract a full design system from a card marketplace — a real tapsite workflow.">
-  <meta property="og:type" content="website">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg-deep: #131319;
-      --bg-surface: #1a1a24;
-      --bg-elevated: #222232;
-      --bg-card: #16162266;
-      --border: #ffffff0d;
-      --border-hover: #ffffff1a;
-      --text-primary: #f0f0f5;
-      --text-secondary: #9090a8;
-      --text-muted: #606078;
-      --accent-blue: #3b82f6;
-      --accent-cyan: #06b6d4;
-      --accent-purple: #8b5cf6;
-      --accent-green: #34d399;
-      --accent-amber: #f59e0b;
-      --accent-blue-dim: #3b82f633;
-      --accent-cyan-dim: #06b6d433;
-      --accent-purple-dim: #8b5cf633;
-      --glow-blue: #3b82f620;
-      --glow-cyan: #06b6d418;
-      --glow-purple: #8b5cf618;
-      --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--bg-deep);
-      color: var(--text-primary);
-      font-family: var(--sans);
-      font-size: 16px;
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 10000;
-    }
-
-    .container {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    /* ── SECTION HEADER ── */
-    .demo-section {
-      padding: 100px 0 120px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .demo-section::before {
-      content: '';
-      position: absolute;
-      top: -300px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1200px;
-      height: 1200px;
-      background: radial-gradient(ellipse at center,
-        #06b6d408 0%,
-        #3b82f606 30%,
-        transparent 60%);
-      pointer-events: none;
-    }
-
-    .section-label {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--accent-cyan);
-      margin-bottom: 16px;
-      display: block;
-      text-align: center;
-    }
-
-    .section-title {
-      font-size: clamp(28px, 4vw, 44px);
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 16px;
-      text-align: center;
-      letter-spacing: -0.03em;
-    }
-
-    .section-subtitle {
-      font-size: 17px;
-      color: var(--text-secondary);
-      max-width: 600px;
-      line-height: 1.7;
-      margin: 0 auto 72px;
-      text-align: center;
-    }
-
-    /* ── WORKFLOW TIMELINE ── */
-    .workflow {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      gap: 64px;
-    }
-
-    /* Vertical scan line */
-    .workflow::before {
-      content: '';
-      position: absolute;
-      left: 31px;
-      top: 0;
-      bottom: 0;
-      width: 1px;
-      background: linear-gradient(180deg,
-        var(--accent-cyan) 0%,
-        var(--accent-blue) 40%,
-        var(--accent-purple) 80%,
-        transparent 100%);
-      opacity: 0.3;
-    }
-
-    .workflow-step {
-      display: grid;
-      grid-template-columns: 64px 1fr;
-      gap: 32px;
-      align-items: start;
-      opacity: 0;
-      transform: translateY(20px);
-      animation: step-in 0.6s ease forwards;
-    }
-
-    .workflow-step:nth-child(1) { animation-delay: 0.2s; }
-    .workflow-step:nth-child(2) { animation-delay: 0.6s; }
-    .workflow-step:nth-child(3) { animation-delay: 1.0s; }
-    .workflow-step:nth-child(4) { animation-delay: 1.4s; }
-    .workflow-step:nth-child(5) { animation-delay: 1.8s; }
-
-    @keyframes step-in {
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .step-marker {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-hover);
-      position: relative;
-      z-index: 2;
-      flex-shrink: 0;
-    }
-
-    .step-marker-icon {
-      font-size: 24px;
-      line-height: 1;
-    }
-
-    .workflow-step:nth-child(1) .step-marker { color: var(--accent-green); box-shadow: 0 0 24px #34d39918; }
-    .workflow-step:nth-child(2) .step-marker { color: var(--accent-blue); box-shadow: 0 0 24px var(--glow-blue); }
-    .workflow-step:nth-child(3) .step-marker { color: var(--accent-cyan); box-shadow: 0 0 24px var(--glow-cyan); }
-    .workflow-step:nth-child(4) .step-marker { color: var(--accent-purple); box-shadow: 0 0 24px var(--glow-purple); }
-    .workflow-step:nth-child(5) .step-marker { color: var(--accent-amber); box-shadow: 0 0 24px #f59e0b18; }
-
-    .step-content {
-      min-width: 0;
-    }
-
-    .step-header {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-
-    .step-tool {
-      font-family: var(--mono);
-      font-size: 14px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 6px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-hover);
-    }
-
-    .workflow-step:nth-child(1) .step-tool { color: var(--accent-green); border-color: #34d39933; }
-    .workflow-step:nth-child(2) .step-tool { color: var(--accent-blue); border-color: #3b82f633; }
-    .workflow-step:nth-child(3) .step-tool { color: var(--accent-cyan); border-color: #06b6d433; }
-    .workflow-step:nth-child(4) .step-tool { color: var(--accent-purple); border-color: #8b5cf633; }
-    .workflow-step:nth-child(5) .step-tool { color: var(--accent-amber); border-color: #f59e0b33; }
-
-    .step-desc {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 20px;
-      line-height: 1.6;
-    }
-
-    /* ── TERMINAL BLOCK ── */
-    .terminal {
-      background: #151520;
-      border: 1px solid var(--border-hover);
-      border-radius: 12px;
-      overflow: hidden;
-      font-family: var(--mono);
-      font-size: 13px;
-      line-height: 1.7;
-    }
-
-    .terminal-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: #1a1a24;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .terminal-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-
-    .terminal-dot:nth-child(1) { background: #ff5f57; }
-    .terminal-dot:nth-child(2) { background: #febc2e; }
-    .terminal-dot:nth-child(3) { background: #28c840; }
-
-    .terminal-title {
-      margin-left: 8px;
-      color: var(--text-muted);
-      font-size: 11px;
-    }
-
-    .terminal-body {
-      padding: 16px 20px;
-      overflow-x: auto;
-    }
-
-    .terminal-body .prompt { color: var(--accent-cyan); }
-    .terminal-body .cmd { color: var(--text-primary); }
-    .terminal-body .output { color: var(--text-muted); }
-    .terminal-body .success { color: var(--accent-green); }
-    .terminal-body .value { color: var(--accent-blue); }
-    .terminal-body .key { color: var(--accent-purple); }
-    .terminal-body .warn { color: var(--accent-amber); }
-
-    .terminal-line {
-      white-space: nowrap;
-      opacity: 0;
-      animation: type-in 0.3s ease forwards;
-    }
-
-    /* ── CARD SCAN VISUALIZATION ── */
-    .scan-container {
-      display: grid;
-      grid-template-columns: 280px 1fr;
-      gap: 32px;
-      align-items: start;
-      margin-top: 8px;
-    }
-
-    .card-frame {
-      position: relative;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #151520;
-      border: 1px solid var(--border-hover);
-      padding: 16px;
-    }
-
-    .card-frame::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 12px;
-      border: 2px solid transparent;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple)) border-box;
-      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      opacity: 0;
-      animation: border-glow 2s ease 1.2s forwards;
-    }
-
-    @keyframes border-glow {
-      to { opacity: 0.6; }
-    }
-
-    .card-frame img {
-      width: 100%;
-      border-radius: 8px;
-      display: block;
-    }
-
-    /* Scan line effect */
-    .card-frame::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-      box-shadow: 0 0 20px var(--accent-cyan), 0 0 60px var(--accent-cyan);
-      animation: scan-line 2.5s ease-in-out 1s;
-      opacity: 0;
-    }
-
-    @keyframes scan-line {
-      0% { top: 16px; opacity: 0; }
-      10% { opacity: 0.8; }
-      90% { opacity: 0.8; }
-      100% { top: calc(100% - 16px); opacity: 0; }
-    }
-
-    .card-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: 12px;
-      letter-spacing: 0.05em;
-    }
-
-    .card-label strong {
-      color: var(--accent-amber);
-      font-weight: 500;
-    }
-
-    /* ── EXTRACTED DATA PANELS ── */
-    .extracted-panels {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .data-panel {
-      background: #151520;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px 20px;
-      opacity: 0;
-      transform: translateX(12px);
-      animation: panel-in 0.4s ease forwards;
-    }
-
-    .data-panel:nth-child(1) { animation-delay: 1.6s; }
-    .data-panel:nth-child(2) { animation-delay: 2.0s; }
-    .data-panel:nth-child(3) { animation-delay: 2.4s; }
-
-    @keyframes panel-in {
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    .data-panel-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .data-panel-label::before {
-      content: '';
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: var(--accent-cyan);
-      box-shadow: 0 0 6px var(--accent-cyan);
-    }
-
-    /* ── COLOR SWATCHES ── */
-    .color-grid {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .color-swatch {
-      width: 36px;
-      height: 36px;
-      border-radius: 6px;
-      position: relative;
-      cursor: default;
-      transition: transform 0.2s;
-      border: 1px solid #ffffff0a;
-    }
-
-    .color-swatch:hover {
-      transform: scale(1.15);
-      z-index: 2;
-    }
-
-    .color-swatch::after {
-      content: attr(data-hex);
-      position: absolute;
-      bottom: -22px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-family: var(--mono);
-      font-size: 9px;
-      color: var(--text-muted);
-      white-space: nowrap;
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: none;
-    }
-
-    .color-swatch:hover::after {
-      opacity: 1;
-    }
-
-    /* ── PRICE TABLE ── */
-    .price-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .price-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 16px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-family: var(--mono);
-      font-size: 12px;
-      background: #ffffff04;
-      align-items: center;
-    }
-
-    .price-row:hover {
-      background: #ffffff08;
-    }
-
-    .price-condition {
-      color: var(--text-secondary);
-    }
-
-    .price-seller {
-      color: var(--text-muted);
-      font-size: 11px;
-    }
-
-    .price-value {
-      color: var(--accent-green);
-      font-weight: 600;
-      text-align: right;
-    }
-
-    /* ── COMPONENT TAGS ── */
-    .component-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .component-chip {
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 6px 12px;
-      border-radius: 100px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .component-chip .count {
-      font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 100px;
-      background: var(--accent-blue-dim);
-      color: var(--accent-blue);
-      font-weight: 600;
-    }
-
-    /* ── DESIGN SYSTEM RESULTS ── */
-    .ds-results {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-top: 8px;
-    }
-
-    .ds-stat {
-      background: #151520;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .ds-stat::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-    }
-
-    .ds-stat:nth-child(1)::before { background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent); }
-    .ds-stat:nth-child(2)::before { background: linear-gradient(90deg, transparent, var(--accent-blue), transparent); }
-    .ds-stat:nth-child(3)::before { background: linear-gradient(90deg, transparent, var(--accent-purple), transparent); }
-    .ds-stat:nth-child(4)::before { background: linear-gradient(90deg, transparent, var(--accent-green), transparent); }
-    .ds-stat:nth-child(5)::before { background: linear-gradient(90deg, transparent, var(--accent-amber), transparent); }
-
-    .ds-stat-value {
-      font-family: var(--mono);
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      margin-bottom: 4px;
-    }
-
-    .ds-stat:nth-child(1) .ds-stat-value { color: var(--accent-cyan); }
-    .ds-stat:nth-child(2) .ds-stat-value { color: var(--accent-blue); }
-    .ds-stat:nth-child(3) .ds-stat-value { color: var(--accent-purple); }
-    .ds-stat:nth-child(4) .ds-stat-value { color: var(--accent-green); }
-    .ds-stat:nth-child(5) .ds-stat-value { color: var(--accent-amber); }
-
-    .ds-stat-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    /* ── FONT PREVIEW ── */
-    .font-preview {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .font-row {
-      display: flex;
-      align-items: baseline;
-      gap: 16px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      background: #ffffff04;
-    }
-
-    .font-name {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--accent-blue);
-      min-width: 120px;
-    }
-
-    .font-sample {
-      font-size: 16px;
-      color: var(--text-primary);
-    }
-
-    .font-sizes {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-left: auto;
-    }
-
-    /* ── DOWNLOAD RESULT ── */
-    .download-result {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      margin-top: 8px;
-    }
-
-    .download-thumb {
-      width: 64px;
-      height: 64px;
-      border-radius: 8px;
-      object-fit: cover;
-      border: 1px solid var(--border-hover);
-    }
-
-    .download-files {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .download-file {
-      font-family: var(--mono);
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .download-file .filename { color: var(--text-secondary); }
-    .download-file .filesize { color: var(--text-muted); font-size: 11px; }
-    .download-file .check { color: var(--accent-green); }
-
-    /* ── BOTTOM CTA ── */
-    .demo-cta {
-      text-align: center;
-      margin-top: 80px;
-      padding-top: 64px;
-      border-top: 1px solid var(--border);
-    }
-
-    .demo-cta-text {
-      font-size: 15px;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-      font-family: var(--mono);
-    }
-
-    .demo-cta-text strong {
-      color: var(--text-secondary);
-    }
-
-    .demo-cta-links {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 28px;
-      border-radius: 8px;
-      font-family: var(--mono);
-      font-size: 14px;
-      font-weight: 500;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-install {
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      color: white;
-      box-shadow: 0 0 24px var(--glow-blue), 0 4px 12px rgba(0,0,0,0.3);
-    }
-
-    .btn-install:hover {
-      box-shadow: 0 0 40px var(--glow-blue), 0 6px 20px rgba(0,0,0,0.4);
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: var(--bg-card);
-      color: var(--text-secondary);
-      border: 1px solid var(--border-hover);
-      backdrop-filter: blur(8px);
-    }
-
-    .btn-secondary:hover {
-      color: var(--text-primary);
-      border-color: var(--accent-blue);
-      background: var(--bg-elevated);
-    }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 768px) {
-      .demo-section { padding: 72px 0 80px; }
-
-      .workflow::before { left: 23px; }
-
-      .workflow-step {
-        grid-template-columns: 48px 1fr;
-        gap: 20px;
-      }
-
-      .step-marker {
-        width: 48px;
-        height: 48px;
-      }
-
-      .step-marker-icon { font-size: 18px; }
-
-      .scan-container {
-        grid-template-columns: 1fr;
-      }
-
-      .card-frame {
-        max-width: 240px;
-        margin: 0 auto;
-      }
-
-      .ds-results {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 480px) {
-      .container { padding: 0 16px; }
-
-      .ds-results {
-        grid-template-columns: 1fr;
-      }
-
-      .demo-cta-links {
-        flex-direction: column;
-        align-items: center;
-      }
-    }
-
-    /* ── SPLIT PANE (Step 1) ── */
-    .split-pane {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2px;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border-hover);
-      background: var(--border-hover);
-    }
-
-    .split-left, .split-right {
-      background: #151520;
-      min-height: 320px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .pane-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: #1a1a24;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .pane-bar .terminal-dot { width: 8px; height: 8px; }
-    .pane-bar-title {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-left: 6px;
-    }
-
-    /* Claude Code pane */
-    .claude-pane {
-      padding: 16px 18px;
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.8;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .claude-line {
-      opacity: 0;
-      animation: claude-type 0.3s ease forwards;
-      white-space: nowrap;
-    }
-
-    .claude-line:nth-child(1) { animation-delay: 0.5s; }
-    .claude-line:nth-child(2) { animation-delay: 1.2s; }
-    .claude-line:nth-child(3) { animation-delay: 1.8s; }
-    .claude-line:nth-child(4) { animation-delay: 2.6s; }
-    .claude-line:nth-child(5) { animation-delay: 3.2s; }
-    .claude-line:nth-child(6) { animation-delay: 3.6s; }
-    .claude-line:nth-child(7) { animation-delay: 4.0s; }
-    .claude-line:nth-child(8) { animation-delay: 4.4s; }
-
-    @keyframes claude-type {
-      to { opacity: 1; }
-    }
-
-    .claude-user {
-      color: var(--accent-cyan);
-      font-weight: 500;
-    }
-
-    .claude-agent {
-      color: var(--accent-purple);
-      font-weight: 500;
-    }
-
-    .claude-tool-badge {
-      display: inline-block;
-      padding: 1px 8px;
-      border-radius: 4px;
-      background: var(--accent-purple-dim);
-      color: var(--accent-purple);
-      font-size: 11px;
-      margin-left: 4px;
-    }
-
-    .claude-status-badge {
-      display: inline-block;
-      padding: 1px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      margin-left: 4px;
-    }
-
-    .claude-status-badge.ok {
-      background: #34d39920;
-      color: var(--accent-green);
-    }
-
-    /* TCGplayer login mockup */
-    .tcg-login-mock {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 24px;
-      background: #f8f8f8;
-      position: relative;
-    }
-
-    .tcg-topbar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 48px;
-      background: #ffffff;
-      border-bottom: 2px solid #0835db;
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      gap: 12px;
-    }
-
-    .tcg-logo-text {
-      font-family: var(--sans);
-      font-size: 16px;
-      font-weight: 800;
-      color: #121212;
-      letter-spacing: -0.03em;
-    }
-
-    .tcg-logo-text span {
-      color: #0835db;
-    }
-
-    .tcg-login-card {
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 32px 28px;
-      width: 100%;
-      max-width: 280px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      margin-top: 16px;
-    }
-
-    .tcg-login-title {
-      font-family: var(--sans);
-      font-size: 18px;
-      font-weight: 700;
-      color: #121212;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .tcg-input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #d1dce4;
-      border-radius: 6px;
-      font-family: var(--sans);
-      font-size: 13px;
-      color: #374047;
-      background: #f8f8f8;
-      margin-bottom: 12px;
-      outline: none;
-    }
-
-    .tcg-input.filled {
-      background: #fff;
-      border-color: #0835db;
-      color: #121212;
-    }
-
-    .tcg-input.password {
-      letter-spacing: 0.2em;
-    }
-
-    .tcg-btn {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      background: #0835db;
-      color: #ffffff;
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 600;
-      cursor: default;
-      margin-top: 4px;
-    }
-
-    .tcg-captcha {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 12px;
-      border: 1px solid #d1dce4;
-      border-radius: 6px;
-      margin-bottom: 16px;
-      background: #fff;
-      font-family: var(--sans);
-      font-size: 12px;
-      color: #767676;
-    }
-
-    .tcg-captcha-check {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      border: 2px solid #d1dce4;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: all 0.3s;
-    }
-
-    .tcg-captcha-check.checked {
-      background: var(--accent-green);
-      border-color: var(--accent-green);
-    }
-
-    .tcg-captcha-check.checked::after {
-      content: '\2713';
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .tcg-success-banner {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-      right: 16px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      background: #05772d;
-      color: #fff;
-      font-family: var(--mono);
-      font-size: 11px;
-      text-align: center;
-      opacity: 0;
-      transform: translateY(8px);
-      animation: banner-in 0.4s ease 4.6s forwards;
-    }
-
-    @keyframes banner-in {
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Animated fill for login fields */
-    .tcg-input.anim-fill {
-      animation: field-fill 0.3s ease forwards;
-    }
-
-    .tcg-input.email-fill { animation-delay: 1.4s; }
-    .tcg-input.pass-fill { animation-delay: 2.0s; }
-    .tcg-captcha-check.anim-check { animation: captcha-check 0.3s ease 3.0s forwards; }
-    .tcg-btn.anim-click { animation: btn-press 0.3s ease 3.6s forwards; }
-
-    @keyframes field-fill {
-      0% { border-color: #d1dce4; background: #f8f8f8; }
-      100% { border-color: #0835db; background: #fff; }
-    }
-
-    @keyframes captcha-check {
-      0% { border-color: #d1dce4; background: transparent; }
-      100% { border-color: #34d399; background: #34d399; }
-    }
-
-    @keyframes btn-press {
-      0% { transform: scale(1); }
-      50% { transform: scale(0.97); background: #0628a8; }
-      100% { transform: scale(1); background: #0835db; }
-    }
-
-    @media (max-width: 768px) {
-      .split-pane {
-        grid-template-columns: 1fr;
-      }
-      .split-left, .split-right { min-height: 260px; }
-    }
-
-    /* ── SEARCH ANIMATION (Step 2) ── */
-    .search-demo {
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border-hover);
-      background: #151520;
-    }
-
-    .search-browser-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: #1a1a24;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .search-url-bar {
-      flex: 1;
-      padding: 6px 12px;
-      border-radius: 6px;
-      background: #151520;
-      border: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      overflow: hidden;
-      white-space: nowrap;
-    }
-
-    .search-url-bar .url-domain { color: var(--text-secondary); }
-
-    .search-body {
-      padding: 24px;
-      min-height: 300px;
-      position: relative;
-    }
-
-    /* TCGplayer-style search bar */
-    .tcg-search-bar {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      max-width: 480px;
-      margin: 0 auto 32px;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 2px solid #0835db;
-      background: #fff;
-    }
-
-    .tcg-search-cat {
-      padding: 10px 14px;
-      background: #f0f0f2;
-      border-right: 1px solid #d1dce4;
-      font-family: var(--sans);
-      font-size: 12px;
-      color: #374047;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .tcg-search-input-wrap {
-      flex: 1;
-      position: relative;
-      padding: 10px 14px;
-    }
-
-    .tcg-search-typed {
-      font-family: var(--sans);
-      font-size: 14px;
-      color: #121212;
-      white-space: nowrap;
-    }
-
-    .tcg-search-cursor {
-      display: inline-block;
-      width: 2px;
-      height: 18px;
-      background: #0835db;
-      vertical-align: text-bottom;
-      animation: blink-cursor 0.8s step-end infinite;
-    }
-
-    @keyframes blink-cursor {
-      50% { opacity: 0; }
-    }
-
-    .tcg-search-go {
-      padding: 10px 16px;
-      background: #0835db;
-      border: none;
-      cursor: default;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-    }
-
-    .tcg-search-go::after {
-      content: '\1F50D';
-      font-size: 16px;
-      filter: brightness(10);
-    }
-
-    /* Search results grid */
-    .search-results-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      opacity: 0;
-      transform: translateY(12px);
-    }
-
-    .search-results-grid.show {
-      animation: results-in 0.5s ease forwards;
-    }
-
-    @keyframes results-in {
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .search-result-card {
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 12px;
-      text-align: center;
-      border: 1px solid #e8e8ec;
-      transition: box-shadow 0.2s;
-    }
-
-    .search-result-card:first-child {
-      border-color: #0835db;
-      box-shadow: 0 0 0 1px #0835db;
-    }
-
-    .search-result-img {
-      width: 80px;
-      height: 112px;
-      margin: 0 auto 8px;
-      border-radius: 4px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .search-result-img img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .search-result-img.placeholder {
-      background: linear-gradient(135deg, #e8e8ec, #d1dce4);
-    }
-
-    .search-result-name {
-      font-family: var(--sans);
-      font-size: 10px;
-      font-weight: 600;
-      color: #121212;
-      margin-bottom: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .search-result-set {
-      font-family: var(--sans);
-      font-size: 9px;
-      color: #767676;
-      margin-bottom: 4px;
-    }
-
-    .search-result-price {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      color: #05772d;
-    }
-
-    .search-results-header {
-      font-family: var(--sans);
-      font-size: 13px;
-      color: #374047;
-      margin-bottom: 16px;
-      opacity: 0;
-    }
-
-    .search-results-header.show {
-      animation: results-in 0.3s ease forwards;
-    }
-
-    .search-results-header strong {
-      color: #121212;
-    }
-
-    @media (max-width: 768px) {
-      .search-results-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    /* ── SCROLL REVEAL ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tapsite — extract a design system, hand it to Claude Design</title>
+<meta name="description" content="A worked example: pull a real site's design tokens with tapsite, audit them, and hand them to Claude Design so every deck comes back on-brand. Real captured output throughout.">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="Extract a design system, hand it to Claude Design">
+<meta property="og:description" content="A worked example with real captured output — tokens, a contrast audit, and the false positive the naive method produces.">
+<meta property="og:image" content="https://mgriffen.github.io/tapsite/assets/tapsite-hero.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{
+  --paper:#f7f4ec; --ink:#17150f; --dim:#4a4639; --muted:#5d5847;
+  --rule:#ccc5b2; --mark:#b3341c; --blue:#1c3f6e; --slab:#211f18; --mark-light:#e8724f;
+  --serif:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --measure:34rem;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:1.0625rem;line-height:1.6}
+.wrap{max-width:62rem;margin:0 auto;padding:0 1.5rem}
+p{max-width:var(--measure)}
+a{color:var(--blue)} a:hover{color:var(--mark)}
+code{font-family:var(--mono);font-size:.9em}
+
+nav.top{display:flex;flex-wrap:wrap;gap:1.25rem;padding:.9rem 0;font-family:var(--mono);font-size:.8125rem}
+nav.top a{text-decoration:none;border-bottom:1px solid var(--rule)}
+
+.mast{border-bottom:2px solid var(--ink);padding:2.5rem 0 1.25rem}
+.mast h1{font-family:var(--mono);font-size:clamp(1.5rem,4.5vw,2.25rem);font-weight:700;margin:0;line-height:1.15;letter-spacing:-.01em}
+.mast .sub{font-size:1.1875rem;margin:.85rem 0 0;max-width:42rem}
+.mastmeta{display:flex;flex-wrap:wrap;gap:.35rem 1.5rem;margin-top:1.25rem;font-family:var(--mono);font-size:.8125rem;color:var(--muted)}
+.mastmeta b{color:var(--ink);font-weight:600}
+
+.step{padding:3rem 0;border-bottom:1px solid var(--rule)}
+.step h2{font-family:var(--mono);font-size:1.0625rem;font-weight:700;margin:0 0 1rem}
+.step h2 .n{color:var(--mark);margin-right:.6rem}
+h3{font-family:var(--mono);font-size:.9375rem;margin:1.75rem 0 .5rem;font-weight:700}
+
+.cmd{background:var(--slab);color:var(--paper);font-family:var(--mono);font-size:.9375rem;padding:.85rem 1rem;margin:1.1rem 0;overflow-x:auto;white-space:pre}
+.cmd .p{color:var(--mark-light)}
+.cmd .c{color:#b8b2a0}
+
+.out{border:1px solid var(--rule);border-left:3px solid var(--mark);padding:.9rem 1rem;margin:1.1rem 0;font-family:var(--mono);font-size:.8125rem;line-height:1.55;overflow-x:auto;white-space:pre;background:#fbf9f4}
+.outcap{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin:-.6rem 0 1.2rem}
+
+table{border-collapse:collapse;width:100%;font-size:.9375rem;margin:1rem 0}
+th,td{text-align:left;padding:.5rem .75rem .5rem 0;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:.8125rem;font-weight:600;color:var(--muted);white-space:nowrap}
+td.k{font-family:var(--mono);white-space:nowrap}
+td.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+.scroll{overflow-x:auto}
+.sw16{display:inline-block;width:.85rem;height:.85rem;vertical-align:-1px;margin-right:.45rem;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.fail{color:var(--mark);font-weight:600}
+.ok{color:var(--dim)}
+
+.note{color:var(--muted);font-size:.9375rem;font-style:italic;max-width:var(--measure)}
+.lead{font-size:1.1875rem}
+.slab{background:var(--slab);color:var(--paper);border:0}
+.slab h2{color:var(--paper)} .slab h2 .n{color:var(--mark-light)}
+.slab a{color:var(--mark-light)} .slab .note{color:#b8b2a0}
+.slab .out{background:#2b2921;border-color:#3b382e;border-left-color:var(--mark-light);color:var(--paper)}
+footer{padding:2.5rem 0 3.5rem;font-family:var(--mono);font-size:.8125rem;color:var(--muted)}
+footer a{color:var(--muted)}
+ul.tight{padding-left:1.1rem;max-width:var(--measure)} ul.tight li{margin:.4rem 0}
+</style>
 </head>
 <body>
+<div class="wrap">
 
-  <!-- Minimal nav -->
-  <nav style="position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,15,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.05);">
-    <a href="index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text-primary);font-family:var(--sans);font-weight:700;font-size:15px;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style="color:var(--accent-cyan);"><path fill="currentColor" d="M19 14v2h-3v-1.72zm0-1c0-1.1-1-2-2.2-2H10v-1H5v11h5v-7.09zM5 9h5V7l5.36-1.79a.932.932 0 1 0-.61-1.76L5 7z"/></svg>
-      tapsite
-    </a>
-    <a href="https://github.com/mgriffen/tapsite" style="font-family:var(--mono);font-size:12px;color:var(--text-muted);text-decoration:none;">GitHub</a>
-  </nav>
+<nav class="top">
+  <a href="index.html">← tapsite</a>
+  <a href="#s1">1 Extract</a>
+  <a href="#s2">2 Read</a>
+  <a href="#s3">3 Audit</a>
+  <a href="#s4">4 Claude Design</a>
+  <a href="#s5">5 Drift</a>
+  <a href="https://github.com/mgriffen/tapsite">GitHub</a>
+</nav>
 
-  <section class="demo-section" style="padding-top:140px;">
-    <div class="container">
-      <span class="section-label reveal">Live Demo</span>
-      <h2 class="section-title reveal">Track your deck prices in 5 steps</h2>
-      <p class="section-subtitle reveal">
-        One prompt. Your AI agent logs in, searches cards, pulls prices and images, and extracts the entire site design system &mdash; all from a single authenticated session.
-      </p>
+<header class="mast">
+  <h1>Extract a design system.<br>Hand it to Claude Design.</h1>
+  <p class="sub">You need a deck, a prototype or a one-pager that matches a brand. Nobody can find the design files, and the person who made them left. The brand does still exist in one place: the rendered website.</p>
+  <div class="mastmeta">
+    <span>worked example</span>
+    <span>subject <b>stripe.com</b></span>
+    <span>captured <b>2026-08-11</b></span>
+    <span>tapsite <b>v5.2.0</b></span>
+  </div>
+</header>
 
-      <!-- Opening scenario -->
-      <div class="reveal" style="max-width:680px;margin:0 auto 64px;">
-        <div class="terminal">
-          <div class="terminal-bar">
-            <span class="terminal-dot"></span>
-            <span class="terminal-dot"></span>
-            <span class="terminal-dot"></span>
-            <span class="terminal-title">Claude Code</span>
-          </div>
-          <div class="terminal-body" style="padding:20px 24px;">
-            <div class="claude-line"><span class="claude-user">you:</span> I need to track prices for my Modern Burn deck on</div>
-            <div class="claude-line" style="margin-left:40px;">mtgplayer.com. Pull card images and current prices for:</div>
-            <div class="claude-line" style="margin-left:40px;">4x Goblin Guide, 4x Monastery Swiftspear,</div>
-            <div class="claude-line" style="margin-left:40px;">4x Eidolon of the Great Revel</div>
-            <div class="claude-line">&nbsp;</div>
-            <div class="claude-line"><span class="claude-agent">claude:</span> I'll log into MTGPlayer, search for each card,</div>
-            <div class="claude-line" style="margin-left:52px;">and extract pricing and images. Let me start&hellip;</div>
-          </div>
-        </div>
-      </div>
+<section class="step">
+  <p class="lead">Every block of output on this page is real. It was captured by running the commands shown against the live site on the date above, and pasted here unedited. Re-run them and you will get the same shape, though the counts will have moved.</p>
+</section>
 
-      <div class="workflow">
+<section class="step" id="s1">
+  <h2><span class="n">01</span>Extract the design system</h2>
+  <p>Point tapsite at the URL. It renders the page in Chromium and reads <em>computed</em> styles — the values the browser actually resolved, not what the stylesheet hoped for.</p>
+  <div class="cmd"><span class="p">$</span> npx -y tapsite --profile design
+<span class="c"># then, from your agent:</span>
+<span class="c">#   "extract the colour palette and fonts from https://stripe.com"</span></div>
+  <div class="out">{
+  "_meta": {
+    "tool": "tapsite_extract_colors",
+    "url": "https://stripe.com/",
+    "timestamp": "2026-08-11T06:41:47.458Z",
+    "version": "5.2.0",
+    "description": "Color palette extracted from computed styles and CSS custom properties"
+  },
+  "colors": [
+    {
+      "hex": "#533afd",
+      "rgb": "rgb(83, 58, 253)",
+      "count": 5121,
+      "samples": ["a.hds-link (color)", "a.hds-link (border-color)"]
+    },
+    …
+  ]
+}</div>
+  <p class="outcap">tapsite_extract_colors · stripe.com · 2026-08-11 · truncated for length</p>
+  <p>Note the <code>samples</code> field. Every value carries the selectors it was found on, so a colour is not just a hex — it is evidence of where the brand uses it.</p>
+</section>
 
-        <!-- ── STEP 1: LOGIN ── -->
-        <div class="workflow-step reveal">
-          <div class="step-marker">
-            <span class="step-marker-icon">&#x1f513;</span>
-          </div>
-          <div class="step-content">
-            <div class="step-header">
-              <span class="step-tool">tapsite_login_manual</span>
-            </div>
-            <p class="step-desc">
-              Opens a headed browser for manual login. You handle MFA and captchas yourself &mdash; credentials never touch the wire.
-            </p>
+<section class="step" id="s2">
+  <h2><span class="n">02</span>Read what came back</h2>
+  <p>Twelve unique colours, sorted by how often the browser resolved them. Counts are the useful part: they separate the brand from the incidental.</p>
+  <div class="scroll">
+  <table>
+    <tr><th>Colour</th><th>Uses</th><th>Reading</th></tr>
+    <tr><td class="k"><span class="sw16" style="background:#000000"></span>#000000</td><td class="num">7464</td><td>Text and borders. Structural, not brand.</td></tr>
+    <tr><td class="k"><span class="sw16" style="background:#533afd"></span>#533afd</td><td class="num">5121</td><td><strong>The brand.</strong> Found on links and their borders.</td></tr>
+    <tr><td class="k"><span class="sw16" style="background:#50617a"></span>#50617a</td><td class="num">1176</td><td>Secondary text.</td></tr>
+    <tr><td class="k"><span class="sw16" style="background:#ffffff"></span>#ffffff</td><td class="num">952</td><td>Ground.</td></tr>
+    <tr><td class="k"><span class="sw16" style="background:#061b31"></span>#061b31</td><td class="num">939</td><td>Deep navy. Headings and dark sections.</td></tr>
+  </table>
+  </div>
+  <p>An eyedropper on a screenshot gives you five hex values and no idea which one matters. The count tells you <code>#533afd</code> is the brand and <code>#000000</code> is just text.</p>
 
-            <div class="split-pane">
-              <!-- Left: Claude Code session -->
-              <div class="split-left">
-                <div class="pane-bar">
-                  <span class="terminal-dot"></span>
-                  <span class="terminal-dot"></span>
-                  <span class="terminal-dot"></span>
-                  <span class="pane-bar-title">Claude Code</span>
-                </div>
-                <div class="claude-pane">
-                  <div class="claude-line"><span class="claude-agent">claude:</span> Opening headed browser&hellip;</div>
-                  <div class="claude-line" style="margin-left:12px;"><span class="claude-tool-badge">tapsite_login_manual</span></div>
-                  <div class="claude-line" style="margin-left:12px;"><span class="output">url: mtgplayer.com/login</span></div>
-                  <div class="claude-line">&nbsp;</div>
-                  <div class="claude-line"><span class="claude-agent">claude:</span> Session verified <span class="claude-status-badge ok">&#x2713; authenticated</span></div>
-                  <div class="claude-line" style="margin-left:12px;"><span class="output">Welcome back,</span> <span class="value">collector@mtg.gg</span></div>
-                </div>
-              </div>
+  <h3>Type</h3>
+  <div class="out">"families": [ { "value": "sohne-var", "count": 880 } ],
+"sizes": [
+  { "value": "16px", "count": 582 },
+  { "value": "10px", "count": 107 },
+  { "value": "14px", "count":  41 },
+  { "value": "26px", "count":  32 },
+  { "value":  "9px", "count":  23 },
+  { "value": "22px", "count":  20 }, …
+]</div>
+  <p class="outcap">tapsite_extract_fonts · stripe.com · 2026-08-11 · 1 family, 14 sizes, 2 weights</p>
+  <p>One family, fourteen sizes, two weights. The scale is not the tidy 8-point ramp a design system document would claim — it is what shipped. That is the thing you have to match.</p>
+</section>
 
-              <!-- Right: MTGPlayer login page mockup -->
-              <div class="split-right">
-                <div class="pane-bar" style="background:#ffffff; border-color:#e8e8ec;">
-                  <span class="terminal-dot"></span>
-                  <span class="terminal-dot"></span>
-                  <span class="terminal-dot"></span>
-                  <span class="pane-bar-title" style="color:#767676;">mtgplayer.com/login</span>
-                </div>
-                <div class="tcg-login-mock">
-                  <div class="tcg-topbar">
-                    <span class="tcg-logo-text">MTG<span>player</span></span>
-                  </div>
-                  <div class="tcg-login-card">
-                    <div class="tcg-login-title">Sign In</div>
-                    <input class="tcg-input anim-fill email-fill" type="text" value="collector@mtg.gg" readonly tabindex="-1">
-                    <input class="tcg-input password anim-fill pass-fill" type="text" value="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" readonly tabindex="-1">
-                    <div class="tcg-captcha">
-                      <div class="tcg-captcha-check anim-check"></div>
-                      <span>I am human</span>
-                      <span style="margin-left:auto; font-size:10px; color:#b6b6b6;">hCaptcha</span>
-                    </div>
-                    <button class="tcg-btn anim-click" tabindex="-1">Sign In</button>
-                  </div>
-                  <div class="tcg-success-banner">&#x2713; Manual login complete &mdash; session persisted across tools</div>
-                </div>
-              </div>
-            </div>
+<section class="step" id="s3">
+  <h2><span class="n">03</span>Audit it before you propagate it</h2>
+  <p>You are about to copy this palette into everything your team produces. Worth ten seconds to check it first.</p>
+  <div class="out">Contrast (WCAG AA): 13 passing, 3 failing out of 16 pairs
+Worst: #ffffff/#ffffff = 1:1, #81b81a/#ffffff = 2.39:1, #ff6118/#ffe0d1 = 2.41:1</div>
+  <p class="outcap">tapsite_extract_contrast · stripe.com · 2026-08-11 · sampleSize 200</p>
 
-          </div>
-        </div>
+  <h3>One of those three is not real, and that is the interesting part</h3>
+  <p><code>#ffffff/#ffffff = 1:1</code> is white text on white background, which nobody shipped. It is the signature of a text element sitting on an <strong>image or gradient</strong>: the checker walks up the DOM looking for a <code>background-color</code>, finds none because the background is a picture, falls through to the body, and reports white.</p>
+  <p>Every contrast tool that reads computed styles has this hole. It fails in the dangerous direction too — the same blind spot will <em>pass</em> white text over a light photograph at a true 3.5:1.</p>
+  <p>The fix is to stop asking the DOM and look at the pixels: screenshot the page, screenshot it again with the text hidden, and read the brightest pixel inside each text box. That is the true worst case, and it is what <code>tapsite_audit</code> falls back to when the background is not provably solid.</p>
+  <p class="note">The other two are ordinary and worth knowing about before you build a deck on them — a green on white at 2.39:1 and an orange on pale peach at 2.41:1. Both are below the 4.5:1 AA threshold for body text.</p>
+</section>
 
-        <!-- ── STEP 2: NAVIGATE ── -->
-        <div class="workflow-step reveal">
-          <div class="step-marker">
-            <span class="step-marker-icon">&#x1f50d;</span>
-          </div>
-          <div class="step-content">
-            <div class="step-header">
-              <span class="step-tool">tapsite_inspect + tapsite_interact</span>
-            </div>
-            <p class="step-desc">
-              Navigate to search results, click into a product page. The authenticated session survives every tool call &mdash; no re-login needed.
-            </p>
+<section class="step slab" id="s4">
+  <h2><span class="n">04</span>Hand it to Claude Design</h2>
+  <p>tapsite <em>extracts</em> a design system. <a href="https://www.anthropic.com/news/claude-design-anthropic-labs">Claude Design</a> <em>applies</em> one to everything it makes. That is the whole composition.</p>
+  <div class="cmd"><span class="c"># tapsite writes W3C design tokens</span>
+<span class="p">$</span> npx -y tapsite --profile design
+<span class="c">#   "export the design system for https://stripe.com"</span>
+<span class="c"># -> design-tokens.json  (W3C format)</span>
+<span class="c"># -> design-tokens.css   (paste-ready :root block)</span>
+<span class="c"># -> report.html         (visual)</span></div>
+  <div class="out">:root {
+  --color-brand:        #533afd;  /* 5121 uses */
+  --color-ink:          #000000;  /* 7464 uses */
+  --color-ink-muted:    #50617a;  /* 1176 uses */
+  --color-surface:      #ffffff;  /*  952 uses */
+  --color-ink-deep:     #061b31;  /*  939 uses */
+  --font-family-base:   sohne-var;
+  --font-size-body:     16px;     /*  582 uses */
+}</div>
+  <p class="outcap">shape of design-tokens.css · values captured 2026-08-11</p>
+  <p>Load those into a Claude Design project and every deck, prototype and one-pager it produces comes back on-brand — without anyone eyedropping a screenshot or guessing at the type scale.</p>
+  <p class="note">The counts survive into the comments on purpose. Six months later they are how you tell the brand colour from a colour that merely appeared once.</p>
+</section>
 
-            <div class="search-demo">
-              <div class="search-browser-bar">
-                <span class="terminal-dot"></span>
-                <span class="terminal-dot"></span>
-                <span class="terminal-dot"></span>
-                <div class="search-url-bar">
-                  <span class="url-domain">mtgplayer.com</span>/search/magic/product?q=<span id="url-query"></span>
-                </div>
-              </div>
-              <div class="search-body">
-                <div class="tcg-search-bar">
-                  <div class="tcg-search-cat">Magic: The Gathering</div>
-                  <div class="tcg-search-input-wrap">
-                    <span class="tcg-search-typed" id="search-typed"></span><span class="tcg-search-cursor" id="search-cursor"></span>
-                  </div>
-                  <div class="tcg-search-go"></div>
-                </div>
+<section class="step" id="s5">
+  <h2><span class="n">05</span>Re-run it when the brand moves</h2>
+  <p>Brands change without telling their vendors. Snapshot the extraction now and diff it later; drift shows up as a list rather than a vague sense that the deck looks off.</p>
+  <div class="cmd"><span class="c"># same URL, two points in time</span>
+<span class="p">$</span> npx -y tapsite
+<span class="c">#   "diff https://stripe.com against the snapshot from August"</span></div>
+  <p>The same command answers the competitive version of the question — point it at two different sites instead of one site twice.</p>
+</section>
 
-                <div class="search-results-header" id="results-header">
-                  <strong>8 results</strong> for "lightning dolt" in Magic: The Gathering
-                </div>
+<section class="step">
+  <h2><span class="n">06</span>Reproduce this page</h2>
+  <p>Nothing above was hand-written. Run it yourself:</p>
+  <div class="cmd"><span class="p">$</span> npx -y tapsite --profile design</div>
+  <p>Then ask your agent for the colour palette, the fonts, and a contrast audit of any URL. Output lands as JSON on disk with a <code>_meta</code> block recording the tool, the URL, the timestamp and the version — so a number in a document can always be traced back to the run that produced it.</p>
+  <ul class="tight">
+    <li><a href="index.html">Back to tapsite</a></li>
+    <li><a href="https://github.com/mgriffen/tapsite">Source and full tool reference</a></li>
+    <li><a href="https://www.npmjs.com/package/tapsite">npm</a></li>
+  </ul>
+</section>
 
-                <div class="search-results-grid" id="results-grid">
-                  <div class="search-result-card">
-                    <div class="search-result-img">
-                      <img src="assets/card-lightning-dolt.png" alt="Lightning Dolt">
-                    </div>
-                    <div class="search-result-name">Lightning Dolt</div>
-                    <div class="search-result-set">Magic 2011</div>
-                    <div class="search-result-price">from $1.89</div>
-                  </div>
-                  <div class="search-result-card">
-                    <div class="search-result-img">
-                      <img src="assets/card-goblin-guide.png" alt="Goblin Guide">
-                    </div>
-                    <div class="search-result-name">Goblin Guide</div>
-                    <div class="search-result-set">Zendikar</div>
-                    <div class="search-result-price">from $8.49</div>
-                  </div>
-                  <div class="search-result-card">
-                    <div class="search-result-img">
-                      <img src="assets/card-monastery-swiftspear.png" alt="Monastery Swiftspear">
-                    </div>
-                    <div class="search-result-name">Monastery Swiftspear</div>
-                    <div class="search-result-set">Khans of Tarkir</div>
-                    <div class="search-result-price">from $2.15</div>
-                  </div>
-                  <div class="search-result-card">
-                    <div class="search-result-img">
-                      <img src="assets/card-eidolon.png" alt="Eidolon of the Great Revel">
-                    </div>
-                    <div class="search-result-name">Eidolon of the Great Revel</div>
-                    <div class="search-result-set">Journey into Nyx</div>
-                    <div class="search-result-price">from $5.75</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+<footer>
+  MIT · <a href="https://github.com/mgriffen/tapsite">github.com/mgriffen/tapsite</a><br>
+  stripe.com is used here as a public example of a well-built design system. Measurements are from a single run on 2026-08-11 and are reproducible with the commands shown.
+</footer>
 
-          </div>
-        </div>
-
-        <!-- ── STEP 3: EXTRACT + DOWNLOAD ── -->
-        <div class="workflow-step reveal">
-          <div class="step-marker">
-            <span class="step-marker-icon">&#x1f4f7;</span>
-          </div>
-          <div class="step-content">
-            <div class="step-header">
-              <span class="step-tool">tapsite_extract_images + tapsite_download_images</span>
-            </div>
-            <p class="step-desc">
-              Extract card images and pricing data from each product page using the authenticated session's cookies.
-            </p>
-
-            <div class="scan-container">
-              <div>
-                <div class="card-frame">
-                  <img src="assets/card-lightning-dolt.png" alt="Lightning Dolt" loading="lazy">
-                </div>
-                <div class="card-label">
-                  Lightning Dolt &mdash; Magic 2011 &bull; <strong>$1.89+</strong>
-                </div>
-              </div>
-
-              <div class="extracted-panels">
-                <div class="data-panel">
-                  <div class="data-panel-label">Downloaded Assets (4 cards)</div>
-                  <div class="download-files">
-                    <div class="download-file">
-                      <span class="check">&#x2713;</span>
-                      <span class="filename">goblin-guide_400x560.jpg</span>
-                      <span class="filesize">84.2 KB</span>
-                    </div>
-                    <div class="download-file">
-                      <span class="check">&#x2713;</span>
-                      <span class="filename">monastery-swiftspear_400x560.jpg</span>
-                      <span class="filesize">71.8 KB</span>
-                    </div>
-                    <div class="download-file">
-                      <span class="check">&#x2713;</span>
-                      <span class="filename">eidolon-great-revel_400x560.jpg</span>
-                      <span class="filesize">92.1 KB</span>
-                    </div>
-                    <div class="download-file">
-                      <span class="check">&#x2713;</span>
-                      <span class="filename">lightning-bolt_400x560.jpg</span>
-                      <span class="filesize">63.5 KB</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="data-panel">
-                  <div class="data-panel-label">Deck Price Summary</div>
-                  <div class="price-rows">
-                    <div class="price-row">
-                      <span class="price-condition">4x Goblin Guide</span>
-                      <span class="price-seller">Near Mint</span>
-                      <span class="price-value">$33.96</span>
-                    </div>
-                    <div class="price-row">
-                      <span class="price-condition">4x Monastery Swiftspear</span>
-                      <span class="price-seller">Near Mint</span>
-                      <span class="price-value">$8.60</span>
-                    </div>
-                    <div class="price-row">
-                      <span class="price-condition">4x Eidolon of the Great Revel</span>
-                      <span class="price-seller">Near Mint</span>
-                      <span class="price-value">$23.00</span>
-                    </div>
-                    <div class="price-row">
-                      <span class="price-condition">4x Lightning Dolt</span>
-                      <span class="price-seller">Near Mint</span>
-                      <span class="price-value">$7.56</span>
-                    </div>
-                    <div class="price-row" style="border-top:1px solid var(--border-hover);margin-top:4px;padding-top:8px;">
-                      <span class="price-condition" style="color:var(--text-primary);font-weight:600;">Deck Total (16 cards)</span>
-                      <span class="price-seller"></span>
-                      <span class="price-value" style="font-size:14px;">$73.12</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="data-panel">
-                  <div class="data-panel-label">Card Metadata</div>
-                  <div class="terminal-body" style="padding: 4px 0 0;">
-                    <div class="terminal-line" style="opacity:1"><span class="key">name</span><span class="output">:</span> <span class="value">Lightning Dolt</span></div>
-                    <div class="terminal-line" style="opacity:1"><span class="key">type</span><span class="output">:</span> <span class="value">Instant</span></div>
-                    <div class="terminal-line" style="opacity:1"><span class="key">mana</span><span class="output">:</span> <span class="value">{R}</span></div>
-                    <div class="terminal-line" style="opacity:1"><span class="key">set</span><span class="output">:</span> <span class="value">Magic 2011 (M11)</span></div>
-                    <div class="terminal-line" style="opacity:1"><span class="key">trend</span><span class="output">:</span> <span class="success">&#x25B2; +$0.35 (30d)</span></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── STEP 4: DESIGN SYSTEM ── -->
-        <div class="workflow-step reveal">
-          <div class="step-marker">
-            <span class="step-marker-icon">&#x1f3a8;</span>
-          </div>
-          <div class="step-content">
-            <div class="step-header">
-              <span class="step-tool">tapsite_designsystem</span>
-            </div>
-            <p class="step-desc">
-              One command extracts the complete design system &mdash; colors, fonts, spacing, shadows, animations, icons, and components. Exports W3C design tokens.
-            </p>
-
-            <div class="ds-results">
-              <div class="ds-stat">
-                <div class="ds-stat-value">49</div>
-                <div class="ds-stat-label">Colors</div>
-              </div>
-              <div class="ds-stat">
-                <div class="ds-stat-value">16</div>
-                <div class="ds-stat-label">Font Sizes</div>
-              </div>
-              <div class="ds-stat">
-                <div class="ds-stat-value">50</div>
-                <div class="ds-stat-label">Animations</div>
-              </div>
-              <div class="ds-stat">
-                <div class="ds-stat-value">40</div>
-                <div class="ds-stat-label">Components</div>
-              </div>
-              <div class="ds-stat">
-                <div class="ds-stat-value">23</div>
-                <div class="ds-stat-label">Icons</div>
-              </div>
-            </div>
-
-            <div class="extracted-panels" style="margin-top: 16px;">
-              <div class="data-panel" style="opacity:1; transform:none; animation:none;">
-                <div class="data-panel-label">Extracted Color Palette</div>
-                <div class="color-grid">
-                  <div class="color-swatch" style="background:#0835db" data-hex="#0835db"></div>
-                  <div class="color-swatch" style="background:#145488" data-hex="#145488"></div>
-                  <div class="color-swatch" style="background:#5ca4ff" data-hex="#5ca4ff"></div>
-                  <div class="color-swatch" style="background:#0968f6" data-hex="#0968f6"></div>
-                  <div class="color-swatch" style="background:#13725b" data-hex="#13725b"></div>
-                  <div class="color-swatch" style="background:#05772d" data-hex="#05772d"></div>
-                  <div class="color-swatch" style="background:#008352" data-hex="#008352"></div>
-                  <div class="color-swatch" style="background:#026602" data-hex="#026602"></div>
-                  <div class="color-swatch" style="background:#3cc14e" data-hex="#3cc14e"></div>
-                  <div class="color-swatch" style="background:#ffbd14" data-hex="#ffbd14"></div>
-                  <div class="color-swatch" style="background:#ffc382" data-hex="#ffc382"></div>
-                  <div class="color-swatch" style="background:#ffe58a" data-hex="#ffe58a"></div>
-                  <div class="color-swatch" style="background:#374047" data-hex="#374047"></div>
-                  <div class="color-swatch" style="background:#424850" data-hex="#424850"></div>
-                  <div class="color-swatch" style="background:#5e616c" data-hex="#5e616c"></div>
-                  <div class="color-swatch" style="background:#767676" data-hex="#767676"></div>
-                  <div class="color-swatch" style="background:#d1dce4" data-hex="#d1dce4"></div>
-                  <div class="color-swatch" style="background:#f8f8f8" data-hex="#f8f8f8"></div>
-                  <div class="color-swatch" style="background:#121212" data-hex="#121212"></div>
-                  <div class="color-swatch" style="background:#04070e" data-hex="#04070e"></div>
-                </div>
-              </div>
-
-              <div class="data-panel" style="opacity:1; transform:none; animation:none;">
-                <div class="data-panel-label">Typography &amp; Stack</div>
-                <div class="font-preview">
-                  <div class="font-row">
-                    <span class="font-name">Barlow</span>
-                    <span class="font-sample">The quick brown fox</span>
-                    <span class="font-sizes">16 sizes</span>
-                  </div>
-                  <div class="font-row">
-                    <span class="font-name">Font Awesome</span>
-                    <span class="font-sample" style="font-size:13px; color: var(--text-muted);">23 icons detected</span>
-                    <span class="font-sizes">icon font</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="data-panel" style="opacity:1; transform:none; animation:none;">
-                <div class="data-panel-label">Component Patterns</div>
-                <div class="component-list">
-                  <span class="component-chip">search-result <span class="count">20x</span></span>
-                  <span class="component-chip">footer-links <span class="count">38x</span></span>
-                  <span class="component-chip">account-menu <span class="count">21x</span></span>
-                  <span class="component-chip">swiper-slide <span class="count">14x</span></span>
-                  <span class="component-chip">svg-icon <span class="count">10x</span></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── STEP 5: STACK ── -->
-        <div class="workflow-step reveal">
-          <div class="step-marker">
-            <span class="step-marker-icon">&#x26a1;</span>
-          </div>
-          <div class="step-content">
-            <div class="step-header">
-              <span class="step-tool">tapsite_extract_stack</span>
-            </div>
-            <p class="step-desc">
-              Fingerprint the tech stack in one call. Know what you're building against before you write a line of code.
-            </p>
-            <div class="terminal">
-              <div class="terminal-bar">
-                <span class="terminal-dot"></span>
-                <span class="terminal-dot"></span>
-                <span class="terminal-dot"></span>
-                <span class="terminal-title">tapsite &mdash; stack detection</span>
-              </div>
-              <div class="terminal-body">
-                <div class="terminal-line" style="opacity:1"><span class="key">framework</span><span class="output">:</span>  <span class="value">Vue.js</span></div>
-                <div class="terminal-line" style="opacity:1"><span class="key">modules</span><span class="output">:</span>   <span class="value">ES Modules (bundled)</span></div>
-                <div class="terminal-line" style="opacity:1"><span class="key">hosting</span><span class="output">:</span>   <span class="value">AWS</span></div>
-                <div class="terminal-line" style="opacity:1"><span class="key">icons</span><span class="output">:</span>     <span class="value">Font Awesome 6</span></div>
-                <div class="terminal-line" style="opacity:1"><span class="key">carousel</span><span class="output">:</span>  <span class="value">Swiper.js</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- ── BOTTOM CTA ── -->
-      <div class="demo-cta reveal">
-        <p class="demo-cta-text">
-          <strong>One prompt. One session. Complete site intelligence.</strong><br>
-          Card prices, deck totals, images, design tokens, tech stack &mdash; your agent handles everything.
-        </p>
-        <div class="demo-cta-links">
-          <a href="https://www.npmjs.com/package/tapsite" class="btn-primary btn-install">
-            npx -y tapsite
-          </a>
-          <a href="https://github.com/mgriffen/tapsite" class="btn-primary btn-secondary">
-            View on GitHub
-          </a>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <script>
-    (function() {
-      // Scroll reveal
-      var els = document.querySelectorAll('.reveal');
-      var observer = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.1 });
-      els.forEach(function(el) { observer.observe(el); });
-
-      // Search typing animation
-      var searchText = 'lightning dolt';
-      var typed = document.getElementById('search-typed');
-      var urlQuery = document.getElementById('url-query');
-      var cursor = document.getElementById('search-cursor');
-      var resultsHeader = document.getElementById('results-header');
-      var resultsGrid = document.getElementById('results-grid');
-      var charIndex = 0;
-      var searchStarted = false;
-
-      var searchObserver = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting && !searchStarted) {
-            searchStarted = true;
-            searchObserver.unobserve(entry.target);
-            setTimeout(startTyping, 600);
-          }
-        });
-      }, { threshold: 0.3 });
-
-      var searchDemo = document.querySelector('.search-demo');
-      if (searchDemo) searchObserver.observe(searchDemo);
-
-      function startTyping() {
-        if (charIndex < searchText.length) {
-          var current = searchText.slice(0, charIndex + 1);
-          typed.textContent = current;
-          urlQuery.textContent = current.replace(/ /g, '+');
-          charIndex++;
-          setTimeout(startTyping, 80 + Math.random() * 60);
-        } else {
-          // Done typing — show results
-          setTimeout(function() {
-            cursor.style.display = 'none';
-            resultsHeader.classList.add('show');
-            resultsGrid.classList.add('show');
-          }, 400);
-        }
-      }
-    })();
-  </script>
-
+</div>
 </body>
 </html>
