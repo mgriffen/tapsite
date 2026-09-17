@@ -39,6 +39,11 @@ class BrowserPool {
     return this._primaryPage;
   }
 
+  /** Whether this pool's browser was launched headless. */
+  get headless() {
+    return this._headless;
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   async init() {

@@ -15,11 +15,18 @@ module.exports = function registerSessionTools(server) {
       await browser.ensureBrowser(false);
       await safeNavigate(browser.page, url, { waitMs: 0 });
 
+      // Report what actually happened. Previously this said "Browser window
+      // opened" unconditionally, so a silently-headless browser looked
+      // identical to a real one.
+      const isHeaded = browser.pool ? browser.pool.headless === false : false;
       const title = await browser.page.title();
+      const banner = isHeaded
+        ? `Headed browser window opened to: ${url} (DISPLAY=${process.env.DISPLAY || 'unset'})`
+        : `WARNING: browser is NOT headed - no window will be visible. Run tapsite_close, then retry.`;
       return {
         content: [{
           type: 'text',
-          text: `Browser window opened to: ${url}\nPage title: ${title}\n\nThe user should now log in manually (including MFA/authenticator). Once they confirm they are logged in, use tapsite_login_check to verify the session.`,
+          text: `${banner}\nPage title: ${title}\n\nThe user should now log in manually (including MFA/authenticator). Once they confirm they are logged in, use tapsite_login_check to verify the session.`,
         }],
       };
     }
