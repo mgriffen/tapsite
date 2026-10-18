@@ -232,6 +232,33 @@ describe('summarizeResult', () => {
       const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
       expect(data._meta.tool).toBe('tapsite_extract_colors');
     });
+
+    it('saves a large string result under `result`, not as index-keyed characters', () => {
+      const big = 'x'.repeat(2500);
+      const data = JSON.parse(fs.readFileSync(pathFromResult(summarizeResult('run-js', big, 'big string')), 'utf-8'));
+      expect(data.result).toBe(big);
+      expect(data['0']).toBeUndefined();
+    });
+
+    it('saves a large array result under `result`, not as index-keyed rows', () => {
+      const rows = Array.from({ length: 200 }, (_, i) => ({ i, text: `row ${i}` }));
+      const data = JSON.parse(fs.readFileSync(pathFromResult(summarizeResult('links', rows, 'big array')), 'utf-8'));
+      expect(data.result).toEqual(rows);
+      expect(data['0']).toBeUndefined();
+    });
+
+    it('still spreads a large plain-object result at the top level', () => {
+      const obj = { payload: 'y'.repeat(2500), count: 1 };
+      const data = JSON.parse(fs.readFileSync(pathFromResult(summarizeResult('run-js', obj, 'big object')), 'utf-8'));
+      expect(data.payload).toBe(obj.payload);
+      expect(data.count).toBe(1);
+      expect(data.result).toBeUndefined();
+    });
+
+    it('keeps a null result instead of dropping it', () => {
+      const data = JSON.parse(fs.readFileSync(pathFromResult(summarizeResult('table', null, 'none')), 'utf-8'));
+      expect(data).toHaveProperty('result', null);
+    });
   });
 
   // ── No Markdown without TAPSITE_REPORT=1 ─────────────────────────────────

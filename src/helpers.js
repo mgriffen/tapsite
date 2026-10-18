@@ -78,7 +78,9 @@ function summarizeResult(name, data, summary, meta = {}) {
     summary,
   };
 
-  fs.writeFileSync(filePath, JSON.stringify(sanitizeObject({ _meta, ...data }), null, 2));
+  // Spreading a string or array gives index keys ({"0":…}), so wrap anything that isn't a plain object.
+  const isPlainObject = data !== null && typeof data === 'object' && !Array.isArray(data);
+  fs.writeFileSync(filePath, JSON.stringify(sanitizeObject({ _meta, ...(isPlainObject ? data : { result: data }) }), null, 2));
 
   if (process.env.TAPSITE_REPORT === '1') {
     const mdPath = path.join(dir, `${name}-${tsFile}.md`);
