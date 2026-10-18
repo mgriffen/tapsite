@@ -50,7 +50,7 @@
   },
   "homepage": "https://github.com/mgriffen/tapsite#readme",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "playwright": "^1.58.2",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
@@ -59,9 +59,9 @@
     "vitest": "^4.1.0"
   },
   "overrides": {
-    "brace-expansion": "5.0.9",
+    "brace-expansion": "5.0.12",
     "@hono/node-server": "2.0.12",
     "qs": "6.16.0",
-    "fast-uri": "3.1.7"
+    "fast-uri": "3.1.8"
   }
 }
