@@ -2,7 +2,7 @@
 
 The MCP server for web intelligence extraction. 55 tools that give AI agents the ability to *understand* websites — not just drive a browser, but extract structured intelligence about design systems, accessibility, performance, content, and more.
 
-Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, detect tech stacks, or pull structured data with custom CSS/XPath/regex selectors — all as structured JSON that agents can reason about.
+Other MCP browser tools let agents click buttons. tapsite lets agents extract a complete color palette, audit WCAG contrast ratios, diff two sites' design tokens, or pull structured data with custom CSS/XPath/regex selectors — all as structured JSON that agents can reason about.
 
 ## What makes tapsite different
 
@@ -11,11 +11,10 @@ Other MCP browser tools let agents click buttons. tapsite lets agents extract a 
 | Click buttons | Extract full design systems |
 | Fill forms | Audit WCAG accessibility |
 | Take screenshots | Diff sites over time |
-| Read raw HTML | Detect tech stacks & APIs |
+| Read raw HTML | Extract structured content as JSON |
 | | Custom CSS / XPath / regex extraction |
-| | Anti-bot resilience & proxy rotation |
 
-## 55 Tools across 11 Categories
+## 55 Tools across 12 Categories
 
 | Category | Tools | What it does |
 |----------|-------|-------------|
@@ -34,7 +33,7 @@ Other MCP browser tools let agents click buttons. tapsite lets agents extract a 
 
 ## Engine
 
-Parallel browser pooling for concurrent extraction. Persistent disk caching — crawls resume where they left off and results are reused across sessions. 3-tier anti-bot escalation automatically handles protected sites with stealth scripts and proxy rotation.
+Parallel browser pooling for concurrent extraction. Persistent disk caching — crawls resume where they left off and results are reused across sessions.
 
 ## Security
 

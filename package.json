@@ -2,7 +2,7 @@
   "name": "tapsite",
   "version": "5.2.0",
   "mcpName": "io.github.mgriffen/tapsite",
-  "description": "MCP server for web intelligence extraction — design systems, accessibility audits, competitive analysis, and migration prep",
+  "description": "MCP server for web intelligence extraction \u2014 design systems, accessibility audits, competitive analysis, and migration prep",
   "main": "src/cli.js",
   "bin": {
     "tapsite": "src/server.js",
@@ -20,9 +20,10 @@
     "start": "node src/server.js",
     "login": "node src/cli.js login",
     "inspect": "node src/cli.js inspect",
-    "prepublishOnly": "npm test",
+    "prepublishOnly": "npm run check:versions && npm test",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:versions": "node scripts/check-version-sync.mjs"
   },
   "keywords": [
     "mcp",
